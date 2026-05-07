@@ -1,0 +1,10 @@
+# Normalizar saltos de línea a LF en el repo (Linux/Mac)
+* text=auto eol=lf
+
+# Binarios — no modificar
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.webp binary
+*.zip  binary
+*.pdf  binary
