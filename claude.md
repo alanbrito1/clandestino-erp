@@ -1,4 +1,5 @@
 # ClanDestino ERP v4.23 — Memoria de Sesión
+# Última sesión: 2026-06-05 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
 
@@ -932,4 +933,17 @@ Uso: `<button class="btn-ajuste ic" title="..."><?= IC_EDIT ?></button>` — la 
 | `ventas/api/detalle_venta.php` | Mismo problema con nombre actual en vez de snapshot | COALESCE en SELECT de items del detalle |
 | `clientes/api/crud.php` | trim() sin re-validar nombre vacío (podría guardar ' ') | Validación explícita post-trim |
 
-*Última actualización: 2026-06-04 | v4.23 — Autocomplete clientes POS; estado de cuenta con impresión; 8 fixes seguridad (acNorm null, carrito vacío, calcLinea NaN/Infinity, z-index dropdown, aria-label, log impresión estado cuenta): 6 bugs críticos corregidos (snapshot en editar_venta, compra_crud, cambiar_estado, historial COALESCE); G22 tests coherencia snapshots; validación trim en clientes CRUD; 22 grupos de tests; schema_completo y ayuda actualizados completamente*
+### Estado al cierre de sesión 2026-06-05
+Todo subido a GitHub. Sin pendientes de código.
+
+**Migraciones pendientes de aplicar en producción (cPanel):**
+- `032_compra_detalles_presentacion.sql`
+- `033_nomina_snapshots.sql`
+- `034_snapshots_nombres_y_saldo.sql`
+
+**Próxima sesión puede continuar desde:**
+- Todo el código está en producción excepto migraciones 032-034
+- El formulario de compras con bloque de presentación ya funciona (espera migraciones para guardar snapshots)
+- Estado de cuenta de clientes (`/clientes/estado_cuenta.php`) completamente funcional
+
+*Última actualización: 2026-06-05 | v4.23 — Autocomplete buscable en POS, estado de cuenta cliente con impresión, 8 fixes seguridad, commits frecuentes a GitHub configurados* 6 bugs críticos corregidos (snapshot en editar_venta, compra_crud, cambiar_estado, historial COALESCE); G22 tests coherencia snapshots; validación trim en clientes CRUD; 22 grupos de tests; schema_completo y ayuda actualizados completamente*

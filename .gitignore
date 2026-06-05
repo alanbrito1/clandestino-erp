@@ -25,3 +25,5 @@ desktop.ini
 # ── claude.md se incluye (memoria del proyecto, sin datos sensibles) ─
 # Si quieres excluirlo descomenta la siguiente línea:
 # claude.md
+historicos_*.sql
+public_html/public_html.zip
