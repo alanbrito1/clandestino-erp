@@ -1,8 +1,8 @@
 -- ============================================================
--- ClanDestino ERP v4.24 — Esquema de instalación completo
+-- ClanDestino ERP v4.30 — Esquema de instalación completo
 -- Compatible: MySQL 5.7+ / MariaDB 10.3+
 -- Última actualización: 2026-06-06
--- Estructura sincronizada con dump de producción 2026-06-06
+-- Incluye migración 035: variantes de tamaño (producto_variantes)
 -- ============================================================
 -- INSTRUCCIONES DE INSTALACIÓN (instalación desde cero):
 --   1. Crear base de datos: CREATE DATABASE clandestinoERP
@@ -15,13 +15,14 @@
 --       iniciales. No es necesario ejecutar las migraciones 002-034
 --       para una instalación nueva.
 --
--- TABLAS (27): logs_historial, login_intentos, usuarios,
+-- TABLAS (28): logs_historial, login_intentos, usuarios,
 --   permisos_modulos, configuracion_negocio, configuracion_app,
 --   listas_sistema, proveedores, insumos, productos, recetas,
 --   combo_configs, combo_insumos, clientes, ventas, venta_detalles,
 --   pagos_fiado, compras, compra_detalles, empleados, registro_horas,
 --   parametros_laborales, nomina_liquidaciones, activos,
---   costos_indirectos, produccion_lotes, ajustes_stock
+--   costos_indirectos, produccion_lotes, ajustes_stock,
+--   producto_variantes (mig. 035)
 --
 -- TRIGGERS (9):
 --   trg_config_negocio_audit, trg_insumos_costo_from_presentacion_insert,
@@ -41,6 +42,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- ============================================================
 DROP TABLE IF EXISTS `ajustes_stock`;
 DROP TABLE IF EXISTS `produccion_lotes`;
+DROP TABLE IF EXISTS `producto_variantes`;
 DROP TABLE IF EXISTS `costos_indirectos`;
 DROP TABLE IF EXISTS `activos`;
 DROP TABLE IF EXISTS `nomina_liquidaciones`;
@@ -350,6 +352,25 @@ CREATE TABLE `combo_insumos` (
 
 
 -- ============================================================
+-- TABLA: producto_variantes (mig. 035)
+-- Variantes de tamaño de un producto (XL, Regular, Familiar…).
+-- Cada variante tiene precio propio y factor de escala de receta.
+-- SIN FK sobre producto_id: errno 121 en cPanel compartido.
+-- ============================================================
+CREATE TABLE `producto_variantes` (
+    `id`            INT AUTO_INCREMENT PRIMARY KEY,
+    `producto_id`   INT NOT NULL,
+    `etiqueta`      VARCHAR(80)   NOT NULL,
+    `precio_venta`  DECIMAL(12,2) NOT NULL,
+    `factor_receta` DECIMAL(5,3)  NOT NULL DEFAULT 1.000,
+    `activo`        TINYINT(1)    NOT NULL DEFAULT 1,
+    `created_by`    INT           DEFAULT NULL,
+    `created_at`    DATETIME      DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_pv_producto` (`producto_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- ============================================================
 -- TABLA: clientes
 -- Clientes del negocio. saldo_fiado se actualiza en VentaModel.
 -- ============================================================
@@ -429,6 +450,12 @@ CREATE TABLE `venta_detalles` (
     -- Snapshots de nombre (mig. 034 — inmutables — al final por orden histórico de migración)
     `nombre_snap`     VARCHAR(200)    DEFAULT NULL,
     `nombre2_snap`    VARCHAR(120)    DEFAULT NULL,
+    -- Variante de tamaño (mig. 035 — snapshot al momento de la venta)
+    -- NULL = venta anterior a mig. 035 o producto sin variantes
+    `variante_id`        INT           DEFAULT NULL,
+    `variante_etiqueta`  VARCHAR(80)   DEFAULT NULL,
+    `factor_receta_snap` DECIMAL(5,3)  DEFAULT NULL,
+    -- SIN FK sobre variante_id: errno 121 en cPanel compartido (igual que ajustes_stock)
     CONSTRAINT `fk_vd_venta`    FOREIGN KEY (`venta_id`)
         REFERENCES `ventas`(`id`) ON DELETE CASCADE,
     CONSTRAINT `fk_vd_producto` FOREIGN KEY (`producto_id`)
@@ -436,7 +463,8 @@ CREATE TABLE `venta_detalles` (
     CONSTRAINT `fk_vd_combo`    FOREIGN KEY (`combo_id`)
         REFERENCES `combo_configs`(`id`) ON DELETE SET NULL,
     INDEX `idx_vd_venta`    (`venta_id`),
-    INDEX `idx_vd_producto` (`producto_id`)
+    INDEX `idx_vd_producto` (`producto_id`),
+    INDEX `idx_vd_variante` (`variante_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 

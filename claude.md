@@ -1010,9 +1010,12 @@ Todo subido a GitHub. Sin pendientes de código ni migraciones.
 4. Al confirmar: `variante_id`, `variante_etiqueta`, `factor_receta` viajan en cada ítem del JSON
 5. `VentaModel::crear()` usa `factor_receta` para escalar el descuento de insumos
 
-**Próxima sesión puede continuar desde:**
-- `ayuda/index.php`: documentar v4.3 variantes
-- `database/schema.sql`: actualizar con migración 035
-- Considerar: "ingrediente base" (escalar receta por peso/tamaño del producto base)
+**✅ Completado en continuación:**
+- `ayuda/index.php`: sección "Variantes de tamaño" con fórmulas, flujo POS, tabla campos, nota inmutabilidad; badge v4.30; G23 en tabla de tests; `producto_variantes` en tabla de DB
+- `database/schema.sql`: tabla `producto_variantes`; columnas `variante_id/variante_etiqueta/factor_receta_snap` en `venta_detalles`; DROP TABLE añadido; contador 28 tablas; versión v4.30
 
-*Última actualización: 2026-06-06 | v4.30 — variantes de tamaño completo (mig.035 + picker POS + historial + reporte + tests).*
+**Próxima sesión puede continuar desde:**
+- Roadmap v4.4: considerar "ingrediente base" para escalar receta por factor de peso/tamaño
+- Considerar: sugerencia de producción diaria basada en variante más vendida
+
+*Última actualización: 2026-06-06 | v4.30 — variantes completo incluyendo docs, schema.sql y ayuda.*

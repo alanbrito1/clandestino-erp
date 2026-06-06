@@ -286,7 +286,7 @@ $nav_activo = 'ayuda';
                 <div class="section-icon" style="background:#fef2f0">&#127829;</div>
                 <div>
                     <div class="section-title">ClanDestino ERP — Visión General</div>
-                    <div class="section-badge">v4.25 · Colombia</div>
+                    <div class="section-badge">v4.30 · Colombia</div>
                 </div>
             </div>
             <p>Sistema de gestión empresarial para negocios de sándwiches. Controla ventas, inventario, producción, nómina, activos y costos desde un único panel adaptado a la legislación colombiana.</p>
@@ -891,6 +891,48 @@ SET costo_calculado = IFNULL(
             <div class="ok"><strong>Guardar combo:</strong> Hace un upsert (crea si no existe, actualiza si ya existe). Los insumos configurados se reemplazan completamente — agrega o quita los que necesites y guarda.</div>
             <div class="warn"><strong>Quitar combo:</strong> Desactiva la configuración (soft-delete). Las ventas históricas registradas como combo no se alteran. El producto vuelve a venderse solo en el POS.</div>
 
+            <div class="sub-title">Variantes de tamaño — migración 035</div>
+            <p>Un producto puede tener múltiples variantes de tamaño (XL, Regular, Familiar…). En lugar de crear un producto separado por tamaño, defines las variantes dentro del mismo producto. Cada variante tiene su propio precio y un <strong>factor de receta</strong> que escala las cantidades de ingredientes.</p>
+            <table class="data-table">
+                <thead><tr><th>Campo</th><th>Descripción</th></tr></thead>
+                <tbody>
+                    <tr><td>Etiqueta</td><td>Nombre de la variante: "XL", "Regular", "Familiar", etc. Máximo 80 caracteres. Debe ser único por producto (no puede haber dos variantes activas con la misma etiqueta).</td></tr>
+                    <tr><td>Precio de venta</td><td>Precio cobrado al cliente cuando elige esta variante. Sobreescribe el precio base del producto.</td></tr>
+                    <tr><td>Factor de receta</td><td>Multiplica las cantidades de insumos que se descuentan al vender. <code>1.0</code> = igual que la receta base. <code>1.5</code> = 50% más ingredientes (p.ej. para XL). <code>0.7</code> = 30% menos (p.ej. para mini).</td></tr>
+                </tbody>
+            </table>
+            <div class="formula-block">
+<span class="title">Fórmula de descuento de insumos con variante</span>
+<span class="comment">Al vender en modo demanda (sin stock terminado):</span>
+descuento = (cantidad_requerida ÷ unidades_por_receta) × cantidad_vendida × <span class="var">factor_receta</span>
+
+<span class="comment">Ejemplo: Pollo XL (factor = 1.5), receta base usa 150g de pollo / sándwich:
+  descuento = (150 ÷ 1) × 1 × 1.5 = 225g de pollo por XL vendido</span>
+
+<span class="comment">Al anular la venta se usa factor_receta_snap (snapshot guardado en venta_detalles).
+  Si factor_receta_snap es NULL (venta anterior a mig. 035) se asume factor 1.0.</span></div>
+
+            <div class="sub-title">Flujo en el POS con variantes</div>
+            <p>Al tocar un producto que tiene variantes configuradas, el POS muestra un <strong>selector de tamaño</strong> (mini bottom-sheet) antes de agregar al carrito:</p>
+            <ol style="padding-left:20px;line-height:1.9">
+                <li>El cajero toca el producto en el grid.</li>
+                <li>Aparece el selector de variante con un botón por cada tamaño y su precio.</li>
+                <li>Al seleccionar una variante, si el producto también tiene combo configurado, se muestra el selector Solo/Combo (con el precio de la variante como base).</li>
+                <li>El ítem se agrega al carrito con un badge azul que muestra la etiqueta (ej. <strong>XL</strong>).</li>
+            </ol>
+            <div class="tip">Puedes tener el mismo producto en distintos tamaños en la misma venta — cada combinación (producto + variante) ocupa su propia línea en el carrito.</div>
+            <div class="tip">El historial de ventas muestra la etiqueta de variante en azul al expandir cada venta. El reporte de ventas incluye una tabla "Ventas por Variante" y una hoja Excel dedicada.</div>
+
+            <div class="sub-title">Configurar variantes — Módulo Productos</div>
+            <p>En la fila expandida de cada producto hay una sección <strong>"Variantes de Tamaño"</strong> que permite:</p>
+            <ul style="padding-left:20px;line-height:1.9">
+                <li><strong>Crear</strong> variantes con etiqueta, precio y factor de receta.</li>
+                <li><strong>Editar</strong> una variante existente (el precio y factor se pueden cambiar sin perder el historial).</li>
+                <li><strong>Desactivar</strong> una variante (soft-delete: activo=0). Los datos históricos de ventas se conservan intactos.</li>
+                <li><strong>Reactivar</strong> una variante desactivada.</li>
+            </ul>
+            <div class="warn"><strong>Nota de inmutabilidad:</strong> Al vender una variante, la etiqueta (<code>variante_etiqueta</code>) y el factor (<code>factor_receta_snap</code>) se guardan como snapshot en <code>venta_detalles</code>. Si luego editas el factor de la variante, las ventas históricas se revierten con el factor original.</div>
+
             <div class="sub-title">Dar de baja stock terminado — 🎁 Regalar y 🗑 Desechar</div>
             <p>Cuando hay <code>stock_disponible &gt; 0</code>, cada tarjeta de producto muestra dos botones para bajar stock sin pasar por el POS:</p>
             <table class="data-table">
@@ -1399,6 +1441,7 @@ La barra de progreso muestra el % del PE alcanzado en el mes</span></div>
                     <tr><td><code>productos</code></td><td>Carta de productos con receta, nombre2 (027), stock terminado (015), categoría/tamaño como VARCHAR (031)</td><td>base + 015 + 027 + 031</td></tr>
                     <tr><td><code>recetas</code></td><td>Ingredientes requeridos por producto con cantidades</td><td>base</td></tr>
                     <tr><td><code>combo_configs / combo_insumos</code></td><td>Configuración de combos: producto + insumos extras por combo</td><td>025</td></tr>
+                    <tr><td><code>producto_variantes</code></td><td>Variantes de tamaño por producto (etiqueta, precio, factor_receta). Sin FK (cPanel errno 121)</td><td>035</td></tr>
                     <tr><td><code>clientes</code></td><td>Clientes con saldo fiado, apellido (028) y empresa (028)</td><td>base + 028</td></tr>
                     <tr><td><code>ventas</code></td><td>Cabecera POS. metodo_pago incluye 'obsequio' (026)</td><td>base + 003 + 026</td></tr>
                     <tr><td><code>venta_detalles</code></td><td>Líneas de venta. <strong>Snapshot completo:</strong> precio_unitario + nombre_snap + nombre2_snap</td><td>base + 003 + 025 + 034</td></tr>
@@ -1512,6 +1555,7 @@ La barra de progreso muestra el % del PE alcanzado en el mes</span></div>
                     <tr><td>G05 Fiado</td><td>Saldos ≥ 0. Solo fiado en estado pendiente_pago.</td></tr>
                     <tr><td>G06 Obsequios</td><td>No en pendiente_pago. Total > 0. En ajustes_stock correctamente.</td></tr>
                     <tr><td>G07 Combos</td><td>combo_configs e integridad de venta_detalles.</td></tr>
+                    <tr><td>G23 Variantes 035</td><td>producto_variantes y columnas venta_detalles (variante_id, factor_receta_snap). Factor en rango, precios positivos, sin duplicados, coherencia NULL.</td></tr>
                     <tr><td>G08 Clientes</td><td>Campos mig. 028, saldos, FKs del módulo de fusión.</td></tr>
                     <tr><td>G09 Producción</td><td>Lotes activos con costo coherente. FK sin huérfanos.</td></tr>
                     <tr><td>G10 Activos</td><td>Sin fecha_inicio_uso → depreciación = 0. Divisor 30.41666.</td></tr>
