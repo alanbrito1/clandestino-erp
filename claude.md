@@ -945,11 +945,23 @@ Todo subido a GitHub. Sin pendientes de código ni migraciones.
 **✅ Fixes aplicados en v4.25:**
 - `admin/index.php`: `logs_historial.created_at` → `logs_historial.fecha_cambio` (query + display)
 - `tests/suite.php`: `logs_historial.created_at` → `logs_historial.fecha_cambio` (G17 Auditoría)
+- `tests/suite.php`: comentario G16 mislabeled "G14"; header actualizado con G14b–G22
 - `app/views/nav.php`: CSS global `html { overflow-x:hidden; max-width:100% }` y `box-sizing:border-box` — fix mobile overflow en todos los módulos
 - `productos/analisis.php`: `.section` con `overflow-x:auto` para tablas en análisis
 - `ayuda/index.php`: migraciones 032-034 corregidas de PENDIENTE → APLICADA; badge v4.25
+- `app/models/NominaModel.php`: docblock duplicado en `registrar_horas()` eliminado
+- `app/models/CompraModel.php`: `editar()` ahora detecta migración 034 y captura `nombre_snap`/`unidad_snap` al re-insertar `compra_detalles` (igual que `crear()`)
+
+**✅ Auditoría exhaustiva completada (2026-06-06):**
+- Revisados los 82 archivos PHP; todos tienen `auth_check` + `csrf_verificar()` + `permiso_requerir()`
+- Todos los `ORDER BY` dinámicos pasan por `match` con valores hardcodeados (sin inyección SQL)
+- `activos/api/subir_foto.php`: validación MIME via `finfo`, nombres generados, `.htaccess` en uploads
+- `admin/api/usuario_crud.php`: bcrypt cost 12, email normalizado, no puede cambiar propio rol
+- `ventas/api/cambiar_estado.php`: transacción atómica + detección migración 034 correcta
+- `ventas/api/editar_venta.php`: detección migración 034 + reversa de stock completa
+- No se encontraron vulnerabilidades XSS ni SQL injection adicionales
 
 **Próxima sesión puede continuar desde:**
 - Roadmap v4.3: ingrediente base + variantes de producto
 
-*Última actualización: 2026-06-06 | v4.25 — responsive fix global; bugs fecha_cambio corregidos; doc actualizada.*
+*Última actualización: 2026-06-06 | v4.25 — auditoría exhaustiva completada; CompraModel::editar() fix 034.*
