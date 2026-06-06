@@ -626,9 +626,6 @@ class NominaModel
 
     /**
      * Registra o actualiza las horas trabajadas de un empleado en una fecha.
-     */
-    /**
-     * Registra o actualiza las horas trabajadas de un empleado en una fecha.
      * Incluye tipo de hora (para recargos) y si es día festivo.
      *
      * @param string $tipo_hora  'ordinaria'|'recargo_nocturno'|'extra_diurna'|...

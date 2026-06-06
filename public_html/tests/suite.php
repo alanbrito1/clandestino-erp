@@ -16,9 +16,15 @@
  *   G11  Nómina              — liquidaciones y FKs
  *   G12  Costos de productos — costo_calculado y precio_venta
  *   G13  Foreign keys        — sin huérfanos en tablas críticas
- *   G14  Configuración       — claves requeridas en configuracion_app/negocio
- *   G15  Seguridad           — contraseñas, APP_ENV, rate-limiting, CSRF activo
- *   G16  Auditoría           — logs_historial activo y con registros recientes
+ *   G14b Catálogos           — items activos en listas_sistema, sin duplicados (029)
+ *   G15  Configuración       — claves requeridas en configuracion_app/negocio
+ *   G16  Seguridad           — contraseñas, APP_ENV, rate-limiting, CSRF activo
+ *   G17  Auditoría           — logs_historial activo y con registros recientes
+ *   G18  Eficiencia          — índices en columnas críticas de tablas grandes
+ *   G19  Usuario UX          — validaciones de interfaz y flujos de usuario
+ *   G20  Inmutabilidad ext.  — nombres snapshot en ventas, compras, producción
+ *   G21  Migración 031       — conversión ENUM → VARCHAR para catálogos
+ *   G22  Snapshots 032-034   — coherencia de empaque, nómina, nombres y saldos
  *
  * EJECUTAR: /tests/suite.php (navegador, sesión activa como superadmin)
  */
@@ -727,7 +733,7 @@ t($G, "Existe al menos un superadmin activo",
     $superadmin_activo === 0 ? "No hay superadmin activo. El sistema quedaria sin acceso de administracion." : '');
 
 // ════════════════════════════════════════════════════════════════════════════════
-//  G14 — SEGURIDAD Y VULNERABILIDADES
+//  G16 — SEGURIDAD Y VULNERABILIDADES
 //  Verifica controles de seguridad activos: contraseñas, entorno, rate-limiting.
 //  No puede testear CSRF o rutas HTTP desde aquí, pero sí la configuración de BD
 //  y las constantes de PHP que afectan la postura de seguridad.
