@@ -54,8 +54,9 @@ $stocks_insumos = db()->query(
     "SELECT id, nombre, stock_actual, unidad_medida FROM insumos WHERE activo = 1"
 )->fetchAll(PDO::FETCH_UNIQUE);
 
-// ── Sugerencia de producción — promedio últimos 14 días ──────────────────────
-$dias_analisis = 14;
+// ── Sugerencia de producción — período configurable ───────────────────────────
+$dias_validos  = [7, 14, 30];
+$dias_analisis = in_array((int)($_GET['dias'] ?? 14), $dias_validos) ? (int)$_GET['dias'] : 14;
 
 // Ventas diarias promedio por producto (excluye hoy para no sesgar con datos parciales)
 $stmt_avg = db()->prepare(
@@ -347,7 +348,7 @@ foreach ($productos as $prod) {
     <details class="sug-panel" <?= ($total_sugerido > 0 || $fecha === date('Y-m-d')) ? 'open' : '' ?>>
         <summary>
             <span>📊</span>
-            <span>Sugerencia de producción — últimos <?= $dias_analisis ?> días</span>
+            <span>Sugerencia de producción</span>
             <?php if ($total_sugerido > 0): ?>
             <span class="sug-badge" style="background:#fef3c7;color:#92400e">
                 +<?= $total_sugerido ?> a producir
@@ -355,6 +356,15 @@ foreach ($productos as $prod) {
             <?php else: ?>
             <span class="sug-badge" style="background:#d1fae5;color:#065f46">Stock OK</span>
             <?php endif; ?>
+            <span style="display:flex;gap:4px;margin-left:auto;margin-right:8px" onclick="event.stopPropagation()">
+                <?php foreach ([7, 14, 30] as $d): ?>
+                <a href="?fecha=<?= urlencode($fecha) ?>&dias=<?= $d ?>"
+                   style="padding:2px 9px;border-radius:99px;font-size:11px;font-weight:700;text-decoration:none;
+                          <?= $dias_analisis === $d ? 'background:var(--brand);color:#fff' : 'background:var(--g9);color:var(--g5)' ?>">
+                    <?= $d ?>d
+                </a>
+                <?php endforeach; ?>
+            </span>
             <span class="sug-chevron">▼</span>
         </summary>
         <div class="sug-table-wrap">

@@ -125,6 +125,43 @@ try {
 } catch (\Exception $e) {}
 $negocio_nombre = $negocio_nombre ?: APP_NAME;
 
+// ── 6. Texto para compartir por WhatsApp ──────────────────────────────────────
+function fmt_cop(float $n): string { return '$' . number_format($n, 0, ',', '.'); }
+
+$txt_share = '';
+if ($n_ventas_total > 0) {
+    $txt_share  = "🧾 *Cierre {$fecha_label}* — {$negocio_nombre}\n";
+    $txt_share .= str_repeat('─', 28) . "\n";
+
+    $iconos_share = ['efectivo'=>'💵','nequi'=>'📱','daviplata'=>'📱','bancolombia'=>'🏦','fiado'=>'📋','obsequio'=>'🎁'];
+    $labels_share = ['efectivo'=>'Efectivo','nequi'=>'Nequi','daviplata'=>'Daviplata','bancolombia'=>'Bancolombia','fiado'=>'Fiado','obsequio'=>'Obsequio'];
+    foreach ($labels_share as $m => $lbl) {
+        if (!isset($por_metodo[$m])) continue;
+        $icn  = $iconos_share[$m];
+        $monto= fmt_cop((float)$por_metodo[$m]['total_pesos']);
+        $n    = (int)$por_metodo[$m]['n_ventas'];
+        $txt_share .= "{$icn} {$lbl}: {$monto} ({$n})\n";
+    }
+
+    $txt_share .= str_repeat('─', 28) . "\n";
+    $txt_share .= "✅ *Cobrado: " . fmt_cop($total_cobrado) . "*\n";
+    if ($total_fiado > 0)    $txt_share .= "📋 Fiado: "    . fmt_cop($total_fiado)    . "\n";
+    if ($total_obsequio > 0) $txt_share .= "🎁 Obsequio: " . fmt_cop($total_obsequio) . "\n";
+    $txt_share .= "📊 *Total: " . fmt_cop($total_ventas) . "*\n";
+
+    if (!empty($detalle)) {
+        $txt_share .= str_repeat('─', 28) . "\n";
+        foreach ($detalle as $prod => $d) {
+            $vars = '';
+            if (!empty($d['variantes'])) {
+                $partes = array_map(fn($v) => $v['etiqueta'] . ':' . $v['u'], $d['variantes']);
+                $vars = ' (' . implode(', ', $partes) . ')';
+            }
+            $txt_share .= "🥪 {$prod}: {$d['total_u']}u{$vars}\n";
+        }
+    }
+}
+
 // Etiquetas amigables por método de pago
 $metodo_labels = [
     'efectivo'    => 'Efectivo',
@@ -239,6 +276,11 @@ $metodo_icons = [
         </div>
         <div class="hdr-btns">
             <a href="<?= APP_BASE ?>/ventas/historial.php" class="btn btn-sec">← Historial</a>
+            <?php if ($n_ventas_total > 0): ?>
+            <button class="btn" style="background:#25d366;color:#fff" onclick="compartir()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-2px;margin-right:4px"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.104.548 4.078 1.508 5.793L.057 23.75l6.163-1.618A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.371l-.359-.213-3.713.975.992-3.62-.234-.372A9.785 9.785 0 012.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/></svg>Compartir
+            </button>
+            <?php endif; ?>
             <button class="btn btn-print" onclick="window.print()">🖨 Imprimir</button>
         </div>
     </div>
@@ -370,5 +412,21 @@ $metodo_icons = [
     <?php endif; ?>
 
 </main>
+
+<script>
+const TEXTO_COMPARTIR = <?= json_encode($txt_share, JSON_UNESCAPED_UNICODE) ?>;
+
+async function compartir() {
+    if (!TEXTO_COMPARTIR) return;
+    if (navigator.share) {
+        try {
+            await navigator.share({ title: 'Cierre de Caja', text: TEXTO_COMPARTIR });
+            return;
+        } catch (e) { /* usuario canceló o API no disponible */ }
+    }
+    // Fallback: abrir WhatsApp Web con el texto codificado
+    window.open('https://wa.me/?text=' + encodeURIComponent(TEXTO_COMPARTIR), '_blank');
+}
+</script>
 </body>
 </html>

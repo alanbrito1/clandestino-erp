@@ -6,7 +6,7 @@
  */
 
 define('APP_NAME',    'ClanDestino ERP');
-define('APP_VERSION', '4.43'); // 2026-06-06: v4.43 cierre de caja diario (ventas/cierre.php) con desglose variantes + print
+define('APP_VERSION', '4.44'); // 2026-06-06: v4.44 conteo rápido de stock (inventario/conteo.php) + selector 7/14/30d en produccion.php + WhatsApp share en cierre.php
 define('APP_ENV',     'production'); // cambiar a 'development' para depurar
 
 // Ruta absoluta a public_html/ (raíz web del proyecto)

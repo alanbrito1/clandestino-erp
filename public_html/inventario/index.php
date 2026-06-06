@@ -206,6 +206,9 @@ $CATEGORIAS = !empty($CATEGORIAS_LISTA)
             + Proveedor
         </button>
         <?php endif; ?>
+        <?php if (permiso_tiene('inventario','editar_existentes')): ?>
+        <a href="<?= APP_BASE ?>/inventario/conteo.php" class="btn-sec">📋 Conteo rápido</a>
+        <?php endif; ?>
         <?php /* Lista de Compras y Registrar Compra están en el tab Compras */ ?>
     </div>
 
