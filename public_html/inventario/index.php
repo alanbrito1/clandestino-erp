@@ -356,7 +356,7 @@ $CATEGORIAS = !empty($CATEGORIAS_LISTA)
       <div class="fg"><label>Unidad básica de medida *</label>
         <select id="ni-unidad" onchange="calcCosto(); toggleEquiv('ni')">
           <?php foreach ($UNIDADES_LABEL as $k => $v): ?>
-          <option value="<?= $k ?>"><?= $v ?></option>
+          <option value="<?= $k ?>"><?= htmlspecialchars($v) ?></option>
           <?php endforeach; ?>
         </select>
       </div>
@@ -496,7 +496,7 @@ $CATEGORIAS = !empty($CATEGORIAS_LISTA)
       <div class="fg"><label>Unidad básica</label>
         <select id="aj-unidad" onchange="calcCostoAj(); toggleEquiv('aj')">
           <?php foreach ($UNIDADES_LABEL as $k => $v): ?>
-          <option value="<?= $k ?>"><?= $v ?></option>
+          <option value="<?= $k ?>"><?= htmlspecialchars($v) ?></option>
           <?php endforeach; ?>
         </select>
       </div>

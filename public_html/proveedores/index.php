@@ -202,7 +202,7 @@ $CAT_COLORS = [
     <div class="fg"><label>Categoría</label>
       <select id="mp-cat">
         <?php foreach ($CAT_LABELS as $k => $v): ?>
-        <option value="<?= $k ?>"><?= $v ?></option>
+        <option value="<?= $k ?>"><?= htmlspecialchars($v) ?></option>
         <?php endforeach; ?>
       </select>
     </div>

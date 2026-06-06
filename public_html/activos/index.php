@@ -575,7 +575,7 @@ $VIDA_ESTADO = [
         <div class="fg"><label>Categoría</label>
           <select name="categoria_activo">
             <?php foreach ($CATEGORIAS as $k => $lbl): ?>
-            <option value="<?= $k ?>"><?= $lbl ?></option>
+            <option value="<?= $k ?>"><?= htmlspecialchars($lbl) ?></option>
             <?php endforeach; ?>
           </select>
         </div>
@@ -687,7 +687,7 @@ $VIDA_ESTADO = [
         <div class="fg"><label>Categoría</label>
           <select name="categoria_activo" id="e-cat">
             <?php foreach ($CATEGORIAS as $k => $lbl): ?>
-            <option value="<?= $k ?>"><?= $lbl ?></option>
+            <option value="<?= $k ?>"><?= htmlspecialchars($lbl) ?></option>
             <?php endforeach; ?>
           </select>
         </div>
