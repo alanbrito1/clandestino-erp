@@ -397,7 +397,6 @@ class CompraModel
             $pdo->prepare('DELETE FROM compra_detalles WHERE compra_id = ?')->execute([$id]);
 
             // ── 3. Insertar nuevas líneas + actualizar insumos ──────────────
-            // Reusar la detección de migración 032 de crear()
             static $tiene032e = null;
             if ($tiene032e === null) {
                 try {
@@ -409,7 +408,29 @@ class CompraModel
                 } catch (\Exception $e2) { $tiene032e = false; }
             }
 
-            if ($tiene032e) {
+            static $tiene034ce = null;
+            if ($tiene034ce === null) {
+                try {
+                    $tiene034ce = (int)$pdo->query(
+                        "SELECT COUNT(*) FROM information_schema.COLUMNS
+                         WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='compra_detalles'
+                           AND COLUMN_NAME='nombre_snap'"
+                    )->fetchColumn() > 0;
+                } catch (\Exception $e2) { $tiene034ce = false; }
+            }
+
+            if ($tiene032e && $tiene034ce) {
+                $stmtDet = $pdo->prepare(
+                    'INSERT INTO compra_detalles
+                        (compra_id, insumo_id, cantidad, precio_unitario, subtotal,
+                         presentacion, cantidad_presentacion, cant_presentaciones, precio_presentacion,
+                         nombre_snap, unidad_snap,
+                         created_by)
+                     VALUES (:cid, :iid, :cant, :precio, :sub,
+                             :pres, :cantpx, :numpres, :ppres,
+                             :nsnap, :usnap, :uid)'
+                );
+            } elseif ($tiene032e) {
                 $stmtDet = $pdo->prepare(
                     'INSERT INTO compra_detalles
                         (compra_id, insumo_id, cantidad, precio_unitario, subtotal,
@@ -418,6 +439,13 @@ class CompraModel
                      VALUES (:cid, :iid, :cant, :precio, :sub,
                              :pres, :cantpx, :numpres, :ppres, :uid)'
                 );
+            } elseif ($tiene034ce) {
+                $stmtDet = $pdo->prepare(
+                    'INSERT INTO compra_detalles
+                        (compra_id, insumo_id, cantidad, precio_unitario, subtotal,
+                         nombre_snap, unidad_snap, created_by)
+                     VALUES (:cid, :iid, :cant, :precio, :sub, :nsnap, :usnap, :uid)'
+                );
             } else {
                 $stmtDet = $pdo->prepare(
                     'INSERT INTO compra_detalles
@@ -425,6 +453,7 @@ class CompraModel
                      VALUES (:cid, :iid, :cant, :precio, :sub, :uid)'
                 );
             }
+            $stmtInsNombre = $pdo->prepare('SELECT nombre, unidad_medida FROM insumos WHERE id = ?');
             $stmtUpd = $pdo->prepare(
                 'UPDATE insumos
                  SET costo_actual  = :precio,
@@ -461,6 +490,12 @@ class CompraModel
                                             ? (float)$l['cant_presentaciones'] : null;
                     $detParams[':ppres']   = isset($l['precio_presentacion']) && $l['precio_presentacion'] > 0
                                             ? (float)$l['precio_presentacion'] : null;
+                }
+                if ($tiene034ce) {
+                    $stmtInsNombre->execute([$iid]);
+                    $insRow = $stmtInsNombre->fetch();
+                    $detParams[':nsnap'] = $insRow['nombre']        ?? null;
+                    $detParams[':usnap'] = $insRow['unidad_medida'] ?? null;
                 }
                 $stmtDet->execute($detParams);
                 $stmtUpd->execute([':precio'=>$precio,':cant'=>$cant,':uid'=>$uid,':iid'=>$iid]);
