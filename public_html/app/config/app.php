@@ -6,7 +6,7 @@
  */
 
 define('APP_NAME',    'ClanDestino ERP');
-define('APP_VERSION', '4.46'); // 2026-06-06: v4.46 descuentos en POS (038), G27, historial badge, cierre descuentos
+define('APP_VERSION', '4.47'); // 2026-06-06: v4.47 descuentos en reporte ventas (Excel + web)
 define('APP_ENV',     'production'); // cambiar a 'development' para depurar
 
 // Ruta absoluta a public_html/ (raíz web del proyecto)

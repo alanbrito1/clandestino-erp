@@ -84,6 +84,43 @@ try {
     $ventas_variante = [];
 }
 
+// Descuentos del período (mig.038) — mapa por venta_id + lista completa para Excel
+$descuentos_map           = []; // [venta_id => ['pct' => X, 'valor' => Y]]
+$descuentos_lista         = []; // filas completas con cliente/cajero (para hoja Excel)
+$tiene038r                = false;
+$total_descuentos_periodo = 0.0;
+$n_descuentos_periodo     = 0;
+try {
+    $tiene038r = (int)db()->query(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='ventas'
+           AND COLUMN_NAME='descuento_pct'"
+    )->fetchColumn() > 0;
+    if ($tiene038r) {
+        $st = db()->prepare(
+            "SELECT v.id, v.fecha_venta, v.total, v.descuento_pct, v.descuento_valor,
+                    IFNULL(c.nombre, 'Mostrador') AS cliente, u.nombre AS cajero
+             FROM ventas v
+             LEFT JOIN clientes c ON c.id = v.cliente_id
+             LEFT JOIN usuarios u ON u.id = v.created_by
+             WHERE DATE(v.fecha_venta) BETWEEN :desde AND :hasta
+               AND v.estado != 'anulada' AND v.descuento_pct > 0
+             ORDER BY v.fecha_venta DESC"
+        );
+        $st->execute([':desde' => $desde, ':hasta' => $hasta]);
+        foreach ($st->fetchAll() as $d) {
+            $vid = (int)$d['id'];
+            $descuentos_map[$vid] = [
+                'pct'   => (float)$d['descuento_pct'],
+                'valor' => (float)$d['descuento_valor'],
+            ];
+            $descuentos_lista[] = $d;
+            $total_descuentos_periodo += (float)$d['descuento_valor'];
+            $n_descuentos_periodo++;
+        }
+    }
+} catch (\Exception $e) {}
+
 // ── EXPORTAR EXCEL ──────────────────────────────────────────────────────────
 if (isset($_GET['export'])) {
     $w = new XlsxWriter();
@@ -93,13 +130,18 @@ if (isset($_GET['export'])) {
     $w->addRow(['ClanDestino ERP — Reporte de Ventas'], true);
     $w->addRow(["Período: $desde  al  $hasta | Generado: " . date('d/m/Y H:i')]);
     $w->addEmptyRow();
-    $w->addRow(['#', 'Fecha', 'Hora', 'Cliente', 'Items', 'Método Pago', 'Total', 'Estado', 'Cajero'], true);
+    $cols038h = $tiene038r ? ['Desc. %', 'Desc. $'] : [];
+    $w->addRow(array_merge(['#', 'Fecha', 'Hora', 'Cliente', 'Items', 'Método Pago', 'Total'], $cols038h, ['Estado', 'Cajero']), true);
 
     $total_pesos = 0; // solo ingresos reales (excluye obsequio)
     foreach ($ventas as $v) {
         if ($v['estado'] === 'anulada') continue;
         $es_obsequio = $v['metodo_pago'] === 'obsequio';
-        $w->addRow([
+        $vid038 = (int)$v['id'];
+        $row038 = $tiene038r
+            ? [$descuentos_map[$vid038]['pct'] ?? 0, $descuentos_map[$vid038]['valor'] ?? 0]
+            : [];
+        $w->addRow(array_merge([
             $v['id'],
             date('d/m/Y', strtotime($v['fecha_venta'])),
             date('H:i',   strtotime($v['fecha_venta'])),
@@ -107,13 +149,18 @@ if (isset($_GET['export'])) {
             (int)$v['num_items'],
             $metodo_label[$v['metodo_pago']] ?? $v['metodo_pago'],
             (float)$v['total'],
+        ], $row038, [
             $v['estado'],
             $v['cajero'] ?? '',
-        ]);
+        ]));
         if (!$es_obsequio) $total_pesos += (float)$v['total'];
     }
     $w->addEmptyRow();
-    $w->addRow(['', '', '', '', '', 'TOTAL INGRESOS (sin obsequios)', $total_pesos, '', ''], false, true);
+    $blank038 = $tiene038r ? ['', ''] : [];
+    $w->addRow(array_merge(['', '', '', '', '', 'TOTAL INGRESOS (sin obsequios)', $total_pesos], $blank038, ['', '']), false, true);
+    if ($tiene038r && $total_descuentos_periodo > 0) {
+        $w->addRow(array_merge(['', '', '', '', '', 'TOTAL DESCONTADO (' . $n_descuentos_periodo . ' ventas con dto)', ''], [0, $total_descuentos_periodo], ['', '']), false, true);
+    }
 
     // Resumen por método de pago
     $w->addEmptyRow();
@@ -167,6 +214,30 @@ if (isset($_GET['export'])) {
                 (float)$row['total_venta'],
             ]);
         }
+    }
+
+    // ── Hoja: Descuentos (solo si hay ventas con descuento en el período) ──────
+    if ($tiene038r && !empty($descuentos_lista)) {
+        $w->setSheet('Descuentos');
+        $w->addRow(['ClanDestino ERP — Descuentos del Período'], true);
+        $w->addRow(["Período: $desde  al  $hasta | Generado: " . date('d/m/Y H:i')]);
+        $w->addEmptyRow();
+        $w->addRow(['#', 'Fecha', 'Cliente', 'Total Bruto', 'Desc. %', 'Desc. $', 'Total Neto', 'Cajero'], true);
+        foreach ($descuentos_lista as $d) {
+            $total_bruto = (float)$d['total'] + (float)$d['descuento_valor'];
+            $w->addRow([
+                $d['id'],
+                date('d/m/Y H:i', strtotime($d['fecha_venta'])),
+                $d['cliente'],
+                $total_bruto,
+                (float)$d['descuento_pct'],
+                (float)$d['descuento_valor'],
+                (float)$d['total'],
+                $d['cajero'] ?? '',
+            ]);
+        }
+        $w->addEmptyRow();
+        $w->addRow(['', '', 'TOTAL DESCONTADO', '', '', $total_descuentos_periodo, '', ''], false, true);
     }
 
     $w->download('ClanDestino_Ventas_' . $desde . '_' . $hasta . '.xlsx');
@@ -311,6 +382,16 @@ $estado_c = ['completada'=>'b-ok','anulada'=>'b-ano','pendiente_pago'=>'b-pend']
         <span style="color:var(--g5)">(no incluido en total de ingresos)</span></span>
     </div>
     <?php endif; ?>
+    <?php if ($n_descuentos_periodo > 0): ?>
+    <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:12px;padding:12px 16px;
+                margin-bottom:16px;font-size:13px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:18px">🏷</span>
+        <span><strong><?= $n_descuentos_periodo ?> venta<?= $n_descuentos_periodo>1?'s':'' ?> con descuento</strong>
+        en este período — total descontado:
+        <strong style="color:#92400e">−$<?= number_format($total_descuentos_periodo,0,',','.') ?></strong>
+        <span style="color:var(--g5)">(incluido en el Excel → hoja "Descuentos")</span></span>
+    </div>
+    <?php endif; ?>
 
     <!-- Tabla de ventas -->
     <div class="card">
@@ -335,7 +416,12 @@ $estado_c = ['completada'=>'b-ok','anulada'=>'b-ano','pendiente_pago'=>'b-pend']
                     <td class="hide-m"><?= htmlspecialchars($v['cliente']) ?></td>
                     <td class="hide-m"><?= $v['num_items'] ?></td>
                     <td class="hide-m"><?= htmlspecialchars($metodo_label[$v['metodo_pago']] ?? $v['metodo_pago']) ?></td>
-                    <td class="r"><strong>$<?= number_format($v['total'],0,',','.') ?></strong></td>
+                    <td class="r">
+                        <strong>$<?= number_format($v['total'],0,',','.') ?></strong>
+                        <?php if (isset($descuentos_map[(int)$v['id']])): ?>
+                        <br><span class="badge" style="background:#fef3c7;color:#92400e;font-size:10px">−<?= number_format($descuentos_map[(int)$v['id']]['pct'],0) ?>% dto</span>
+                        <?php endif; ?>
+                    </td>
                     <td><span class="badge <?= $estado_c[$v['estado']] ?? 'b-ok' ?>"><?= htmlspecialchars($v['estado']) ?></span></td>
                 </tr>
                 <?php endforeach; ?>
