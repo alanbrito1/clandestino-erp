@@ -139,50 +139,40 @@ $insumos_js = json_encode(array_map(fn($i) => [
         }
         .linea-sel select:focus { border-color:var(--brand); }
 
-        /* Fila 2: bloque de presentación (oculto hasta que se selecciona insumo) */
+        /* Fila 2: panel informativo de presentación (solo lectura) */
         .linea-pres {
-            background:var(--g9);
-            border:1px solid var(--g8);
-            border-radius:10px;
-            padding:10px 12px;
-            display:none; /* JS lo muestra */
+            display:none; /* JS lo muestra al seleccionar un insumo */
         }
-        .pres-hdr {
-            display:flex; align-items:center; gap:8px; margin-bottom:8px;
-            font-size:11px; font-weight:700; text-transform:uppercase;
-            letter-spacing:.5px; color:var(--g5);
+        /* Panel horizontal con badges y etiquetas de la presentación del insumo */
+        .pres-info-panel {
+            display:flex; flex-wrap:wrap; align-items:center; gap:6px;
+            padding:7px 12px;
+            background:#f0f9ff; border:1px solid #bae6fd; border-radius:10px;
+            font-size:13px;
         }
-        .pres-grid {
-            display:grid;
-            grid-template-columns:auto 1fr 1fr 1fr;
-            gap:8px;
-            align-items:end;
+        /* Badge con el tipo de empaque (ej: "Frasco", "Lata", "Paca") */
+        .pres-badge {
+            display:inline-flex; align-items:center; padding:3px 10px;
+            background:#e0f2fe; color:#0369a1; border-radius:20px;
+            font-size:12px; font-weight:700; white-space:nowrap;
         }
-        @media(max-width:540px){
-            .pres-grid { grid-template-columns:1fr 1fr; }
-            .pres-grid .tipo-col { grid-column:1/-1; }
+        .pres-info-sep { color:#94a3b8; font-weight:300; }
+        .pres-info-detail { color:#374151; font-size:13px; }
+        /* Badge verde para la equivalencia física (ej: "= 160 g/lata") */
+        .pres-equiv-badge {
+            display:inline-flex; align-items:center; padding:2px 8px;
+            background:#f0fdf4; color:#166534; border-radius:20px;
+            font-size:11px; font-weight:600; border:1px solid #bbf7d0;
+            white-space:nowrap;
         }
-        .pres-grid .fg-sm { display:flex; flex-direction:column; gap:3px; }
-        .pres-grid .fg-sm label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--g5); }
-        .pres-grid input, .pres-grid select {
-            padding:8px 10px; border:2px solid var(--g8); border-radius:8px;
-            font-size:14px; color:var(--dark); outline:none; width:100%;
-        }
-        .pres-grid input:focus, .pres-grid select:focus { border-color:var(--brand); }
-        /* Badge visual del tipo de presentación */
-        .tipo-badge {
-            display:inline-flex; align-items:center; height:38px; padding:0 12px;
-            background:#e0f2fe; color:#0369a1; border-radius:8px;
-            font-size:13px; font-weight:700; white-space:nowrap;
-        }
-        /* Hint resultado del cálculo bidireccional */
-        .pres-hint {
-            font-size:11px; color:#0369a1; background:#e0f2fe;
-            padding:3px 8px; border-radius:6px; text-align:center; white-space:nowrap;
-            align-self:center; margin-top:16px;
+        /* Hint dinámico que muestra el total físico al escribir la cantidad */
+        .pres-total-hint {
+            margin-left:auto; padding:2px 8px;
+            background:#dbeafe; color:#1e40af;
+            border-radius:6px; font-size:11px; font-weight:600; white-space:nowrap;
         }
 
-        /* Fila 3: nro.presentaciones | precio/unidad | total | delete */
+        /* Fila 3: cantidad | precio/unidad | total | delete */
         .linea-units {
             display:grid;
             grid-template-columns:1fr 1fr 1fr auto;
@@ -586,43 +576,20 @@ function agregarLinea() {
             </select>
         </div>
 
-        <!-- Fila 2: bloque de presentación.
-             Siempre se muestra al seleccionar un insumo.
-             Pre-carga con los datos guardados del insumo; editable para esta compra específica.
-             Replicado del modal de inventario: mismo layout y cálculo bidireccional. -->
+        <!-- Fila 2: panel informativo de presentación (solo lectura).
+             Se muestra al seleccionar un insumo y muestra el tipo de empaque,
+             la unidad básica, la cantidad por empaque y la equivalencia física
+             para dar contexto visual de qué se está comprando. -->
         <div class="linea-pres" id="pres-block-${n}">
-            <div class="pres-hdr">
-                📦 Presentación de compra
-                <span id="pres-hint-unidad-${n}" style="color:var(--brand);font-weight:600;font-size:12px;margin-left:auto"></span>
-            </div>
-            <div class="pres-grid">
-                <div class="fg-sm tipo-col">
-                    <label>Tipo de empaque</label>
-                    <select id="pres-tipo-${n}" onchange="calcPres(${n},'tipo')">
-                        <option value="">— Tipo —</option>
-                    </select>
-                </div>
-                <div class="fg-sm">
-                    <label>Und. básicas/empaque</label>
-                    <input type="number" id="pres-cantx-${n}"
-                           placeholder="Ej: 12" min="0.001" step="0.001"
-                           title="Cuántas unidades básicas contiene cada empaque"
-                           oninput="calcPres(${n},'cantx')">
-                </div>
-                <div class="fg-sm">
-                    <label>Precio/empaque ($)</label>
-                    <input type="number" id="pres-precio-${n}"
-                           placeholder="Ej: 29000" min="0" step="1"
-                           title="Precio que pagas por cada empaque (paca, frasco, etc.)"
-                           oninput="calcPres(${n},'precio_pres')">
-                </div>
-                <div class="fg-sm">
-                    <label>Costo/unidad ($)</label>
-                    <input type="number" id="pres-costou-${n}"
-                           placeholder="Calculado" min="0" step="0.0001"
-                           title="Precio/empaque ÷ und./empaque = costo por unidad básica"
-                           oninput="calcPres(${n},'costou')">
-                </div>
+            <div class="pres-info-panel">
+                <span>📦</span>
+                <span class="pres-badge"       id="pres-tipo-lbl-${n}">—</span>
+                <span class="pres-info-sep">·</span>
+                <span class="pres-info-detail" id="pres-unidad-lbl-${n}">—</span>
+                <span class="pres-info-sep">·</span>
+                <span class="pres-info-detail" id="pres-cant-lbl-${n}">—</span>
+                <span class="pres-equiv-badge" id="pres-equiv-lbl-${n}" style="display:none"></span>
+                <span class="pres-total-hint"  id="pres-total-hint-${n}" style="display:none"></span>
             </div>
         </div>
 
@@ -664,99 +631,82 @@ function agregarLinea() {
         <input type="hidden" name="lineas[${n}][precio_presentacion]"   id="hppres-${n}">
     `;
     document.getElementById('lineas-container').appendChild(div);
-    // Rellenar select de tipos de presentación desde listas_sistema si está disponible
-    _poblarTiposPres(n);
-}
-
-/* ── Poblar el select de tipos de presentación ───────────────────────────── */
-// Se usa el mismo set de opciones fijas que inventario (los valores de listas_sistema).
-// Si la página no tiene acceso al server-side, se usa una lista hardcoded como fallback.
-const TIPOS_PRES = [
-    {v:'frasco',      l:'Frasco'},
-    {v:'tarro',       l:'Tarro'},
-    {v:'caja',        l:'Caja'},
-    {v:'paca',        l:'Paca'},
-    {v:'bolsa',       l:'Bolsa'},
-    {v:'atado',       l:'Atado'},
-    {v:'lata',        l:'Lata'},
-    {v:'bloque',      l:'Bloque'},
-    {v:'mediobloque', l:'Medio Bloque'},
-    {v:'galon',       l:'Galón'},
-    {v:'unidad',      l:'Unidad'},
-    {v:'otra',        l:'Otra'},
-];
-function _poblarTiposPres(n) {
-    const sel = document.getElementById('pres-tipo-' + n);
-    if (!sel) return;
-    TIPOS_PRES.forEach(t => {
-        const o = document.createElement('option');
-        o.value = t.v; o.textContent = t.l;
-        sel.appendChild(o);
-    });
 }
 
 /* ── Selección de insumo ──────────────────────────────────────────────────── */
-// Se muestra SIEMPRE el bloque de presentación al seleccionar un insumo.
-// Si el insumo tiene datos guardados (presentacion, cantidad_presentacion,
-// precio_presentacion) se pre-cargan. Si no, los campos quedan vacíos para
-// que el usuario los llene manualmente para esta compra.
-// Misma experiencia que el modal de edición en inventario/index.php.
+// Al seleccionar un insumo puebla el panel informativo (solo lectura) con la
+// presentación del insumo, pre-carga precio/unidad con el costo actual
+// y calcula el Total inicial para la fila de transacción.
 function selectInsumo(n) {
-    const sel = document.getElementById('sel-ins-' + n);
-    const iid = parseInt(sel.value);
-    const ins = INSUMO_MAP[iid];
+    const sel       = document.getElementById('sel-ins-' + n);
+    const iid       = parseInt(sel.value);
+    const ins       = INSUMO_MAP[iid];
     const presBlock = document.getElementById('pres-block-' + n);
 
     if (!ins) {
-        // No hay insumo seleccionado → ocultar bloque
         if (presBlock) presBlock.style.display = 'none';
+        const lblCant = document.getElementById('cant-label-' + n);
+        if (lblCant) lblCant.textContent = 'Cantidad';
         return;
     }
 
-    // Mostrar bloque siempre que haya un insumo seleccionado
+    // Badge: tipo de empaque (Frasco, Lata, Paca…)
+    const tipoLbl = document.getElementById('pres-tipo-lbl-' + n);
+    if (tipoLbl) {
+        const t = ins.presentacion || ins.unidad;
+        tipoLbl.textContent = t.charAt(0).toUpperCase() + t.slice(1);
+    }
+    // Etiqueta de unidad básica (g, ml, lata, unidad…)
+    const unidadLbl = document.getElementById('pres-unidad-lbl-' + n);
+    if (unidadLbl) unidadLbl.textContent = ins.unidad;
+    // Cantidad por presentación (ej: "900 ml/frasco")
+    const cantLbl = document.getElementById('pres-cant-lbl-' + n);
+    if (cantLbl) {
+        if (ins.cant_pres > 0 && ins.presentacion && ins.presentacion !== ins.unidad) {
+            cantLbl.textContent = `${ins.cant_pres} ${ins.unidad}/${ins.presentacion}`;
+        } else if (ins.cant_pres > 0) {
+            cantLbl.textContent = `${ins.cant_pres} ${ins.unidad}/und.`;
+        } else {
+            cantLbl.textContent = `unidad: ${ins.unidad}`;
+        }
+    }
+    // Equivalencia física (ej: "= 160 g/lata") — solo si está configurada
+    const equivLbl = document.getElementById('pres-equiv-lbl-' + n);
+    if (equivLbl) {
+        if (ins.equiv_cant > 0 && ins.equiv_unidad) {
+            equivLbl.textContent = `= ${ins.equiv_cant} ${ins.equiv_unidad}/${ins.presentacion || ins.unidad}`;
+            equivLbl.style.display = '';
+        } else {
+            equivLbl.style.display = 'none';
+        }
+    }
     presBlock.style.display = '';
 
-    // Mostrar unidad básica del insumo como referencia en el encabezado del bloque
-    const hintUnidad = document.getElementById('pres-hint-unidad-' + n);
-    if (hintUnidad) hintUnidad.textContent = ins.unidad ? `(${ins.unidad})` : '';
-
-    // Pre-cargar con datos almacenados del insumo (si existen)
-    const tipSel   = document.getElementById('pres-tipo-'   + n);
-    const cantxEl  = document.getElementById('pres-cantx-'  + n);
-    const ppresEl  = document.getElementById('pres-precio-' + n);
-    const costoUEl = document.getElementById('pres-costou-' + n);
-
-    if (tipSel)  tipSel.value  = ins.presentacion || '';
-    if (cantxEl) cantxEl.value = ins.cant_pres     || '';   // und./empaque almacenadas
-    if (ppresEl) ppresEl.value = ins.precio_pres   || '';   // precio/empaque almacenado
-    if (costoUEl) costoUEl.value = ins.costo       || '';   // costo/unidad almacenado
-
-    // Etiqueta de cantidad varía según si hay presentación o no
+    // Etiqueta dinámica del campo Cantidad: muestra la unidad del insumo
     const lblCant = document.getElementById('cant-label-' + n);
-    if (lblCant) lblCant.textContent = ins.cant_pres > 0 ? 'Nro. empaques' : 'Cantidad';
+    if (lblCant) {
+        lblCant.textContent = ins.presentacion && ins.presentacion !== ins.unidad
+            ? `Cantidad (${ins.presentacion}s)` : `Cantidad (${ins.unidad})`;
+    }
 
-    const lblPrecio = document.getElementById('precio-label-' + n);
-    if (lblPrecio) lblPrecio.textContent = 'Precio/unidad';
+    // Pre-cargar precio/unidad con el costo actual del insumo
+    const precioUEl = document.getElementById('precio-u-' + n);
+    if (precioUEl && ins.costo > 0) precioUEl.value = ins.costo;
 
-    // Sugerir cantidad = 1 si no hay valor todavía
+    // Sugerir cantidad = 1 si el campo está vacío
     const cantEl = document.getElementById('cant-' + n);
     if (cantEl && !cantEl.value) cantEl.value = 1;
 
-    // Disparar cálculo bidireccional de presentación con los datos pre-cargados
-    if (ins.cant_pres > 0 || ins.precio_pres > 0 || ins.costo > 0) {
-        calcPres(n, 'cantx');
-    } else {
-        // Sin datos de presentación: solo sugerir precio actual del insumo en precio/unidad
-        const precioUEl = document.getElementById('precio-u-' + n);
-        if (precioUEl && ins.costo > 0) precioUEl.value = ins.costo;
-        calcLinea(n, 'precio');
-    }
+    // Calcular Total y sincronizar datos
+    calcLinea(n, 'precio');
+    _syncHiddenPres(n);
+    _actualizarHintCant(n);
 }
 
 /* ── Cálculo bidireccional de la FILA PRINCIPAL (triángulo cant-precio-total) ─
    source: campo que acaba de cambiar → 'cant' | 'precio' | 'total'
    Llenar cualquier 2 de los 3 → calcula el tercero automáticamente.
-   Mismo concepto que el triángulo de presentación (calcPres) pero para la
+   Mismo concepto bidireccional que en inventario/index.php pero para la
    fila de cantidades totales de la compra. ──────────────────────────────── */
 function calcLinea(n, source) {
     const cantEl   = document.getElementById('cant-'    + n);
@@ -793,126 +743,55 @@ function calcLinea(n, source) {
             const p = total / cant;
             if (isFinite(p) && p > 0) { precioEl.value = Math.round(p * 10000) / 10000; precio = p; }
         }
-        // Si el bloque de presentación está activo, propagar precio/unidad hacia costo/unidad
-        const presBlock = document.getElementById('pres-block-' + n);
-        if (presBlock && presBlock.style.display !== 'none' && precio > 0) {
-            const cantxEl = document.getElementById('pres-cantx-' + n);
-            const cantx   = parseFloat(cantxEl?.value) || 0;
-            if (cantx > 0) {
-                // precio/unidad = precio_pres / cantx → precio_pres = precio × cantx
-                const ppresEl = document.getElementById('pres-precio-' + n);
-                if (ppresEl) ppresEl.value = Math.round(precio * cantx * 100) / 100;
-                calcPres(n, 'precio_pres');
-                return; // calcPres llamará a calcSubtotal al final
-            }
-            const costoUEl = document.getElementById('pres-costou-' + n);
-            if (costoUEl) costoUEl.value = precio;
+    }
+
+    // Sincronizar snapshot de presentación y actualizar hints
+    _actualizarHintCant(n);
+    _syncHiddenPres(n);
+    recalcularTotal();
+}
+
+/* ── Hint dinámico: "= X unidades totales" en el panel y bajo el campo de cantidad ──
+   Muestra el total físico (cant × cant_pres o cant × equiv_cant) para contexto. */
+function _actualizarHintCant(n) {
+    const hintPanel = document.getElementById('pres-total-hint-' + n); // en el panel info
+    const hintUnits = document.getElementById('equiv-hint-'       + n); // bajo campo cant
+
+    const sel  = document.getElementById('sel-ins-' + n);
+    const ins  = INSUMO_MAP[parseInt(sel?.value)];
+    const cant = parseFloat(document.getElementById('cant-' + n)?.value) || 0;
+
+    let hint = '';
+    if (ins && cant > 0) {
+        if (ins.cant_pres > 1) {
+            // Presentación con múltiples unidades: ej. "3 frascos = 2700 ml"
+            const total = cant * ins.cant_pres;
+            hint = `= ${total.toLocaleString('es-CO', {maximumFractionDigits:3})} ${ins.unidad} total`;
+        } else if (ins.equiv_cant > 0 && ins.equiv_unidad) {
+            // Equivalencia física: ej. "3 lonchas = 90 g"
+            const totalF = cant * ins.equiv_cant;
+            hint = `= ${totalF.toLocaleString('es-CO', {maximumFractionDigits:2})} ${ins.equiv_unidad} total`;
         }
     }
 
-    // Actualizar hint de unidades totales cuando hay presentación activa
-    _actualizarHintCant(n);
-    // Sincronizar snapshots y actualizar total visual
-    _syncHiddenPres(n);
-    recalcularTotal();
+    if (hintPanel) { hintPanel.textContent = hint; hintPanel.style.display = hint ? '' : 'none'; }
+    if (hintUnits) { hintUnits.textContent = hint; hintUnits.style.display = hint ? '' : 'none'; }
 }
 
-/* ── Actualiza el hint de "= X unidades totales" bajo el campo de cantidad ── */
-function _actualizarHintCant(n) {
-    const hint    = document.getElementById('equiv-hint-' + n);
-    if (!hint) return;
-    const cantxEl = document.getElementById('pres-cantx-' + n);
-    const cantEl  = document.getElementById('cant-' + n);
-    const sel     = document.getElementById('sel-ins-' + n);
-    const ins     = INSUMO_MAP[parseInt(sel?.value)];
-    const cant    = parseFloat(cantEl?.value)  || 0;
-    const cantx   = parseFloat(cantxEl?.value) || 0;
-
-    if (cant > 0 && cantx > 1) {
-        // Modo presentación: mostrar total en unidades básicas
-        const total = cant * cantx;
-        const fmt = total === Math.round(total)
-            ? Math.round(total).toLocaleString('es-CO')
-            : total.toLocaleString('es-CO', {maximumFractionDigits: 3});
-        hint.textContent = `= ${fmt} ${ins?.unidad || 'unidades'} totales`;
-        hint.style.display = '';
-    } else if (cant > 0 && ins?.equiv_cant > 0 && ins?.equiv_unidad) {
-        // Modo directo con equivalencia física (lonchas → g, latas → g)
-        const totalF = cant * ins.equiv_cant;
-        const fmt = totalF === Math.round(totalF)
-            ? Math.round(totalF).toLocaleString('es-CO')
-            : totalF.toLocaleString('es-CO', {maximumFractionDigits: 2});
-        hint.textContent = `= ${fmt} ${ins.equiv_unidad} total`;
-        hint.style.display = '';
-    } else {
-        hint.style.display = 'none';
-    }
-}
-
-/* ── Cálculo bidireccional dentro del bloque de presentación ─────────────── */
-// source: qué campo cambió → 'cantx' | 'precio_pres' | 'costou' | 'tipo'
-// Misma lógica que calcCosto() en inventario/index.php
-function calcPres(n, source) {
-    const cantxEl    = document.getElementById('pres-cantx-'  + n); // und/presentación
-    const precioPresEl = document.getElementById('pres-precio-' + n); // precio/presentación
-    const costoUEl   = document.getElementById('pres-costou-'  + n); // costo/unidad
-
-    const cantx    = parseFloat(cantxEl?.value)     || 0;
-    const precioPr = parseFloat(precioPresEl?.value) || 0;
-    const costoU   = parseFloat(costoUEl?.value)     || 0;
-
-    // Calcular el campo faltante (el que NO acaba de cambiar)
-    if (source !== 'costou' && cantx > 0 && precioPr > 0) {
-        // Llenar costo/unidad desde los otros dos
-        const calc = precioPr / cantx;
-        if (costoUEl) costoUEl.value = Math.round(calc * 10000) / 10000;
-    } else if (source !== 'precio_pres' && cantx > 0 && costoU > 0) {
-        // Llenar precio/presentación desde los otros dos
-        const calc = costoU * cantx;
-        if (precioPresEl) precioPresEl.value = Math.round(calc * 100) / 100;
-    } else if (source !== 'cantx' && precioPr > 0 && costoU > 0) {
-        // Llenar cant/presentación desde los otros dos
-        const calc = precioPr / costoU;
-        if (cantxEl) cantxEl.value = Math.round(calc * 1000) / 1000;
-    }
-
-    // Propagar costo/unidad calculado al campo precio/unidad de la fila principal
-    const cantxFinal  = parseFloat(cantxEl?.value)     || 0;
-    const costoUFinal = parseFloat(costoUEl?.value)     || 0;
-    const precioUEl   = document.getElementById('precio-u-' + n);
-    if (precioUEl && costoUFinal > 0) {
-        precioUEl.value = costoUFinal;
-    } else if (precioUEl && cantxFinal > 0 && parseFloat(precioPresEl?.value) > 0) {
-        precioUEl.value = Math.round((parseFloat(precioPresEl.value) / cantxFinal) * 10000) / 10000;
-    }
-
-    // Actualizar el campo Total con cant × precio_pres
-    const cantEl = document.getElementById('cant-' + n);
-    const totalEl = document.getElementById('total-' + n);
-    const cant = parseFloat(cantEl?.value) || 0;
-    const ppFinal = parseFloat(precioPresEl?.value) || 0;
-    if (totalEl && cant > 0 && ppFinal > 0) {
-        totalEl.value = Math.round(cant * ppFinal * 100) / 100;
-    }
-
-    // Sincronizar campos hidden y actualizar hint de unidades
-    _syncHiddenPres(n);
-    _actualizarHintCant(n);
-    recalcularTotal();
-}
-
-/* Sincroniza los campos hidden de presentación para que el POST incluya el snapshot.
-   Nro. presentaciones = campo cant-N (cantidad de empaques comprados).
-   Tipo, und/empaque y precio/empaque vienen del bloque de presentación. */
+/* ── Sincronizar campos hidden de presentación para el snapshot POST ─────────
+   Lee los datos del insumo seleccionado (inmutables en el panel info) y los
+   guarda en los campos hidden para que el backend registre el snapshot de compra. */
 function _syncHiddenPres(n) {
     const hPres   = document.getElementById('hpres-'    + n);
     const hCantpx = document.getElementById('hcantpx-'  + n);
     const hNumpres= document.getElementById('hnumpres-' + n);
     const hPpres  = document.getElementById('hppres-'   + n);
 
+    const sel = document.getElementById('sel-ins-' + n);
+    const ins = INSUMO_MAP[parseInt(sel?.value)];
     const presBlock = document.getElementById('pres-block-' + n);
-    if (!presBlock || presBlock.style.display === 'none') {
-        // Bloque oculto → limpiar snapshots de presentación
+
+    if (!ins || !ins.presentacion || !presBlock || presBlock.style.display === 'none') {
         if (hPres)    hPres.value    = '';
         if (hCantpx)  hCantpx.value  = '';
         if (hNumpres) hNumpres.value = '';
@@ -920,38 +799,13 @@ function _syncHiddenPres(n) {
         return;
     }
 
-    const tipo   = document.getElementById('pres-tipo-'   + n)?.value || '';
-    const cantx  = document.getElementById('pres-cantx-'  + n)?.value || '';
-    const cant   = document.getElementById('cant-'        + n)?.value || ''; // nro empaques
-    const ppres  = document.getElementById('pres-precio-' + n)?.value || '';
-
-    if (hPres)    hPres.value    = tipo;
-    if (hCantpx)  hCantpx.value  = cantx;
+    const cant = document.getElementById('cant-' + n)?.value || '';
+    if (hPres)    hPres.value    = ins.presentacion;
+    if (hCantpx)  hCantpx.value  = ins.cant_pres  || '';
     if (hNumpres) hNumpres.value = cant;
-    if (hPpres)   hPpres.value   = ppres;
+    if (hPpres)   hPpres.value   = ins.precio_pres || '';
 }
 
-/* ── Cambio manual en el campo de cantidad ──────────────────────────────── */
-// Cuando el usuario cambia la cantidad de empaques (modo presentación)
-// o unidades directas, actualiza Total y el hint de unidades totales.
-function onCantChange(n) {
-    // En modo presentación, actualizar Total = cant_empaques × precio/empaque
-    const presBlock = document.getElementById('pres-block-' + n);
-    const isPres    = presBlock && presBlock.style.display !== 'none';
-    if (isPres) {
-        const ppresEl = document.getElementById('pres-precio-' + n);
-        const cantEl  = document.getElementById('cant-' + n);
-        const totalEl = document.getElementById('total-' + n);
-        const pp  = parseFloat(ppresEl?.value) || 0;
-        const cant= parseFloat(cantEl?.value)  || 0;
-        if (totalEl && pp > 0 && cant > 0) {
-            totalEl.value = Math.round(cant * pp * 100) / 100;
-        }
-    }
-    _syncHiddenPres(n);
-    _actualizarHintCant(n);
-    calcLinea(n, 'cant');
-}
 
 function quitarLinea(n) {
     const el = document.getElementById('linea-' + n);
@@ -1058,34 +912,17 @@ function agregarLineaModal(prefill = null) {
             <select id="msel-ins-${n}" name="mlineas[${n}][insumo_id]"
                     onchange="mSelectInsumo(${n})" required>${opts}</select>
         </div>
-        <!-- Bloque de presentación del modal — misma estructura que el formulario principal -->
+        <!-- Panel informativo de presentación del modal (solo lectura) -->
         <div class="linea-pres" id="mpres-block-${n}">
-            <div class="pres-hdr">
-                📦 Presentación de compra
-                <span id="mpres-hint-unidad-${n}" style="color:var(--brand);font-weight:600;font-size:12px;margin-left:auto"></span>
-            </div>
-            <div class="pres-grid">
-                <div class="fg-sm tipo-col">
-                    <label>Tipo de empaque</label>
-                    <select id="mpres-tipo-${n}" onchange="mCalcPres(${n},'tipo')">
-                        <option value="">— Tipo —</option>
-                    </select>
-                </div>
-                <div class="fg-sm">
-                    <label>Und. básicas/empaque</label>
-                    <input type="number" id="mpres-cantx-${n}" placeholder="Ej: 12"
-                           min="0.001" step="0.001" oninput="mCalcPres(${n},'cantx')">
-                </div>
-                <div class="fg-sm">
-                    <label>Precio/empaque ($)</label>
-                    <input type="number" id="mpres-precio-${n}" placeholder="Ej: 29000"
-                           min="0" step="1" oninput="mCalcPres(${n},'precio_pres')">
-                </div>
-                <div class="fg-sm">
-                    <label>Costo/unidad ($)</label>
-                    <input type="number" id="mpres-costou-${n}" placeholder="Calculado"
-                           min="0" step="0.0001" oninput="mCalcPres(${n},'costou')">
-                </div>
+            <div class="pres-info-panel">
+                <span>📦</span>
+                <span class="pres-badge"       id="mpres-tipo-lbl-${n}">—</span>
+                <span class="pres-info-sep">·</span>
+                <span class="pres-info-detail" id="mpres-unidad-lbl-${n}">—</span>
+                <span class="pres-info-sep">·</span>
+                <span class="pres-info-detail" id="mpres-cant-lbl-${n}">—</span>
+                <span class="pres-equiv-badge" id="mpres-equiv-lbl-${n}" style="display:none"></span>
+                <span class="pres-total-hint"  id="mpres-total-hint-${n}" style="display:none"></span>
             </div>
         </div>
         <!-- Fila cantidad | precio/unidad | total$ | delete — igual que formulario principal -->
@@ -1112,109 +949,88 @@ function agregarLineaModal(prefill = null) {
         </div>
     `;
     document.getElementById('mEditLineas').appendChild(div);
-    _poblarTiposPres2(n); // poblar select de tipos con prefijo 'm'
 
     if (prefill) {
         const selEl = document.getElementById('msel-ins-' + n);
         selEl.value = prefill.insumo_id;
         document.getElementById('mcant-' + n).value     = prefill.cantidad;
         document.getElementById('mprecio-u-' + n).value = prefill.precio;
-        // Al pre-cargar, intentar mostrar bloque de presentación si aplica
-        mSelectInsumo(n, /*skipReset=*/true);
-        // Calcular Total desde los valores pre-cargados
+        mSelectInsumo(n);
         mCalcLinea(n, 'cant');
     }
 }
 
-/* Poblar select de tipos en el modal (prefijo 'm') */
-function _poblarTiposPres2(n) {
-    const sel = document.getElementById('mpres-tipo-' + n);
-    if (!sel) return;
-    TIPOS_PRES.forEach(t => {
-        const o = document.createElement('option');
-        o.value = t.v; o.textContent = t.l;
-        sel.appendChild(o);
-    });
-}
-
-/* Selección de insumo en modal — mismo comportamiento que selectInsumo() del form principal.
-   Siempre muestra el bloque de presentación y pre-carga datos almacenados del insumo. */
-function mSelectInsumo(n, skipReset = false) {
-    const sel = document.getElementById('msel-ins-' + n);
-    const iid = parseInt(sel.value);
-    const ins = INSUMO_MAP[iid];
+/* Selección de insumo en el modal — igual que selectInsumo() pero con prefijo 'm'. */
+function mSelectInsumo(n) {
+    const sel       = document.getElementById('msel-ins-' + n);
+    const iid       = parseInt(sel.value);
+    const ins       = INSUMO_MAP[iid];
     const presBlock = document.getElementById('mpres-block-' + n);
 
-    if (!ins) { if (presBlock) presBlock.style.display = 'none'; return; }
-
-    // Siempre mostrar el bloque
-    presBlock.style.display = '';
-
-    // Mostrar unidad como referencia
-    const hintU = document.getElementById('mpres-hint-unidad-' + n);
-    if (hintU) hintU.textContent = ins.unidad ? `(${ins.unidad})` : '';
-
-    const tipSel = document.getElementById('mpres-tipo-' + n);
-    if (tipSel) tipSel.value = ins.presentacion || '';
-    const cxEl = document.getElementById('mpres-cantx-' + n);
-    if (cxEl) cxEl.value = ins.cant_pres || '';
-    const ppEl = document.getElementById('mpres-precio-' + n);
-    if (true) { // siempre ejecutar bloque de pre-carga
-        if (ppEl && !skipReset) ppEl.value = ins.precio_pres || '';
-        const cuEl = document.getElementById('mpres-costou-' + n);
-        if (cuEl) cuEl.value = ins.costo || '';
-
-        const lbl = document.getElementById('mcant-label-' + n);
-        if (lbl) lbl.textContent = ins.cant_pres > 0 ? 'Nro. empaques' : 'Cantidad';
-
-        if (!skipReset) {
-            const cantEl = document.getElementById('mcant-' + n);
-            if (cantEl && !cantEl.value) cantEl.value = 1;
-            if (ins.cant_pres > 0 || ins.precio_pres > 0) mCalcPres(n, 'cantx');
-            else mCalcLinea(n, 'precio');
-        }
-    } else { // bloque "else" vacío, siempre entra el if(true)
-        // Sin datos previos de presentación → mostrar bloque vacío de todas formas
-        presBlock.style.display = '';
+    if (!ins) {
+        if (presBlock) presBlock.style.display = 'none';
         const lbl = document.getElementById('mcant-label-' + n);
         if (lbl) lbl.textContent = 'Cantidad';
-        const plbl = document.getElementById('mprecio-label-' + n);
-        if (plbl) plbl.textContent = 'Precio/unidad';
-        const prEl = document.getElementById('mprecio-u-' + n);
-        if (prEl && ins && ins.costo > 0 && !skipReset) prEl.value = ins.costo;
-        mCalcLinea(n, 'precio');
+        return;
     }
+
+    const tipoLbl = document.getElementById('mpres-tipo-lbl-' + n);
+    if (tipoLbl) {
+        const t = ins.presentacion || ins.unidad;
+        tipoLbl.textContent = t.charAt(0).toUpperCase() + t.slice(1);
+    }
+    const unidadLbl = document.getElementById('mpres-unidad-lbl-' + n);
+    if (unidadLbl) unidadLbl.textContent = ins.unidad;
+    const cantLbl = document.getElementById('mpres-cant-lbl-' + n);
+    if (cantLbl) {
+        if (ins.cant_pres > 0 && ins.presentacion && ins.presentacion !== ins.unidad) {
+            cantLbl.textContent = `${ins.cant_pres} ${ins.unidad}/${ins.presentacion}`;
+        } else if (ins.cant_pres > 0) {
+            cantLbl.textContent = `${ins.cant_pres} ${ins.unidad}/und.`;
+        } else {
+            cantLbl.textContent = `unidad: ${ins.unidad}`;
+        }
+    }
+    const equivLbl = document.getElementById('mpres-equiv-lbl-' + n);
+    if (equivLbl) {
+        if (ins.equiv_cant > 0 && ins.equiv_unidad) {
+            equivLbl.textContent = `= ${ins.equiv_cant} ${ins.equiv_unidad}/${ins.presentacion || ins.unidad}`;
+            equivLbl.style.display = '';
+        } else {
+            equivLbl.style.display = 'none';
+        }
+    }
+    presBlock.style.display = '';
+
+    const lbl = document.getElementById('mcant-label-' + n);
+    if (lbl) lbl.textContent = ins.presentacion && ins.presentacion !== ins.unidad
+        ? `Cantidad (${ins.presentacion}s)` : `Cantidad (${ins.unidad})`;
+
+    const precioUEl = document.getElementById('mprecio-u-' + n);
+    if (precioUEl && ins.costo > 0 && !precioUEl.value) precioUEl.value = ins.costo;
+
+    const cantEl = document.getElementById('mcant-' + n);
+    if (cantEl && !cantEl.value) cantEl.value = 1;
+
+    mCalcLinea(n, 'precio');
+    _mActualizarHintCant(n);
 }
 
-/* Cálculo bidireccional en bloque presentación del modal */
-function mCalcPres(n, source) {
-    const cxEl = document.getElementById('mpres-cantx-' + n);
-    const ppEl = document.getElementById('mpres-precio-' + n);
-    const cuEl = document.getElementById('mpres-costou-' + n);
-    const cantx = parseFloat(cxEl?.value) || 0;
-    const pp    = parseFloat(ppEl?.value) || 0;
-    const cu    = parseFloat(cuEl?.value) || 0;
-
-    if (source !== 'costou' && cantx > 0 && pp > 0) {
-        if (cuEl) cuEl.value = Math.round((pp / cantx) * 10000) / 10000;
-    } else if (source !== 'precio_pres' && cantx > 0 && cu > 0) {
-        if (ppEl) ppEl.value = Math.round(cu * cantx * 100) / 100;
-    } else if (source !== 'cantx' && pp > 0 && cu > 0) {
-        if (cxEl) cxEl.value = Math.round((pp / cu) * 1000) / 1000;
+/* Hint dinámico del total físico en el modal */
+function _mActualizarHintCant(n) {
+    const hintEl = document.getElementById('mpres-total-hint-' + n);
+    const sel    = document.getElementById('msel-ins-' + n);
+    const ins    = INSUMO_MAP[parseInt(sel?.value)];
+    const cant   = parseFloat(document.getElementById('mcant-' + n)?.value) || 0;
+    let hint = '';
+    if (ins && cant > 0) {
+        if (ins.cant_pres > 1) {
+            hint = `= ${(cant * ins.cant_pres).toLocaleString('es-CO', {maximumFractionDigits:3})} ${ins.unidad} total`;
+        } else if (ins.equiv_cant > 0 && ins.equiv_unidad) {
+            hint = `= ${(cant * ins.equiv_cant).toLocaleString('es-CO', {maximumFractionDigits:2})} ${ins.equiv_unidad} total`;
+        }
     }
-
-    const cuFinal = parseFloat(cuEl?.value) || 0;
-    const puEl = document.getElementById('mprecio-u-' + n);
-    if (puEl && cuFinal > 0) puEl.value = cuFinal;
-
-    // Actualizar Total del modal = cant × precio/empaque
-    const cantEl  = document.getElementById('mcant-' + n);
-    const totalEl = document.getElementById('mtotal-' + n);
-    const cant = parseFloat(cantEl?.value) || 0;
-    const ppFinal = parseFloat(ppEl?.value) || 0;
-    if (totalEl && cant > 0 && ppFinal > 0) totalEl.value = Math.round(cant * ppFinal * 100) / 100;
-
-    recalcTotal();
+    if (hintEl) { hintEl.textContent = hint; hintEl.style.display = hint ? '' : 'none'; }
 }
 
 /* Bidireccional de la fila principal del modal (cant-precio-total) */
@@ -1230,30 +1046,18 @@ function mCalcLinea(n, source) {
         if (cant > 0 && precio > 0 && totalEl)
             totalEl.value = Math.round(cant * precio * 100) / 100;
     } else if (source === 'total') {
-        if (precio > 0 && total > 0 && cantEl) {
-            cantEl.value = Math.round((total / precio) * 1000) / 1000; cant = total / precio;
-        } else if (cant > 0 && total > 0 && precioEl) {
-            precioEl.value = Math.round((total / cant) * 10000) / 10000; precio = total / cant;
-        }
-        // Propagar precio/unidad hacia bloque de presentación
-        const presBlock = document.getElementById('mpres-block-' + n);
-        if (presBlock && presBlock.style.display !== 'none' && precio > 0) {
-            const cxEl2 = document.getElementById('mpres-cantx-' + n);
-            const cantx2 = parseFloat(cxEl2?.value) || 0;
-            if (cantx2 > 0) {
-                const ppEl2 = document.getElementById('mpres-precio-' + n);
-                if (ppEl2) ppEl2.value = Math.round(precio * cantx2 * 100) / 100;
-                mCalcPres(n, 'precio_pres'); return;
-            }
-            const cuEl2 = document.getElementById('mpres-costou-' + n);
-            if (cuEl2) cuEl2.value = precio;
+        if (!total || total <= 0) { recalcTotal(); return; }
+        if (precio > 0) {
+            const c = total / precio;
+            if (isFinite(c) && c > 0) { cantEl.value = Math.round(c * 1000) / 1000; }
+        } else if (cant > 0) {
+            const p = total / cant;
+            if (isFinite(p) && p > 0) { precioEl.value = Math.round(p * 10000) / 10000; }
         }
     }
+    _mActualizarHintCant(n);
     recalcTotal();
 }
-
-/* calcSubM: legacy, delega a mCalcLinea */
-function calcSubM(n) { mCalcLinea(n, 'precio'); }
 
 function quitarLineaModal(n) {
     const el = document.getElementById('mlin-' + n);
@@ -1261,14 +1065,6 @@ function quitarLineaModal(n) {
         el.remove();
         recalcTotal();
     }
-}
-
-function calcSubM(n) {
-    const cant   = parseFloat(document.getElementById('mcant-' + n)?.value)     || 0;
-    const precio = parseFloat(document.getElementById('mprecio-u-' + n)?.value) || 0;
-    const el = document.getElementById('msub-' + n);
-    if (el) el.textContent = formatPeso(cant * precio);
-    recalcTotal();
 }
 
 function recalcTotal() {
