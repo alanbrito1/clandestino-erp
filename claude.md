@@ -1,5 +1,5 @@
-# ClanDestino ERP v4.23 — Memoria de Sesión
-# Última sesión: 2026-06-05 | Próxima sesión: continuar desde este punto
+# ClanDestino ERP v4.24 — Memoria de Sesión
+# Última sesión: 2026-06-06 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
 
@@ -798,6 +798,8 @@ Los modelos usan `SHOW COLUMNS` / `information_schema.COLUMNS` para detectar si 
 | `reportes/precios.php` param PDO duplicado | Query nómina usaba `:ini` dos veces; con `ATTR_EMULATE_PREPARES=false` lanzaba HY093 | Pre-calcular `$ini_ym`/`$fin_ym` en PHP y pasarlos como params únicos |
 | `nomina/api/registrar_horas.php` interpolación SQL | `"SELECT ... WHERE id = $empleado_id"` usando query() sin prepared statement | Cambiado a `prepare('... WHERE id = ?')` + `execute([$empleado_id])` |
 | `nomina/index.php` y `nomina/empleados.php` sin `$nav_activo` | El tab Nómina no se resaltaba en estas dos páginas (la corrección anterior solo cubrió horas.php y parametros.php) | Añadido `$nav_activo = 'nomina'; $nav_sub = 'nomina'/'empleados';` |
+| `inventario/index.php` modal ajuste no guardaba sin cantidad | Validación JS `cantidad===0 && tipo!=='correccion'` bloqueaba guardar presentación/costo cuando no había movimiento de stock | Eliminada la restricción; el llamado a `ajustar_stock.php` ahora es condicional (`if cantidad !== 0`) |
+| `inventario/compras.php` campos de presentación no mostraban contexto | El formulario solo mostraba Cantidad/Precio/Total sin ninguna referencia al tipo de empaque del insumo | Reemplazado bloque editable `pres-grid` por panel informativo de solo lectura: badge de tipo + unidad + cant/empaque + equivalencia física + hint dinámico de total físico al tipear cantidad |
 
 ---
 
@@ -820,8 +822,8 @@ Los modelos usan `SHOW COLUMNS` / `information_schema.COLUMNS` para detectar si 
 - Cierra al hacer clic fuera del componente (event listener en document)
 | Dashboard | ✅ | Resumen del día + **panel de alertas**: insumos bajos, fiados pendientes, productos bajo mínimo |
 | Ventas / POS | ✅ | Fiado crea estado=pendiente_pago; historial con filtros; marcar pagado (transacción atómica); anular; selector solo/combo; fecha_venta; obsequio como método de pago |
-| Inventario | ✅ | costo_actual trigger |
-| Compras | ✅ | Filtros por fecha/lugar/ítem/categoría; editar/duplicar/eliminar compras |
+| Inventario | ✅ | costo_actual trigger; modal editar/ajustar guarda presentación/costo **sin requerir cantidad de ajuste** (cantidad=0 omite llamada a ajustar_stock.php) |
+| Compras | ✅ | Filtros por fecha/lugar/ítem/categoría; editar/duplicar/eliminar compras; **panel informativo de presentación** al seleccionar insumo: muestra tipo de empaque, unidad básica, cant/empaque, equivalencia física y hint dinámico "= X unidades total" |
 | Proveedores | ✅ | CRUD, toggle |
 | Productos | ✅ | Editar, Duplicar, calculadora bidireccional de receta, capacidad editable, configuración combo inline; botones Regalar 🎁 y Desechar 🗑 en stock; campo nombre2 (subtítulo visual) |
 | Producción | ✅ | Registro diario (fix móvil), preview insumos, anular lote, desechar stock terminado 🗑 |
@@ -831,7 +833,7 @@ Los modelos usan `SHOW COLUMNS` / `information_schema.COLUMNS` para detectar si 
 | Reportes | ✅ | 6 reportes: Ventas, Operativo, Nómina, Costos, Compras, **Variación de Precios** (nuevo); Operativo con Obsequios/Desechos |
 | Admin | ✅ | Usuarios, apariencia (2 logos + tipografía + theme_radius), backup BD + código ZIP, migraciones + updates de código, **Catálogos** (admin/listas.php — gestiona 6 listas configurables) |
 | Ayuda | ✅ | Documentación actualizada v4.13: obsequio, desechar, reportes obsequios/desechos |
-| Compras | ✅ | Formulario con **bloque de presentación** bidireccional: seleccionar insumo pre-carga tipo/cantidad/precio de empaque; calcular precio/unidad automáticamente (igual que inventario). Snapshot completo guardado en compra_detalles (mig. 032 + 034) |
+| Compras (panel pres.) | ✅ | Panel informativo de solo lectura al seleccionar insumo: badge tipo empaque + unidad básica + cant/empaque + badge verde equivalencia física + hint dinámico total físico. Snapshot de presentación se guarda en `compra_detalles` (mig. 032 + 034). `calcPres` eliminado — lógica simplificada. |
 | Historial ventas | ✅ | Acepta `?cliente_id=X` para filtrar por cliente; banner verde con nombre del cliente y saldo pendiente; preserva filtro al cambiar fechas |
 | Reporte Precios | ✅ | **6 tabs**: Insumos (con columnas de empaque), Productos, Nómina (con tarifa/hora snap), Costos Fijos, **Activos** (historial logs_historial), **Fiado/Abonos** (saldo antes/después) |
 | Tests | ✅ | Suite de pruebas en `/tests/suite.php` (solo superadmin) — **22 grupos, ~130 pruebas** (G01-G22: esquema, migraciones 026-034, precios, stock, fiado, obsequios, combos, clientes, produccion, activos, nomina, costos, FK, catalogos, configuracion, seguridad, auditoria, eficiencia, usuario UX, inmutabilidad profunda, ENUMs→VARCHAR, **G22: coherencia snapshots 032-034**) |
