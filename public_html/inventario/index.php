@@ -785,22 +785,23 @@ async function confirmarAjuste() {
     var motivo   = document.getElementById('aj-motivo').value.trim() || tipo;
     var seg      = document.getElementById('aj-seg').value;
     var nombre   = document.getElementById('aj-nombre').value.trim();
-    if (!nombre)                                 { toast('El nombre es obligatorio', 'err'); return; }
-    if (cantidad === 0 && tipo !== 'correccion') { toast('Ingresa la cantidad', 'err'); return; }
+    if (!nombre) { toast('El nombre es obligatorio', 'err'); return; }
 
     var delta = tipo === 'merma' ? -cantidad : cantidad;
 
-    // Primero guardar ajuste de stock
-    var fd1 = new FormData();
-    fd1.append('csrf_token',  csrf());
-    fd1.append('insumo_id',   id);
-    fd1.append('delta',       delta);
-    fd1.append('motivo',      motivo);
-    var r1 = await fetch('api/ajustar_stock.php', {method:'POST', body:fd1});
-    var d1 = await r1.json();
-    if (!d1.success) { toast(d1.error || 'Error al ajustar stock', 'err'); return; }
+    // Ajuste de stock: solo cuando el usuario ingresó cantidad (cantidad=0 → solo editar campos)
+    if (cantidad !== 0) {
+        var fd1 = new FormData();
+        fd1.append('csrf_token',  csrf());
+        fd1.append('insumo_id',   id);
+        fd1.append('delta',       delta);
+        fd1.append('motivo',      motivo);
+        var r1 = await fetch('api/ajustar_stock.php', {method:'POST', body:fd1});
+        var d1 = await r1.json();
+        if (!d1.success) { toast(d1.error || 'Error al ajustar stock', 'err'); return; }
+    }
 
-    // Si hay cambios en presentación/costo, guardarlos también
+    // Guardar presentación/costo/nombre aunque la cantidad sea 0
     if (TIENE_PRESENT) {
         var fd2 = new FormData();
         fd2.append('csrf_token',            csrf());
