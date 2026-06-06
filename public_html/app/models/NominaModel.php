@@ -953,7 +953,9 @@ class NominaModel
     {
         $nombre = trim($datos['nombre_completo'] ?? '');
         if (empty($nombre)) throw new \RuntimeException('El nombre es obligatorio.');
-        $tipo    = $datos['tipo_contrato'] ?? 'tiempo_completo';
+        $tipos_contrato = ['tiempo_completo','medio_tiempo','por_horas','por_servicio'];
+        $tipo    = in_array($datos['tipo_contrato'] ?? '', $tipos_contrato, true)
+                   ? $datos['tipo_contrato'] : 'tiempo_completo';
         $salario = (float)($datos['salario_base'] ?? 0);
         // por_servicio no requiere salario_base — usa valor_proyecto
         if ($tipo !== 'por_servicio' && $salario <= 0) {
@@ -976,7 +978,7 @@ class NominaModel
             $nombre,
             trim($datos['documento_identidad']    ?? '') ?: null,
             trim($datos['cargo']                  ?? '') ?: null,
-            $datos['tipo_contrato']                ?? 'tiempo_completo',
+            $tipo,
             $datos['pais_laboral']                 ?? 'Colombia',
             $datos['fecha_ingreso']                ?? date('Y-m-d'),
             $salario,
@@ -998,7 +1000,9 @@ class NominaModel
     {
         $uid     = (int)($_SESSION['usuario_id'] ?? 0);
         $nombre  = trim($datos['nombre_completo'] ?? '');
-        $tipo    = $datos['tipo_contrato'] ?? 'tiempo_completo';
+        $tipos_contrato = ['tiempo_completo','medio_tiempo','por_horas','por_servicio'];
+        $tipo    = in_array($datos['tipo_contrato'] ?? '', $tipos_contrato, true)
+                   ? $datos['tipo_contrato'] : 'tiempo_completo';
         $salario = (float)($datos['salario_base'] ?? 0);
         if (empty($nombre)) {
             throw new \RuntimeException('El nombre es obligatorio.');
@@ -1034,7 +1038,7 @@ class NominaModel
             $nombre,
             trim($datos['documento_identidad']   ?? '') ?: null,
             trim($datos['cargo']                 ?? '') ?: null,
-            $datos['tipo_contrato']               ?? 'tiempo_completo',
+            $tipo,
             $datos['pais_laboral']                ?? 'Colombia',
             $datos['fecha_ingreso']               ?? date('Y-m-d'),
             $salario,

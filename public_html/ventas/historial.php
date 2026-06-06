@@ -424,7 +424,7 @@ foreach ($ventas as $v) {
                     <span class="badge" style="background:#e0e7ff;color:#3730a3">combo</span>
                     <?php endif; ?>
                 </td>
-                <td><span class="badge badge-<?= $v['metodo_pago'] ?>"><?= ucfirst($v['metodo_pago']) ?></span></td>
+                <td><span class="badge badge-<?= htmlspecialchars($v['metodo_pago']) ?>"><?= htmlspecialchars(ucfirst($v['metodo_pago'])) ?></span></td>
                 <td class="r"><strong>$<?= number_format((float)$v['total'],0,',','.') ?></strong></td>
                 <td>
                     <span class="badge badge-<?= $estBadge ?>"><?= $estLabel ?></span>

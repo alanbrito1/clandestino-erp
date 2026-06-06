@@ -658,7 +658,7 @@ foreach ($nomina_hist as $emp) {
         <div class="ins-hdr" onclick="this.nextElementSibling.classList.toggle('open')">
             <div>
                 <div class="ins-nombre"><?= htmlspecialchars($ins['nombre']) ?></div>
-                <div class="ins-meta"><?= $ins['unidad'] ?> · <?= $total_regs ?> compra<?= $total_regs>1?'s':'' ?></div>
+                <div class="ins-meta"><?= htmlspecialchars($ins['unidad']) ?> · <?= $total_regs ?> compra<?= $total_regs>1?'s':'' ?></div>
             </div>
             <div style="display:flex;align-items:center;gap:10px">
                 <?php if ($var_total !== null): ?>
@@ -846,7 +846,7 @@ foreach ($nomina_hist as $emp) {
         <div class="ins-hdr" onclick="this.nextElementSibling.classList.toggle('open')">
             <div>
                 <div class="ins-nombre"><?= htmlspecialchars($emp['nombre']) ?></div>
-                <div class="ins-meta"><?= $emp['contrato'] ?></div>
+                <div class="ins-meta"><?= htmlspecialchars($emp['contrato'] ?? '') ?></div>
             </div>
             <span style="color:var(--g5)">▾</span>
         </div>
@@ -939,7 +939,7 @@ foreach ($nomina_hist as $emp) {
                 <tr>
                     <td><strong><?= htmlspecialchars($r['nombre']) ?></strong></td>
                     <td><?= htmlspecialchars($r['categoria'] ?? '—') ?></td>
-                    <td><?= $r['clasificacion'] ?> / <?= $r['tipo'] ?></td>
+                    <td><?= htmlspecialchars($r['clasificacion']) ?> / <?= htmlspecialchars($r['tipo']) ?></td>
                     <td class="r"><strong>$<?= number_format((float)$r['valor_mensual'],0,',','.') ?></strong></td>
                     <td><?= $r['fecha_inicio'] ?></td>
                     <td><?= $r['fecha_fin'] ?? '<span style="color:var(--green)">Vigente</span>' ?></td>

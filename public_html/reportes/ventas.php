@@ -287,9 +287,9 @@ $estado_c = ['completada'=>'b-ok','anulada'=>'b-ano','pendiente_pago'=>'b-pend']
                     <td><?= date('d/m H:i', strtotime($v['fecha_venta'])) ?></td>
                     <td class="hide-m"><?= htmlspecialchars($v['cliente']) ?></td>
                     <td class="hide-m"><?= $v['num_items'] ?></td>
-                    <td class="hide-m"><?= $metodo_label[$v['metodo_pago']] ?? $v['metodo_pago'] ?></td>
+                    <td class="hide-m"><?= htmlspecialchars($metodo_label[$v['metodo_pago']] ?? $v['metodo_pago']) ?></td>
                     <td class="r"><strong>$<?= number_format($v['total'],0,',','.') ?></strong></td>
-                    <td><span class="badge <?= $estado_c[$v['estado']] ?? 'b-ok' ?>"><?= $v['estado'] ?></span></td>
+                    <td><span class="badge <?= $estado_c[$v['estado']] ?? 'b-ok' ?>"><?= htmlspecialchars($v['estado']) ?></span></td>
                 </tr>
                 <?php endforeach; ?>
                 <?php if (empty($ventas)): ?>
@@ -318,7 +318,7 @@ $estado_c = ['completada'=>'b-ok','anulada'=>'b-ano','pendiente_pago'=>'b-pend']
                     if ((float)$p['precio_venta'] <= 0) continue;
                 ?>
                 <tr>
-                    <td><?= htmlspecialchars($p['nombre']) ?> <small style="color:var(--g5)"><?= $p['tamano'] ?></small></td>
+                    <td><?= htmlspecialchars($p['nombre']) ?> <small style="color:var(--g5)"><?= htmlspecialchars($p['tamano']) ?></small></td>
                     <td class="r hide-m">$<?= number_format($p['precio_venta'],0,',','.') ?></td>
                     <td class="r hide-m">$<?= number_format($p['costo_total_u'],0,',','.') ?></td>
                     <td class="r"><strong>$<?= number_format($p['margen_bruto'],0,',','.') ?></strong></td>

@@ -333,7 +333,7 @@ $proyeccion_mensual = round($promedio_diario_total * 21.75, 0);
                 <td>
                     <strong><?= htmlspecialchars($p['nombre']) ?></strong>
                     <?php if ($p['tamano'] !== 'unico'): ?>
-                    <span style="font-size:10px;background:var(--g9);padding:1px 5px;border-radius:10px;margin-left:4px"><?= $p['tamano'] ?></span>
+                    <span style="font-size:10px;background:var(--g9);padding:1px 5px;border-radius:10px;margin-left:4px"><?= htmlspecialchars($p['tamano']) ?></span>
                     <?php endif; ?>
                     <?php if (!empty($p['nombre2'])): ?>
                     <div style="font-size:11px;color:var(--g5);margin-top:2px"><?= htmlspecialchars($p['nombre2']) ?></div>

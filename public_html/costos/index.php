@@ -642,7 +642,7 @@ $CAT_COLOR = [
                         </span>
                     </td>
                     <td>
-                        <span class="badge badge-<?= $c['tipo'] ?>">
+                        <span class="badge badge-<?= htmlspecialchars($c['tipo']) ?>">
                             <?= $c['tipo'] === 'fijo' ? 'Fijo' : 'Variable' ?>
                         </span>
                     </td>

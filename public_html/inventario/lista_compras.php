@@ -177,11 +177,11 @@ $fecha_generada = date('d/m/Y H:i');
                     </td>
                     <td>
                         <?= number_format($item['stock_actual'], 3, ',', '.') ?>
-                        <small style="color:var(--g5)"><?= $item['unidad_medida'] ?></small>
+                        <small style="color:var(--g5)"><?= htmlspecialchars($item['unidad_medida']) ?></small>
                     </td>
                     <td class="num">
                         <?= number_format(max(0, $item['cantidad_sugerida']), 3, ',', '.') ?>
-                        <small style="color:var(--g5); font-weight:400"><?= $item['unidad_medida'] ?></small>
+                        <small style="color:var(--g5); font-weight:400"><?= htmlspecialchars($item['unidad_medida']) ?></small>
                     </td>
                     <td class="num">
                         $<?= number_format($item['costo_estimado'], 0, ',', '.') ?>

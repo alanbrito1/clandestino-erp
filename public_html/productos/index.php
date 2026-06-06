@@ -338,7 +338,7 @@ $stock_total     = array_sum(array_column($productos, 'stock_disponible'));
                 <td>
                     <strong><?= htmlspecialchars($p['nombre']) ?></strong>
                     <?php if ($p['tamano'] !== 'unico'): ?>
-                    <span style="font-size:10px;background:var(--g9);padding:1px 7px;border-radius:20px;margin-left:5px;font-weight:700"><?= $p['tamano'] ?></span>
+                    <span style="font-size:10px;background:var(--g9);padding:1px 7px;border-radius:20px;margin-left:5px;font-weight:700"><?= htmlspecialchars($p['tamano']) ?></span>
                     <?php endif; ?>
                     <?php if (!empty($p['nombre2'])): ?>
                     <div style="font-size:11px;color:var(--g5);margin-top:2px"><?= htmlspecialchars($p['nombre2']) ?></div>

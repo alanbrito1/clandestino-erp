@@ -94,10 +94,12 @@ class CostoIndirectoModel
             trim($datos['nombre']),
             $datos['categoria']      ?? 'otro',
             trim($datos['descripcion'] ?? '') ?: null,
-            in_array($datos['clasificacion'] ?? '', ['directo','indirecto'])
+            in_array($datos['clasificacion'] ?? '', ['directo','indirecto'], true)
                 ? $datos['clasificacion'] : 'indirecto',
-            $datos['tipo']           ?? 'fijo',
-            $datos['frecuencia']     ?? 'mensual',
+            in_array($datos['tipo']        ?? '', ['fijo','variable'], true)
+                ? $datos['tipo']        : 'fijo',
+            in_array($datos['frecuencia']  ?? '', ['mensual','bimestral','trimestral','semestral','anual'], true)
+                ? $datos['frecuencia']  : 'mensual',
             (float) $datos['valor'],
             $datos['fecha_inicio'],
             !empty($datos['fecha_fin']) ? $datos['fecha_fin'] : null,
@@ -124,10 +126,12 @@ class CostoIndirectoModel
             trim($datos['nombre']),
             $datos['categoria']      ?? 'otro',
             trim($datos['descripcion'] ?? '') ?: null,
-            in_array($datos['clasificacion'] ?? '', ['directo','indirecto'])
+            in_array($datos['clasificacion'] ?? '', ['directo','indirecto'], true)
                 ? $datos['clasificacion'] : 'indirecto',
-            $datos['tipo']           ?? 'fijo',
-            $datos['frecuencia']     ?? 'mensual',
+            in_array($datos['tipo']        ?? '', ['fijo','variable'], true)
+                ? $datos['tipo']        : 'fijo',
+            in_array($datos['frecuencia']  ?? '', ['mensual','bimestral','trimestral','semestral','anual'], true)
+                ? $datos['frecuencia']  : 'mensual',
             (float) $datos['valor'],
             $datos['fecha_inicio'],
             !empty($datos['fecha_fin']) ? $datos['fecha_fin'] : null,

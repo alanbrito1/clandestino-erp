@@ -192,7 +192,7 @@ $CAT_DESC = [
                     <input type="number"
                            class="val-inp"
                            id="val-<?= $param['id'] ?>"
-                           value="<?= $param['valor'] ?>"
+                           value="<?= htmlspecialchars((string)$param['valor']) ?>"
                            step="<?= $param['tipo'] === 'porcentaje' ? '0.001' : '1' ?>">
                     <span style="font-size:11px;color:var(--g5)"><?= $param['tipo'] === 'porcentaje' ? '%' : 'COP' ?></span>
                 </td>

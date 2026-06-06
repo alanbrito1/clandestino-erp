@@ -418,8 +418,8 @@ if ($_GET['export'] ?? '' === '1') {
             <tr>
                 <td><?= htmlspecialchars($c['nombre']) ?></td>
                 <td style="font-size:12px;color:var(--g5)"><?= htmlspecialchars(str_replace('_',' ',ucfirst($c['categoria']))) ?></td>
-                <td><span class="badge badge-<?= $c['clasificacion'] ?>"><?= ucfirst($c['clasificacion']) ?></span></td>
-                <td style="font-size:12px;color:var(--g5)"><?= ucfirst($c['frecuencia']) ?></td>
+                <td><span class="badge badge-<?= htmlspecialchars($c['clasificacion']) ?>"><?= htmlspecialchars(ucfirst($c['clasificacion'])) ?></span></td>
+                <td style="font-size:12px;color:var(--g5)"><?= htmlspecialchars(ucfirst($c['frecuencia'])) ?></td>
                 <td class="r"><strong>$<?= number_format((float)$c['valor_mensual'],0,',','.') ?></strong></td>
             </tr>
             <?php endforeach;
