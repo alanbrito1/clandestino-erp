@@ -826,7 +826,7 @@ Los modelos usan `SHOW COLUMNS` / `information_schema.COLUMNS` para detectar si 
 | Compras | ✅ | Filtros por fecha/lugar/ítem/categoría; editar/duplicar/eliminar compras; **panel informativo de presentación** al seleccionar insumo: muestra tipo de empaque, unidad básica, cant/empaque, equivalencia física y hint dinámico "= X unidades total" |
 | Proveedores | ✅ | CRUD, toggle |
 | Productos | ✅ | Editar, Duplicar, calculadora bidireccional de receta, capacidad editable, configuración combo inline; botones Regalar 🎁 y Desechar 🗑 en stock; campo nombre2 (subtítulo visual) |
-| Producción | ✅ | Registro diario (fix móvil), preview insumos, anular lote, desechar stock terminado 🗑 |
+| Producción | ✅ | Registro diario (fix móvil), preview insumos, anular lote, desechar stock terminado 🗑; responsive xs añadido |
 | Nómina | ✅ | 4 contratos; pago correcto; aux proporcional; eliminar período funcional |
 | Activos | ✅ | Sortable, dep solo con fecha_inicio_uso, 30.41666 como divisor |
 | Costos | ✅ | Selector período, 8 KPIs consolidados |
@@ -973,7 +973,16 @@ Todo subido a GitHub. Sin pendientes de código ni migraciones.
 - `admin/backup.php`: path traversal prevention en ZIP upload, archivos config protegidos
 - `AuthHelper.php`: bcrypt, CSRF hash_equals, rate limiting, session httponly+samesite=Lax
 
+**✅ Fase 2 Responsive completada (sesión 2026-06-06 continuación):**
+- Auditados todos los 33 archivos PHP con vistas — solo `productos/produccion.php` carecía de `@media`
+- `productos/produccion.php`: añadidos `@media (max-width:639px)` y `@media (max-width:479px)`;
+  `hide-xs` en columnas Costo/u, Registrado por y Notas; font sizes reducidos; stock-grid 2 cols en xs
+- Misma página: fix XSS menor — `htmlspecialchars()` en badge `estado` (clase CSS + texto)
+- Eliminado `public_html/public_html.zip` del repo: archivo de respaldo expuesto en la web (seguridad)
+- Fase 3 (Tests): suite verificada — 22 grupos, ~130 pruebas, cubre hasta mig. 034, sin gaps
+- Fase 4 (Ayuda): `ayuda/index.php` verificado — ya documenta todas las funciones incluyendo 032-034
+
 **Próxima sesión puede continuar desde:**
 - Roadmap v4.3: ingrediente base + variantes de producto
 
-*Última actualización: 2026-06-06 | v4.25 — auditoría XSS exhaustiva completada; whitelist tipo/frecuencia/tipo_contrato.*
+*Última actualización: 2026-06-06 | v4.25 — responsive audit completada; produccion.php fix; zip seguridad.*
