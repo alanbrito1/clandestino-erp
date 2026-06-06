@@ -286,7 +286,7 @@ $nav_activo = 'ayuda';
                 <div class="section-icon" style="background:#fef2f0">&#127829;</div>
                 <div>
                     <div class="section-title">ClanDestino ERP — Visión General</div>
-                    <div class="section-badge">v4.22 · Colombia</div>
+                    <div class="section-badge">v4.24 · Colombia</div>
                 </div>
             </div>
             <p>Sistema de gestión empresarial para negocios de sándwiches. Controla ventas, inventario, producción, nómina, activos y costos desde un único panel adaptado a la legislación colombiana.</p>
@@ -698,6 +698,18 @@ los productos que usan ese insumo.</span></div>
                 <tr><td>Agotado</td><td>stock_actual = 0</td><td>Rojo</td></tr>
             </table>
 
+            <div class="sub-title">Editar insumo — ajuste de cantidad opcional (v4.24)</div>
+            <p>Al abrir el modal de edición de un insumo puedes modificar el <strong>nombre</strong>, la <strong>presentación</strong>, el <strong>costo</strong> y la <strong>equivalencia física</strong> sin necesidad de ingresar una cantidad de ajuste. La cantidad a ajustar es opcional:</p>
+            <table class="data-table">
+                <thead><tr><th>Escenario</th><th>Cantidad ingresada</th><th>Resultado</th></tr></thead>
+                <tbody>
+                    <tr><td>Solo editar presentación o costo</td><td>0 (vacío)</td><td>Se guardan los campos del insumo sin modificar el stock. No se registra movimiento en el historial.</td></tr>
+                    <tr><td>Ajuste + edición de campos</td><td>&gt; 0</td><td>Se registra el movimiento de stock (entrada o merma) <strong>y</strong> se guardan los campos del insumo.</td></tr>
+                    <tr><td>Solo ajuste de stock</td><td>&gt; 0 sin cambiar otros campos</td><td>Solo se registra el movimiento de stock.</td></tr>
+                </tbody>
+            </table>
+            <div class="ok"><strong>Caso de uso típico:</strong> Actualizaste el proveedor de una lata de atún — ahora viene en presentación de 170 g en lugar de 160 g y el precio cambió. Abre el insumo, edita Cantidad/Presentación y Precio/Presentación, deja la cantidad de ajuste en 0 y guarda. El costo_actual se recalcula y los productos afectados actualizan su margen automáticamente.</div>
+
             <div class="int-list">
                 <span class="int-badge">Alimenta →</span>
                 <span class="int-badge arrow">Ventas (descuento on-demand)</span>
@@ -730,6 +742,21 @@ los productos que usan ese insumo.</span></div>
    → Actualiza costo_calculado de todos los productos que usan ese insumo</div>
 
             <div class="tip"><strong>Importante:</strong> El costo_actual de un insumo siempre refleja el último precio de compra. Si se compra pollo a $17,000 y luego a $18,000, el costo_actual queda en $18,000 y el margen de los sándwiches se recalcula automáticamente.</div>
+
+            <div class="sub-title">Panel informativo de presentación (v4.24)</div>
+            <p>Al seleccionar un insumo en el formulario de nueva compra, aparece automáticamente un <strong>panel informativo de solo lectura</strong> que muestra la presentación tal como está registrada en el inventario. Esto facilita verificar qué unidad se está comprando antes de ingresar cantidad y precio.</p>
+            <table class="data-table">
+                <thead><tr><th>Dato en el panel</th><th>Qué indica</th><th>Ejemplo</th></tr></thead>
+                <tbody>
+                    <tr><td>📦 Tipo de empaque</td><td>Presentación del insumo (lata, bolsa, paquete…)</td><td>Lata · Unidad · 1 und/presentación</td></tr>
+                    <tr><td>Unidad básica</td><td>Unidad en la que se mide el stock</td><td>unidad, g, ml, kg…</td></tr>
+                    <tr><td>Cantidad por empaque</td><td>Cuántas unidades básicas trae cada empaque</td><td>"12 und/paquete"</td></tr>
+                    <tr><td>Equivalencia física</td><td>Peso o volumen real por unidad (badge verde)</td><td>"170 g"</td></tr>
+                    <tr><td>= X unidades total</td><td>Hint dinámico que se actualiza al ingresar cantidad</td><td>"= 24 und total" al comprar 2 paquetes</td></tr>
+                </tbody>
+            </table>
+            <div class="tip">El hint dinámico <strong>"= X unidades total"</strong> aparece debajo del campo de cantidad y también dentro del panel. Se actualiza en tiempo real conforme escribes la cantidad. Para insumos con empaque de más de 1 unidad muestra el total en unidades básicas; para insumos con equivalencia física muestra el total en la unidad física (gramos, ml…).</div>
+            <div class="ok"><strong>Importante:</strong> Los datos del panel son de solo lectura — reflejan la información del inventario. Para editar la presentación de un insumo usa el módulo <strong>Inventario → editar insumo</strong>. Las compras siempre quedan guardadas con el snapshot de presentación vigente al momento de registrarlas.</div>
 
             <div class="sub-title">Filtrar historial de compras</div>
             <p>En el historial de compras puedes combinar los siguientes filtros para encontrar rápidamente cualquier compra:</p>
