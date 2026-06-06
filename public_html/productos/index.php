@@ -259,8 +259,15 @@ $stock_total     = array_sum(array_column($productos, 'stock_disponible'));
 
 <main class="main">
 
-    <!-- Acceso rápido a producción -->
-    <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+    <!-- Acceso rápido a producción y herramientas admin -->
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <?php if (permiso_tiene('admin', 'admin_total')): ?>
+        <a href="<?= APP_BASE ?>/productos/consolidar.php"
+           style="background:#f8faff;color:#1e40af;border:1px solid #bfdbfe;text-decoration:none;padding:8px 14px;
+                  border-radius:8px;font-size:13px;font-weight:600">
+            🔀 Consolidar productos
+        </a>
+        <?php endif; ?>
         <a href="<?= APP_BASE ?>/productos/produccion.php"
            style="background:var(--brand);color:#fff;text-decoration:none;padding:8px 16px;
                   border-radius:8px;font-size:13px;font-weight:700">

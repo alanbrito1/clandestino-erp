@@ -1,4 +1,4 @@
-# ClanDestino ERP v4.41 — Memoria de Sesión
+# ClanDestino ERP v4.42 — Memoria de Sesión
 # Última sesión: 2026-06-06 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
@@ -1065,8 +1065,32 @@ Si `es_base` se cambia en una receta después de realizar ventas, la restauraci�
 - Panel abierto automáticamente cuando `total_sugerido > 0` o es día actual
 - Ordenado: mayor sugerido primero, desempate por mayor promedio
 
+---
+
+## Estado v4.42 (2026-06-06)
+
+### Cambios implementados en esta sesión
+
+| Archivo | Cambio |
+|---------|--------|
+| `public_html/productos/consolidar.php` | Wizard 3 pasos: selección → preview → ejecutar. Requiere mig.035. |
+| `public_html/productos/index.php` | Botón "🔀 Consolidar productos" (solo admin_total) en acceso rápido |
+| `public_html/app/config/app.php` | APP_VERSION → 4.42 |
+
+### Flujo de la consolidación
+1. **Paso 1 (GET)**: Dos columnas — seleccionar producto base (radio) + productos a absorber (checkboxes). JS deshabilita el producto base de la lista de fuentes.
+2. **Paso 2 (POST preview)**: Tabla con etiqueta (input, default=tamano), precio (input, default=precio_venta), factor (calculado automáticamente del ingrediente crítico: `qty_fuente / qty_base`, o 1.0 si no hay receta comparable). Badge "calculado" o "manual".
+3. **Paso 3 (POST ejecutar)**: Transacción PDO: INSERT en producto_variantes + UPDATE activo=0 en fuentes + opcional transferencia de stock + log_registrar auditoría.
+
+### Invariantes preservados
+- Historial de ventas NUNCA se modifica (IDs originales intactos)
+- Si mig.035 no está aplicada, la página muestra error y no permite continuar
+- Factor calculado = `qty_critica(fuente) / qty_critica(base)` usando el ingrediente es_insumo_critico=1
+- ON DUPLICATE KEY UPDATE en INSERT de variante: si la etiqueta ya existe en ese producto, actualiza precio/factor
+
 **Próxima sesión puede continuar desde:**
-- Posible herramienta de consolidación: migrar "Pollo XL" + "Pollo Regular" (productos separados) → un solo "Pollo" con variantes
-- Ajuste del período de análisis (14d hardcodeado, podría ser configurable)
+- Ajuste del período de análisis en produccion.php (14d hardcodeado, podría ser un selector 7/14/30)
+- Mejora del consolidar.php: mostrar las columnas de `es_base` del ingrediente crítico en el preview
+- Dashboard: widget de variantes más vendidas del día
 
 *Última actualización: 2026-06-06 | v4.30 — variantes completo incluyendo docs, schema.sql y ayuda.*

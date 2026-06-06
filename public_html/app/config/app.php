@@ -6,7 +6,7 @@
  */
 
 define('APP_NAME',    'ClanDestino ERP');
-define('APP_VERSION', '4.41'); // 2026-06-06: v4.41 sugerencia de producción diaria en produccion.php (14d promedio + variante top)
+define('APP_VERSION', '4.42'); // 2026-06-06: v4.42 herramienta consolidar productos (wizard 3 pasos: selección → preview → ejecutar)
 define('APP_ENV',     'production'); // cambiar a 'development' para depurar
 
 // Ruta absoluta a public_html/ (raíz web del proyecto)
