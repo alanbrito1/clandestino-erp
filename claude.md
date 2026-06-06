@@ -1,4 +1,4 @@
-# ClanDestino ERP v4.48 — Memoria de Sesión
+# ClanDestino ERP v4.49 — Memoria de Sesión
 # Última sesión: 2026-06-06 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
@@ -1256,3 +1256,25 @@ Si `es_base` se cambia en una receta después de realizar ventas, la restauraci�
 - Retrocompatible: si la clave no existe, no se muestra nada (queries con try/catch).
 
 *Última actualización: 2026-06-06 | v4.48 — meta de ventas diaria con progress bar dashboard y comparación en cierre.*
+
+---
+
+## Estado v4.49 (2026-06-06)
+
+### Cambios implementados en esta sesión
+
+| Archivo | Cambio |
+|---------|--------|
+| `public_html/dashboard.php` | PHP: query `SELECT DATE(fecha_venta), SUM(total)` de los últimos 7 días (CURDATE()-6) con `FETCH_KEY_PAIR`; genera `$grafico_7d` (array con label, total, hoy) y `$total_7d`. CSS: `.chart-bars`, `.chart-lbls`, `.chart-lbl`, `.chart-hoy`. HTML: tarjeta con barras CSS (`align-items:flex-end`, altura dinámica en px, max 60px), etiquetas Lun-Dom debajo, barra de hoy en rojo brand, tooltip nativo con `title="$X"` |
+| `public_html/app/config/app.php` | APP_VERSION → 4.49 |
+
+### Funcionalidad v4.49
+
+- **Gráfico de barras 7 días**: visible para usuarios con acceso a ventas; sin librerías externas (HTML/CSS puro).
+- Barra más alta = día con más ventas (escala relativa al máximo de la semana).
+- Barra de hoy en rojo `var(--brand)`, días anteriores en gris; hoy en negrita en las etiquetas.
+- Días sin ventas → barra invisible (height:0), no se muestra stub.
+- Total semanal en el encabezado de la tarjeta.
+- Sin migración — usa únicamente la tabla `ventas` existente.
+
+*Última actualización: 2026-06-06 | v4.49 — gráfico de barras ventas últimos 7 días.*

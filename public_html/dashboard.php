@@ -52,8 +52,32 @@ if (permiso_tiene('ventas', 'solo_ver')) {
         $meta_pct       = 0;
         $meta_alcanzada = false;
     }
+
+    // Gráfico de ventas últimos 7 días
+    $grafico_7d = [];
+    $total_7d   = 0.0;
+    try {
+        $dias_es = ['Sun'=>'Dom','Mon'=>'Lun','Tue'=>'Mar','Wed'=>'Mié','Thu'=>'Jue','Fri'=>'Vie','Sat'=>'Sáb'];
+        $rows7d  = db()->query(
+            "SELECT DATE(fecha_venta) AS dia, SUM(total) AS monto
+             FROM ventas
+             WHERE fecha_venta >= CURDATE() - INTERVAL 6 DAY AND estado = 'completada'
+             GROUP BY DATE(fecha_venta)"
+        )->fetchAll(PDO::FETCH_KEY_PAIR);
+        for ($i = 6; $i >= 0; $i--) {
+            $d = date('Y-m-d', strtotime("-$i days"));
+            $t = (float)($rows7d[$d] ?? 0);
+            $grafico_7d[] = [
+                'label' => $dias_es[date('D', strtotime($d))] ?? date('D', strtotime($d)),
+                'total' => $t,
+                'hoy'   => ($i === 0),
+            ];
+            $total_7d += $t;
+        }
+    } catch (\Exception $e) {}
 } else {
     $meta_diaria = 0.0; $meta_pct = 0; $meta_alcanzada = false;
+    $grafico_7d  = [];  $total_7d  = 0.0;
 }
 if (permiso_tiene('inventario', 'solo_ver')) {
     $row = db()->query(
@@ -384,6 +408,13 @@ $nivel_labels = [
         .meta-lbl { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--gray-5); }
         .progress-track { background:var(--gray-9); border-radius:99px; height:10px; overflow:hidden; }
         .progress-fill { height:100%; border-radius:99px; min-width:4px; transition:width .6s ease; }
+
+        /* ---- Gráfico 7 días ---- */
+        .chart-bars { display:flex; align-items:flex-end; gap:4px; height:64px; }
+        .chart-bars > div { flex:1; border-radius:4px 4px 0 0; transition:height .4s ease; }
+        .chart-lbls { display:flex; gap:4px; margin-top:5px; }
+        .chart-lbl  { flex:1; text-align:center; font-size:9px; color:var(--gray-5); line-height:1; }
+        .chart-hoy  { color:var(--brand); font-weight:700; }
     </style>
 </head>
 <body>
@@ -550,6 +581,38 @@ $nivel_labels = [
                 </form>
             </div>
             <?php endif; ?>
+        </div>
+        <?php endif; ?>
+
+        <!-- ── Gráfico de ventas últimos 7 días ─────────────────────────────── -->
+        <?php if (permiso_tiene('ventas', 'solo_ver') && !empty($grafico_7d)): ?>
+        <?php
+        $max7d_px = max(1.0, max(array_column($grafico_7d, 'total')));
+        ?>
+        <div class="meta-card">
+            <div class="meta-header">
+                <span class="meta-lbl">Ventas — últimos 7 días</span>
+                <?php if ($total_7d > 0): ?>
+                <span style="font-size:13px;font-weight:700;color:var(--dark)">
+                    $<?= number_format($total_7d, 0, ',', '.') ?>
+                    <span style="color:var(--gray-5);font-weight:400;font-size:11px"> semana</span>
+                </span>
+                <?php endif; ?>
+            </div>
+            <div class="chart-bars">
+                <?php foreach ($grafico_7d as $g):
+                    $px = $g['total'] > 0 ? max(4, (int)round($g['total'] / $max7d_px * 60)) : 0;
+                    $bg = $g['hoy'] ? 'var(--brand)' : '#d1d5db';
+                ?>
+                <div style="height:<?= $px ?>px;background:<?= $bg ?>"
+                     title="$<?= number_format($g['total'], 0, ',', '.') ?>"></div>
+                <?php endforeach; ?>
+            </div>
+            <div class="chart-lbls">
+                <?php foreach ($grafico_7d as $g): ?>
+                <div class="chart-lbl <?= $g['hoy'] ? 'chart-hoy' : '' ?>"><?= $g['label'] ?></div>
+                <?php endforeach; ?>
+            </div>
         </div>
         <?php endif; ?>
 
