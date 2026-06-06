@@ -1,4 +1,4 @@
-# ClanDestino ERP v4.51 — Memoria de Sesión
+# ClanDestino ERP v4.52 — Memoria de Sesión
 # Última sesión: 2026-06-06 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
@@ -1323,3 +1323,25 @@ Si `es_base` se cambia en una receta después de realizar ventas, la restauraci�
 - Sin nueva API ni migración.
 
 *Última actualización: 2026-06-06 | v4.51 — recordatorio de pago por WhatsApp desde clientes y dashboard.*
+
+---
+
+## Estado v4.52 (2026-06-06)
+
+### Cambios implementados en esta sesión
+
+| Archivo | Cambio |
+|---------|--------|
+| `public_html/clientes/exportar.php` | Nuevo: genera Excel con todos los clientes ordenados por saldo_fiado DESC; columnas: #, Nombre, Apellido, Empresa, Teléfono, Estado, Deuda Fiado, Total Ventas, Última Compra; fila TOTALES al final |
+| `public_html/clientes/index.php` | Botón "📊 Excel" verde (`.btn-excel`) en actions-bar, solo para `editar_existentes`; agrega `.btn-excel` al CSS |
+| `public_html/reportes/index.php` | Nueva tarjeta "Clientes & Deudas Fiado" en el hub de reportes (enlaza a `clientes/exportar.php`, requiere módulo `ventas`) |
+| `public_html/app/config/app.php` | APP_VERSION → 4.52 |
+
+### Funcionalidad v4.52
+
+- **Excel de clientes**: descarga inmediata (sin pantalla previa) con todos los clientes ordenados por mayor deuda primero. Útil para el contador o para hacer gestión de cobros.
+- **Fila de totales**: al final muestra "N clientes · M con deuda", total fiado pendiente y total ventas históricas.
+- Acceso desde el botón verde en `clientes/index.php` y desde `reportes/index.php`.
+- Requiere `ventas:editar_existentes` — protege datos financieros y de contacto de los clientes.
+
+*Última actualización: 2026-06-06 | v4.52 — exportar clientes a Excel.*

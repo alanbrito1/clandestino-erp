@@ -85,6 +85,8 @@ $total_ventas   = array_sum(array_column($clientes, 'total_ventas'));
                font-size:13px; font-weight:700; cursor:pointer; }
         .btn-primary { background:var(--brand); color:var(--white); }
         .btn-primary:hover { background:#c73d28; }
+        .btn-excel { background:#16a34a; color:var(--white); text-decoration:none; }
+        .btn-excel:hover { background:#15803d; }
         .btn-sec     { background:var(--g9); color:var(--g2); }
         .btn-sec:hover { background:var(--g8); }
 
@@ -287,6 +289,8 @@ $total_ventas   = array_sum(array_column($clientes, 'total_ventas'));
             <option value="deuda">Con deuda</option>
         </select>
         <?php if (permiso_tiene('ventas','editar_existentes')): ?>
+        <a href="<?= APP_BASE ?>/clientes/exportar.php" class="btn btn-excel"
+           title="Descargar lista de clientes como Excel">📊 Excel</a>
         <button class="btn btn-primary" onclick="abrirNuevo()">+ Nuevo Cliente</button>
         <?php endif; ?>
     </div>
