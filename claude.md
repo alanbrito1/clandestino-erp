@@ -1,4 +1,4 @@
-# ClanDestino ERP v4.49 — Memoria de Sesión
+# ClanDestino ERP v4.50 — Memoria de Sesión
 # Última sesión: 2026-06-06 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
@@ -1278,3 +1278,26 @@ Si `es_base` se cambia en una receta después de realizar ventas, la restauraci�
 - Sin migración — usa únicamente la tabla `ventas` existente.
 
 *Última actualización: 2026-06-06 | v4.49 — gráfico de barras ventas últimos 7 días.*
+
+---
+
+## Estado v4.50 (2026-06-06)
+
+### Cambios implementados en esta sesión
+
+| Archivo | Cambio |
+|---------|--------|
+| `public_html/app/views/icons.php` | Nuevo `IC_CASH` — ícono moneda/dólar (Heroicons outline currency-dollar) |
+| `public_html/clientes/index.php` | Botón verde IC_CASH en fila de tabla (solo si `saldo_fiado > 0` y `editar_existentes`); modal "Registrar Pago / Abono" con monto, preview saldo nuevo, método de pago, notas; funciones JS `abrirAbono()`, `actualizarSaldoPreview()`, `guardarAbono()` |
+| `public_html/clientes/api/registrar_abono.php` | Nuevo endpoint POST: CSRF + permiso; SELECT FOR UPDATE para evitar carrera; clamp monto ≤ saldo_fiado; INSERT pagos_fiado con saldo_anterior/saldo_posterior; UPDATE clientes.saldo_fiado; log auditoría; JSON response |
+| `public_html/app/config/app.php` | APP_VERSION → 4.50 |
+
+### Funcionalidad v4.50
+
+- **Botón abonar**: icono verde 💲 aparece en la fila del cliente solo cuando `saldo_fiado > 0` y el usuario tiene `editar_existentes`. Al hacer clic abre el modal pre-cargado con nombre y deuda actual del cliente.
+- **Preview de saldo**: mientras el usuario escribe el monto, el modal muestra en tiempo real cuánto quedará pendiente tras el pago.
+- **Seguridad**: SELECT FOR UPDATE previene condición de carrera; el monto se clampea al saldo real aunque el usuario envíe un número mayor.
+- **pagos_fiado.saldo_anterior / saldo_posterior**: snapshots inmutables para el estado de cuenta (`estado_cuenta.php` ya los mostraba).
+- **Auditoría**: `log_registrar('pagos_fiado', $abono_id, 'abono', ...)`.
+
+*Última actualización: 2026-06-06 | v4.50 — registro de abonos a fiado desde módulo clientes.*

@@ -6,7 +6,7 @@
  */
 
 define('APP_NAME',    'ClanDestino ERP');
-define('APP_VERSION', '4.49'); // 2026-06-06: v4.49 gráfico de barras ventas últimos 7 días en dashboard
+define('APP_VERSION', '4.50'); // 2026-06-06: v4.50 registrar abono / pago de fiado desde módulo clientes
 define('APP_ENV',     'production'); // cambiar a 'development' para depurar
 
 // Ruta absoluta a public_html/ (raíz web del proyecto)

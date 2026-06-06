@@ -354,6 +354,12 @@ $total_ventas   = array_sum(array_column($clientes, 'total_ventas'));
                             onclick="abrirFusion(<?= (int)$c['id'] ?>, '<?= htmlspecialchars(addslashes($nc)) ?>', <?= (float)$c['saldo_fiado'] ?>)"
                             ><?= IC_MERGE ?></button>
                     <?php endif; ?>
+                    <!-- Abonar: solo si tiene deuda pendiente -->
+                    <?php if ((float)$c['saldo_fiado'] > 0): ?>
+                    <button class="btn-acc ic" title="Registrar pago de fiado" style="color:var(--green)"
+                            onclick="abrirAbono(<?= (int)$c['id'] ?>, '<?= htmlspecialchars(addslashes($nc)) ?>', <?= number_format((float)$c['saldo_fiado'], 2, '.', '') ?>)"
+                            ><?= IC_CASH ?></button>
+                    <?php endif; ?>
                     <?php endif; ?>
 
                     <?php if (permiso_tiene('ventas','admin_total')): ?>
@@ -520,6 +526,46 @@ $total_ventas   = array_sum(array_column($clientes, 'total_ventas'));
             <button class="btn-full warning" id="fu-btn" onclick="confirmarFusion()" disabled>
                 Fusionar Clientes
             </button>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
+<!-- ══ MODAL ABONO / PAGO DE FIADO ════════════════════════════════════════ -->
+<?php if (permiso_tiene('ventas','editar_existentes')): ?>
+<div class="overlay" id="modal-ab" onclick="if(event.target===this)cerrarModal('modal-ab')">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Registrar abono">
+        <div class="modal-hdr">
+            Registrar Pago / Abono
+            <button class="btn-cls" onclick="cerrarModal('modal-ab')" aria-label="Cerrar">&#x2715;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="ab-id">
+            <p id="ab-cliente-info" style="font-size:13px;color:var(--g5);margin-bottom:14px;
+               background:var(--g9);border-radius:8px;padding:8px 12px;line-height:1.5"></p>
+            <div class="fg">
+                <label>Monto del pago ($) *</label>
+                <input type="number" id="ab-monto" min="1" step="100" inputmode="numeric"
+                       placeholder="0" oninput="actualizarSaldoPreview()">
+            </div>
+            <p id="ab-saldo-preview" style="font-size:12px;color:var(--g5);margin:-6px 0 12px;display:none">
+                Saldo tras el pago:
+                <strong id="ab-saldo-nuevo" style="color:var(--green)">$0</strong>
+            </p>
+            <div class="fg">
+                <label>Método de pago *</label>
+                <select id="ab-metodo">
+                    <option value="efectivo">💵 Efectivo</option>
+                    <option value="nequi">📱 Nequi</option>
+                    <option value="daviplata">📱 Daviplata</option>
+                    <option value="bancolombia">🏦 Bancolombia</option>
+                </select>
+            </div>
+            <div class="fg">
+                <label>Notas (opcional)</label>
+                <input id="ab-notas" maxlength="255" placeholder="Observación sobre el pago">
+            </div>
+            <button class="btn-full" id="ab-btn" onclick="guardarAbono()">Registrar Abono</button>
         </div>
     </div>
 </div>
@@ -786,6 +832,77 @@ async function confirmarFusion() {
 
 // Aplicar filtro inicial al cargar (muestra solo activos por defecto)
 filtrar();
+
+/* ── Abono / pago de fiado ─────────────────────────────────────────────── */
+let _abSaldoActual = 0;
+
+function abrirAbono(id, nombre, saldo) {
+    _abSaldoActual = saldo;
+    document.getElementById('ab-id').value    = id;
+    document.getElementById('ab-monto').value = '';
+    document.getElementById('ab-monto').max   = saldo;
+    document.getElementById('ab-notas').value = '';
+    document.getElementById('ab-cliente-info').textContent =
+        nombre + ' — Deuda: $' + saldo.toLocaleString('es-CO', {maximumFractionDigits: 0});
+    document.getElementById('ab-saldo-preview').style.display = 'none';
+    const btn = document.getElementById('ab-btn');
+    btn.disabled    = false;
+    btn.textContent = 'Registrar Abono';
+    document.getElementById('modal-ab').classList.add('on');
+    setTimeout(() => document.getElementById('ab-monto').focus(), 80);
+}
+
+function actualizarSaldoPreview() {
+    const monto   = parseFloat(document.getElementById('ab-monto').value) || 0;
+    const preview = document.getElementById('ab-saldo-preview');
+    if (monto > 0) {
+        const nuevo = Math.max(0, _abSaldoActual - monto);
+        document.getElementById('ab-saldo-nuevo').textContent =
+            '$' + nuevo.toLocaleString('es-CO', {maximumFractionDigits: 0});
+        preview.style.display = 'block';
+    } else {
+        preview.style.display = 'none';
+    }
+}
+
+async function guardarAbono() {
+    const id     = document.getElementById('ab-id').value;
+    const monto  = parseFloat(document.getElementById('ab-monto').value);
+    const metodo = document.getElementById('ab-metodo').value;
+    const notas  = document.getElementById('ab-notas').value.trim();
+
+    if (!monto || monto <= 0) { toast('Ingresa un monto válido', 'err'); return; }
+
+    const btn = document.getElementById('ab-btn');
+    btn.disabled    = true;
+    btn.textContent = 'Guardando…';
+
+    const fd = new FormData();
+    fd.append('csrf_token', csrf());
+    fd.append('cliente_id', id);
+    fd.append('monto',      monto);
+    fd.append('metodo_pago', metodo);
+    fd.append('notas',       notas);
+
+    try {
+        const resp = await fetch('api/registrar_abono.php', { method: 'POST', body: fd });
+        const data = await resp.json();
+        if (data.success) {
+            cerrarModal('modal-ab');
+            const fmt = monto.toLocaleString('es-CO', {maximumFractionDigits: 0});
+            toast('Abono de $' + fmt + ' registrado ✓', 'ok');
+            setTimeout(() => location.reload(), 1200);
+        } else {
+            toast(data.error || 'Error al registrar el abono', 'err');
+            btn.disabled    = false;
+            btn.textContent = 'Registrar Abono';
+        }
+    } catch (e) {
+        toast('Error de red. Intenta de nuevo.', 'err');
+        btn.disabled    = false;
+        btn.textContent = 'Registrar Abono';
+    }
+}
 </script>
 </body>
 </html>
