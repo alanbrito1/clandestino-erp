@@ -6,7 +6,7 @@
  */
 
 define('APP_NAME',    'ClanDestino ERP');
-define('APP_VERSION', '4.47'); // 2026-06-06: v4.47 descuentos en reporte ventas (Excel + web)
+define('APP_VERSION', '4.48'); // 2026-06-06: v4.48 meta de ventas diaria — progress bar dashboard + cierre
 define('APP_ENV',     'production'); // cambiar a 'development' para depurar
 
 // Ruta absoluta a public_html/ (raíz web del proyecto)

@@ -167,6 +167,21 @@ try {
 } catch (\Exception $e) {}
 $negocio_nombre = $negocio_nombre ?: APP_NAME;
 
+// ── 8. Meta de ventas diaria ─────────────────────────────────────────────────
+$meta_diaria_c  = 0.0;
+$meta_pct_c     = 0;
+$meta_alcanzada_c = false;
+try {
+    $m = $pdo->query(
+        "SELECT valor FROM configuracion_negocio WHERE clave = 'meta_ventas_diaria' LIMIT 1"
+    )->fetchColumn();
+    $meta_diaria_c = (float)($m ?: 0);
+} catch (\Exception $e) {}
+if ($meta_diaria_c > 0) {
+    $meta_pct_c     = min(100, (int)round($total_ventas / $meta_diaria_c * 100));
+    $meta_alcanzada_c = $total_ventas >= $meta_diaria_c;
+}
+
 // ── 6. Texto para compartir por WhatsApp ──────────────────────────────────────
 function fmt_cop(float $n): string { return '$' . number_format($n, 0, ',', '.'); }
 
@@ -192,6 +207,11 @@ if ($n_ventas_total > 0) {
     $txt_share .= "📊 *Total: " . fmt_cop($total_ventas) . "*\n";
     if ($total_descuentos > 0) {
         $txt_share .= "🏷 Descuentos: −" . fmt_cop($total_descuentos) . " ({$n_descuentos} ventas)\n";
+    }
+    if ($meta_diaria_c > 0) {
+        $txt_share .= "🎯 Meta: " . fmt_cop($meta_diaria_c) . " — " . $meta_pct_c . "%";
+        if ($meta_alcanzada_c) $txt_share .= " ✓ ¡Alcanzada!";
+        $txt_share .= "\n";
     }
     if ($turno) {
         $fondo_share = (float)$turno['fondo_inicial'];
@@ -453,6 +473,19 @@ $metodo_icons = [
         <p style="font-size:12px;color:#9ca3af">
             🏷 <?= $n_descuentos ?> venta<?= $n_descuentos != 1 ? 's' : '' ?> con descuento — total descontado:
             <strong style="color:#92400e">−$<?= number_format($total_descuentos, 0, ',', '.') ?></strong>
+        </p>
+        <?php endif; ?>
+        <?php if ($meta_diaria_c > 0): ?>
+        <hr class="tot-sep">
+        <?php
+        $mc_bg  = $meta_pct_c >= 80 ? '#d1fae5' : ($meta_pct_c >= 50 ? '#fef3c7' : '#fee2e2');
+        $mc_txt = $meta_pct_c >= 80 ? '#065f46' : ($meta_pct_c >= 50 ? '#92400e' : '#991b1b');
+        ?>
+        <p style="font-size:12px;color:#9ca3af;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            🎯 Meta del día: <strong style="color:var(--dark)">$<?= number_format($meta_diaria_c, 0, ',', '.') ?></strong>
+            <span style="background:<?= $mc_bg ?>;color:<?= $mc_txt ?>;border-radius:99px;padding:2px 8px;font-weight:700;font-size:11px">
+                <?= $meta_pct_c ?>%<?= $meta_alcanzada_c ? ' ✓ ¡Alcanzada!' : '' ?>
+            </span>
         </p>
         <?php endif; ?>
     </div>

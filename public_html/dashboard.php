@@ -37,8 +37,24 @@ if (permiso_tiene('ventas', 'solo_ver')) {
          WHERE metodo_pago = 'fiado' AND fecha_pago IS NULL AND estado != 'anulada'"
     )->fetch();
     $stats['fiado_total'] = (float)$row2['total'];
-}
 
+    // Meta de ventas diaria (clave opcional — no falla si no existe aún)
+    try {
+        $m = db()->query(
+            "SELECT valor FROM configuracion_negocio WHERE clave = 'meta_ventas_diaria' LIMIT 1"
+        )->fetchColumn();
+        $meta_diaria = (float)($m ?: 0);
+    } catch (\Exception $e) { $meta_diaria = 0.0; }
+    if ($meta_diaria > 0) {
+        $meta_pct       = min(100, (int)round($stats['ventas_total'] / $meta_diaria * 100));
+        $meta_alcanzada = $stats['ventas_total'] >= $meta_diaria;
+    } else {
+        $meta_pct       = 0;
+        $meta_alcanzada = false;
+    }
+} else {
+    $meta_diaria = 0.0; $meta_pct = 0; $meta_alcanzada = false;
+}
 if (permiso_tiene('inventario', 'solo_ver')) {
     $row = db()->query(
         'SELECT COUNT(*) AS n FROM insumos WHERE stock_actual <= stock_seguridad AND activo = 1'
@@ -361,6 +377,13 @@ $nivel_labels = [
             margin-left: 8px;
             vertical-align: middle;
         }
+
+        /* ---- Meta de ventas ---- */
+        .meta-card { background:var(--white); border-radius:var(--radius); padding:14px 18px; box-shadow:0 1px 4px rgba(0,0,0,.06); margin-bottom:16px; }
+        .meta-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
+        .meta-lbl { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--gray-5); }
+        .progress-track { background:var(--gray-9); border-radius:99px; height:10px; overflow:hidden; }
+        .progress-fill { height:100%; border-radius:99px; min-width:4px; transition:width .6s ease; }
     </style>
 </head>
 <body>
@@ -472,6 +495,61 @@ $nivel_labels = [
             </div>
             <?php endif; ?>
 
+        </div>
+        <?php endif; ?>
+
+        <!-- ── Meta de ventas diaria ─────────────────────────────────────────── -->
+        <?php if (permiso_tiene('ventas', 'solo_ver') && ($meta_diaria > 0 || in_array($_SESSION['usuario_rol'] ?? '', ['admin','superadmin']))): ?>
+        <div class="meta-card">
+            <div class="meta-header">
+                <span class="meta-lbl">Meta del día</span>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                    <?php if ($meta_diaria > 0): ?>
+                    <span style="font-size:13px;font-weight:700;color:var(--dark)">
+                        $<?= number_format($stats['ventas_total'], 0, ',', '.') ?>
+                        <span style="color:var(--gray-5);font-weight:400">/ $<?= number_format($meta_diaria, 0, ',', '.') ?></span>
+                    </span>
+                    <?php
+                    $meta_color_bg  = $meta_pct >= 80 ? '#d1fae5' : ($meta_pct >= 50 ? '#fef3c7' : '#fee2e2');
+                    $meta_color_txt = $meta_pct >= 80 ? '#065f46' : ($meta_pct >= 50 ? '#92400e' : '#991b1b');
+                    $meta_bar_color = $meta_pct >= 100 ? '#10b981' : ($meta_pct >= 80 ? '#16a34a' : ($meta_pct >= 50 ? '#d97706' : '#e94f37'));
+                    ?>
+                    <span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:99px;background:<?= $meta_color_bg ?>;color:<?= $meta_color_txt ?>">
+                        <?= $meta_pct ?>%<?= $meta_alcanzada ? ' ✓' : '' ?>
+                    </span>
+                    <?php else: ?>
+                    <span style="font-size:12px;color:var(--gray-5)">Sin meta configurada</span>
+                    <?php endif; ?>
+                    <?php if (in_array($_SESSION['usuario_rol'] ?? '', ['admin','superadmin'])): ?>
+                    <a href="#" onclick="event.preventDefault();var f=document.getElementById('meta-edit');f.style.display=f.style.display==='flex'?'none':'flex';"
+                       style="font-size:11px;color:var(--gray-5);text-decoration:none;padding:2px 8px;border:1px solid var(--gray-8);border-radius:6px">✏️ editar</a>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php if ($meta_diaria > 0): ?>
+            <div class="progress-track">
+                <div class="progress-fill" style="width:<?= $meta_pct ?>%;background:<?= $meta_bar_color ?>"></div>
+            </div>
+            <?php if ($meta_alcanzada): ?>
+            <p style="font-size:12px;color:#059669;font-weight:700;margin-top:6px">🎉 ¡Meta del día alcanzada!</p>
+            <?php endif; ?>
+            <?php endif; ?>
+            <?php if (in_array($_SESSION['usuario_rol'] ?? '', ['admin','superadmin'])): ?>
+            <div id="meta-edit" style="display:none;margin-top:12px;gap:8px;align-items:center;flex-wrap:wrap">
+                <form method="POST" action="<?= APP_BASE ?>/admin/api/set_meta_ventas.php"
+                      style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrf_token()) ?>">
+                    <label style="font-size:12px;color:var(--gray-5)">Meta diaria ($)</label>
+                    <input type="number" name="meta" value="<?= (int)$meta_diaria ?>"
+                           min="0" max="99999999" step="1000"
+                           style="padding:7px 10px;border:1px solid var(--gray-8);border-radius:8px;font-size:13px;width:140px">
+                    <button type="submit"
+                            style="padding:7px 14px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+                        Guardar
+                    </button>
+                </form>
+            </div>
+            <?php endif; ?>
         </div>
         <?php endif; ?>
 
