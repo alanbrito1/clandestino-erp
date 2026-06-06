@@ -28,6 +28,7 @@
  *   G23  Variantes 035       — tabla producto_variantes, columnas venta_detalles, coherencia
  *   G24  Ingrediente Base 036 — columna es_base en recetas, coherencia con variantes
  *   G25  Conteo Rápido       — endpoint y página existen, stock no negativo, logs coherentes
+ *   G26  Turnos de Caja 037  — tabla existe, columnas, estado válido, sin duplicados abiertos, fondo≥0
  *
  * EJECUTAR: /tests/suite.php (navegador, sesión activa como superadmin)
  */
@@ -1259,6 +1260,73 @@ try {
     t($G, "Logs de conteo_rapido verificados", false, "Error: " . $e->getMessage());
 }
 
+// ════════════════════════════════════════════════════════════════════════════════
+//  G26 — TURNOS DE CAJA (migración 037)
+//  Verifica estructura y coherencia de la tabla turnos_caja.
+// ════════════════════════════════════════════════════════════════════════════════
+
+$G = 'G26 Turnos de Caja 037';
+
+$tiene_tc = false;
+try {
+    $tiene_tc = (int)$pdo->query(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='turnos_caja' AND COLUMN_NAME='id'"
+    )->fetchColumn() > 0;
+} catch (\Exception $e) {}
+
+t($G, "Tabla turnos_caja existe (mig.037)",
+    $tiene_tc,
+    "Aplicar 037_turnos_caja.sql",
+    !$tiene_tc);
+
+if ($tiene_tc) {
+    // Test: columnas requeridas existen
+    foreach (['fondo_inicial', 'usuario_apertura', 'estado', 'fecha'] as $col) {
+        $existe = columna_existe($pdo, 'turnos_caja', $col);
+        t($G, "turnos_caja.$col existe", $existe, "Columna $col no encontrada");
+    }
+
+    // Test: estado solo tiene valores válidos
+    $estados_inv = (int)scalar($pdo,
+        "SELECT COUNT(*) FROM turnos_caja WHERE estado NOT IN ('abierto','cerrado')");
+    t($G, "Estado en turnos_caja solo 'abierto' o 'cerrado'",
+        $estados_inv === 0,
+        $estados_inv > 0 ? "{$estados_inv} filas con estado inválido." : '');
+
+    // Test: no más de un turno abierto por fecha
+    $duplicados = (int)scalar($pdo,
+        "SELECT COUNT(*) FROM (
+            SELECT fecha, COUNT(*) AS n FROM turnos_caja
+            WHERE estado = 'abierto' GROUP BY fecha HAVING n > 1
+         ) AS dup");
+    t($G, "Máximo 1 turno abierto por fecha",
+        $duplicados === 0,
+        $duplicados > 0 ? "{$duplicados} fechas con más de un turno abierto." : '');
+
+    // Test: fondo_inicial no negativo
+    $neg_fondo = (int)scalar($pdo,
+        "SELECT COUNT(*) FROM turnos_caja WHERE fondo_inicial < 0");
+    t($G, "Fondo inicial nunca negativo",
+        $neg_fondo === 0,
+        $neg_fondo > 0 ? "{$neg_fondo} registros con fondo negativo." : '');
+
+    // Test: turnos cerrados tienen fecha_cierre
+    $cerrado_sin_fecha = (int)scalar($pdo,
+        "SELECT COUNT(*) FROM turnos_caja WHERE estado='cerrado' AND fecha_cierre IS NULL");
+    t($G, "Turnos cerrados tienen fecha_cierre",
+        $cerrado_sin_fecha === 0,
+        $cerrado_sin_fecha > 0 ? "{$cerrado_sin_fecha} turnos cerrados sin fecha_cierre." : '');
+
+    // Test: usuario_apertura apunta a usuarios existentes
+    $huerfanos = (int)scalar($pdo,
+        "SELECT COUNT(*) FROM turnos_caja tc
+         WHERE NOT EXISTS (SELECT 1 FROM usuarios u WHERE u.id = tc.usuario_apertura)");
+    t($G, "usuario_apertura sin huérfanos en usuarios",
+        $huerfanos === 0,
+        $huerfanos > 0 ? "{$huerfanos} registros con usuario_apertura inexistente." : '');
+}
+
 // ── Tiempo total de ejecución ─────────────────────────────────────────────────
 $tiempo        = round(microtime(true) - $_SERVER['REQUEST_TIME_FLOAT'], 3);
 $total_pruebas = $pass + $fail + $warn;
@@ -1317,7 +1385,7 @@ $total_pruebas = $pass + $fail + $warn;
     Ejecutado: <?= date('d/m/Y H:i:s') ?> |
     <?= $tiempo ?>s |
     <?= $total_pruebas ?> pruebas |
-    25 grupos
+    26 grupos
 </p>
 
 <!-- Resumen global -->

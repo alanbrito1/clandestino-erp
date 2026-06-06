@@ -101,6 +101,36 @@ try {
     // Migración 026 pendiente — la sección se omite silenciosamente
 }
 
+// ── Historial de turnos del período (mig.037, opcional) ─────────────────────
+$turnos_periodo = [];
+try {
+    $tiene_tc = (int)db()->query(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='turnos_caja' AND COLUMN_NAME='id'"
+    )->fetchColumn() > 0;
+    if ($tiene_tc) {
+        $stmt_tc = db()->prepare(
+            "SELECT tc.fecha, tc.fondo_inicial, tc.estado, tc.notas_apertura,
+                    u.nombre  AS usuario_apertura,
+                    uc.nombre AS usuario_cierre,
+                    tc.fecha_apertura, tc.fecha_cierre,
+                    COALESCE(
+                        (SELECT SUM(v.total) FROM ventas v
+                         WHERE DATE(v.fecha_venta)=tc.fecha
+                           AND v.metodo_pago='efectivo'
+                           AND v.estado IN ('completada','pendiente_pago')),
+                    0) AS efectivo_cobrado
+             FROM turnos_caja tc
+             LEFT JOIN usuarios u  ON u.id  = tc.usuario_apertura
+             LEFT JOIN usuarios uc ON uc.id = tc.usuario_cierre
+             WHERE tc.fecha BETWEEN :ini AND :fin
+             ORDER BY tc.fecha DESC"
+        );
+        $stmt_tc->execute([':ini' => $mes_inicio, ':fin' => $mes_fin]);
+        $turnos_periodo = $stmt_tc->fetchAll();
+    }
+} catch (\Exception $e) {}
+
 // ── EXPORTAR EXCEL ──────────────────────────────────────────────────────────
 if (isset($_GET['export'])) {
     $w = new XlsxWriter();
@@ -238,6 +268,36 @@ if (isset($_GET['export'])) {
         $w->addRow(['', 'TOTAL', '', array_sum(array_column($obsequios_venta, 'total_unidades')), $total_obs_val, '', ''], false, true);
     }
     } // fin if datos obsequio
+
+    // Hoja 6: Turnos de Caja (solo si mig.037 y hay datos)
+    if (!empty($turnos_periodo)) {
+        $w->setSheet('Turnos de Caja');
+        $w->addRow(['ClanDestino ERP — Turnos de Caja ' . $meses_es[$mes] . ' ' . $anio], true);
+        $w->addEmptyRow();
+        $w->addRow(['Fecha', 'Abre', 'Fondo Inicial', 'Efectivo Cobrado', 'Total en Caja', 'Diferencia', 'Estado', 'Notas'], true);
+        $total_fondo = 0;
+        $total_efec  = 0;
+        foreach ($turnos_periodo as $tc) {
+            $fondo = (float)$tc['fondo_inicial'];
+            $efec  = (float)$tc['efectivo_cobrado'];
+            $total = $fondo + $efec;
+            $diff  = $efec; // Efectivo generado en el día
+            $total_fondo += $fondo;
+            $total_efec  += $efec;
+            $w->addRow([
+                date('d/m/Y', strtotime($tc['fecha'])),
+                $tc['usuario_apertura'] ?? '',
+                $fondo,
+                $efec,
+                $total,
+                $diff,
+                ucfirst($tc['estado']),
+                $tc['notas_apertura'] ?? '',
+            ]);
+        }
+        $w->addEmptyRow();
+        $w->addRow(['TOTAL', '', $total_fondo, $total_efec, $total_fondo + $total_efec, $total_efec, '', ''], false, true);
+    }
 
     $w->download('ClanDestino_Operativo_' . $meses_es[$mes] . '_' . $anio . '.xlsx');
 }
@@ -487,6 +547,65 @@ $agotados = count(array_filter($insumos, fn($i) => $i['estado'] === 'agotado'));
     </div>
     <?php endif; ?>
 
+    <?php endif; ?>
+
+    <!-- Turnos de Caja -->
+    <?php if (!empty($turnos_periodo)): ?>
+    <h2 class="section-title">🏪 Turnos de Caja — <?= $meses_es[$mes] . ' ' . $anio ?></h2>
+    <div class="card">
+        <table>
+            <thead><tr>
+                <th>Fecha</th>
+                <th class="hide-m">Abre</th>
+                <th class="r">Fondo</th>
+                <th class="r">Efectivo cobrado</th>
+                <th class="r">Total en caja</th>
+                <th style="text-align:center">Estado</th>
+                <th class="hide-m">Notas</th>
+            </tr></thead>
+            <tbody>
+            <?php
+            $tc_fondo = 0; $tc_efec = 0;
+            foreach ($turnos_periodo as $tc):
+                $fondo = (float)$tc['fondo_inicial'];
+                $efec  = (float)$tc['efectivo_cobrado'];
+                $total = $fondo + $efec;
+                $tc_fondo += $fondo; $tc_efec += $efec;
+            ?>
+            <tr>
+                <td>
+                    <a href="<?= APP_BASE ?>/ventas/cierre.php?fecha=<?= $tc['fecha'] ?>"
+                       style="color:var(--brand);font-weight:600;text-decoration:none">
+                        <?= date('d/m/Y', strtotime($tc['fecha'])) ?>
+                    </a>
+                </td>
+                <td class="hide-m" style="font-size:12px"><?= htmlspecialchars($tc['usuario_apertura'] ?? '—') ?></td>
+                <td class="r">$<?= number_format($fondo, 0, ',', '.') ?></td>
+                <td class="r" style="color:var(--green);font-weight:700">$<?= number_format($efec, 0, ',', '.') ?></td>
+                <td class="r" style="font-weight:800">$<?= number_format($total, 0, ',', '.') ?></td>
+                <td style="text-align:center">
+                    <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;
+                                 <?= $tc['estado']==='abierto'
+                                     ? 'background:#d1fae5;color:#065f46'
+                                     : 'background:#f3f4f6;color:#6b7280' ?>">
+                        <?= $tc['estado'] === 'abierto' ? '● Abierto' : 'Cerrado' ?>
+                    </span>
+                </td>
+                <td class="hide-m" style="font-size:12px;color:var(--g5)">
+                    <?= htmlspecialchars($tc['notas_apertura'] ?? '') ?>
+                </td>
+            </tr>
+            <?php endforeach; ?>
+            <tr style="background:var(--g9);font-weight:800">
+                <td colspan="2">TOTAL</td>
+                <td class="r">$<?= number_format($tc_fondo, 0, ',', '.') ?></td>
+                <td class="r" style="color:var(--green)">$<?= number_format($tc_efec, 0, ',', '.') ?></td>
+                <td class="r">$<?= number_format($tc_fondo + $tc_efec, 0, ',', '.') ?></td>
+                <td colspan="2"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
     <?php endif; ?>
 
 </main>

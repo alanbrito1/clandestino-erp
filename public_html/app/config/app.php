@@ -6,7 +6,7 @@
  */
 
 define('APP_NAME',    'ClanDestino ERP');
-define('APP_VERSION', '4.45'); // 2026-06-06: v4.45 apertura de turno/fondo de caja (ventas/apertura.php) + integración con cierre.php + dashboard
+define('APP_VERSION', '4.45'); // 2026-06-06: v4.45 apertura de turno (037), G26, reporte turnos operativo, ayuda completa
 define('APP_ENV',     'production'); // cambiar a 'development' para depurar
 
 // Ruta absoluta a public_html/ (raíz web del proyecto)

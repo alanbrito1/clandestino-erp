@@ -841,7 +841,7 @@ Los modelos usan `SHOW COLUMNS` / `information_schema.COLUMNS` para detectar si 
 | Compras (panel pres.) | ✅ | Panel informativo de solo lectura al seleccionar insumo: badge tipo empaque + unidad básica + cant/empaque + badge verde equivalencia física + hint dinámico total físico. Snapshot de presentación se guarda en `compra_detalles` (mig. 032 + 034). `calcPres` eliminado — lógica simplificada. |
 | Historial ventas | ✅ | Acepta `?cliente_id=X` para filtrar por cliente; banner verde con nombre del cliente y saldo pendiente; preserva filtro al cambiar fechas |
 | Reporte Precios | ✅ | **6 tabs**: Insumos (con columnas de empaque), Productos, Nómina (con tarifa/hora snap), Costos Fijos, **Activos** (historial logs_historial), **Fiado/Abonos** (saldo antes/después) |
-| Tests | ✅ | Suite de pruebas en `/tests/suite.php` (solo superadmin) — **25 grupos, ~144 pruebas** (G01-G25: esquema, migraciones 026-036, precios, stock, fiado, obsequios, combos, clientes, produccion, activos, nomina, costos, FK, catalogos, configuracion, seguridad, auditoria, eficiencia, usuario UX, inmutabilidad profunda, ENUMs→VARCHAR, snapshots 032-034, **G23: variantes 035**, **G24: ingrediente base 036**, **G25: conteo rápido**) |
+| Tests | ✅ | Suite de pruebas en `/tests/suite.php` (solo superadmin) — **26 grupos, ~154 pruebas** (G01-G26: esquema, migraciones 026-037, precios, stock, fiado, obsequios, combos, clientes, produccion, activos, nomina, costos, FK, catalogos, configuracion, seguridad, auditoria, eficiencia, usuario UX, inmutabilidad profunda, ENUMs→VARCHAR, snapshots 032-034, **G23: variantes 035**, **G24: ingrediente base 036**, **G25: conteo rápido**, **G26: turnos de caja 037**) |
 
 ---
 
@@ -1183,8 +1183,6 @@ Si `es_base` se cambia en una receta después de realizar ventas, la restauraci�
 - Click → apertura.php
 
 **Próxima sesión puede continuar desde:**
-- Tests G26 para turnos_caja (tabla existe, estado válido, sin duplicados abiertos por día)
-- Ayuda: sección "Apertura de turno — v4.45"
-- Reporte de turnos en reportes/operativo.php: historico de aperturas con diferencia fondo vs efectivo cobrado
+- Nuevo módulo o mejora funcional — el sistema está completo y estable en v4.45
 
-*Última actualización: 2026-06-06 | v4.45 — apertura de turno/fondo de caja completo.*
+*Última actualización: 2026-06-06 | v4.45 — apertura de turno, G26, reporte turnos en operativo, ayuda completa.*

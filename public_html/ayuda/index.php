@@ -659,7 +659,30 @@ Para cada ítem en el carrito con <span class="var">es_combo = 1</span>:
                     <tr><td>Compartir por WhatsApp</td><td>Botón verde "Compartir". En móvil usa la API nativa <code>navigator.share()</code>; en escritorio abre WhatsApp Web con el texto prellenado.</td></tr>
                 </tbody>
             </table>
-            <div class="ok"><strong>Texto compartido:</strong> Incluye nombre del negocio, fecha, totales por método de pago y detalle de productos con variantes. Formato <em>Markdown</em> compatible con WhatsApp (negritas con <code>*asteriscos*</code>).</div>
+            <div class="ok"><strong>Texto compartido:</strong> Incluye nombre del negocio, fecha, totales por método de pago, detalle de productos con variantes, y sección de fondo + total en caja si hay turno registrado. Formato <em>Markdown</em> compatible con WhatsApp (negritas con <code>*asteriscos*</code>).</div>
+
+            <div class="sub-title">Apertura de turno / Fondo de caja — v4.45</div>
+            <p><strong>Ventas → Apertura de turno</strong> (<code>ventas/apertura.php</code>) registra el fondo de caja al inicio de cada día y es el complemento natural del cierre. Requiere migración 037 (<code>turnos_caja</code>). Si la migración no está aplicada, la página informa cómo aplicarla sin fallar.</p>
+            <table class="data-table">
+                <thead><tr><th>Estado</th><th>Descripción</th></tr></thead>
+                <tbody>
+                    <tr><td>● Abierto (verde)</td><td>Hay turno activo: muestra fondo inicial, efectivo cobrado hasta ahora (en vivo) y total en caja.</td></tr>
+                    <tr><td>Cerrado (gris)</td><td>El turno del día fue cerrado por un admin. No se puede abrir otro.</td></tr>
+                    <tr><td>Sin apertura (amarillo)</td><td>No hay turno para hoy. Formulario disponible para abrir uno con fondo y notas opcionales.</td></tr>
+                </tbody>
+            </table>
+            <table class="data-table" style="margin-top:10px">
+                <thead><tr><th>Campo</th><th>Descripción</th></tr></thead>
+                <tbody>
+                    <tr><td>Fondo de caja inicial</td><td>Efectivo en billetes que hay en caja al abrir (para dar cambio a los clientes).</td></tr>
+                    <tr><td>Notas del turno</td><td>Observaciones libres: quién abre, eventos especiales, etc.</td></tr>
+                    <tr><td>KPI "Total en caja"</td><td>Fondo inicial + efectivo cobrado en ventas del día. Se actualiza cada vez que recargas.</td></tr>
+                    <tr><td>Cerrar turno</td><td>Solo admin. Registra fecha/hora de cierre y notas de cierre. Acción con confirmación.</td></tr>
+                    <tr><td>Historial</td><td>Últimos 10 turnos con fecha, quien abrió, fondo y estado. Cada fecha enlaza al cierre correspondiente.</td></tr>
+                </tbody>
+            </table>
+            <div class="ok"><strong>Integración con cierre.php:</strong> Cuando hay turno registrado para la fecha seleccionada, el cierre muestra un panel azul oscuro con Fondo apertura / Efectivo cobrado / Total en caja. Si es hoy y no hay turno, aparece una alerta con link directo para abrirlo.</div>
+            <div class="warn"><strong>Nota:</strong> Un día puede tener máximo un turno activo. La tabla <code>turnos_caja</code> no tiene FK (política del proyecto — cPanel errno 121). La integridad la garantiza la validación en <code>apertura.php</code> antes de insertar.</div>
         </div>
 
         <!-- ══════════════════════════════════════════════════════════════ -->
@@ -1612,6 +1635,7 @@ La barra de progreso muestra el % del PE alcanzado en el mes</span></div>
                     <tr><td>G23 Variantes 035</td><td>producto_variantes y columnas venta_detalles (variante_id, factor_receta_snap). Factor en rango, precios positivos, sin duplicados, coherencia NULL.</td></tr>
                     <tr><td>G24 Ingrediente Base 036</td><td>recetas.es_base solo 0 o 1. Ningún ingrediente es crítico Y base a la vez. Productos con factor≠1 tienen al menos un ingrediente escalable.</td></tr>
                     <tr><td>G25 Conteo Rápido</td><td>Endpoint conteo_guardar.php accesible solo con permiso editar_existentes. Stock no negativo tras conteo. Cada cambio registra entrada en logs_historial.</td></tr>
+                    <tr><td>G26 Turnos de Caja 037</td><td>Tabla turnos_caja existe. Columnas requeridas. Estado solo 'abierto'/'cerrado'. Máximo 1 turno abierto por fecha. Fondo ≥ 0. Turnos cerrados con fecha_cierre. Sin huérfanos en usuarios.</td></tr>
                     <tr><td>G08 Clientes</td><td>Campos mig. 028, saldos, FKs del módulo de fusión.</td></tr>
                     <tr><td>G09 Producción</td><td>Lotes activos con costo coherente. FK sin huérfanos.</td></tr>
                     <tr><td>G10 Activos</td><td>Sin fecha_inicio_uso → depreciación = 0. Divisor 30.41666.</td></tr>
