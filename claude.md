@@ -1,4 +1,4 @@
-# ClanDestino ERP v4.58 — Memoria de Sesión
+# ClanDestino ERP v4.59 — Memoria de Sesión
 # Última sesión: 2026-06-06 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
@@ -1466,3 +1466,22 @@ Si `es_base` se cambia en una receta después de realizar ventas, la restauraci�
 - Útil para decisiones de producción: el dueño puede priorizar qué sándwiches preparar primero según la demanda real del mes.
 
 *Última actualización: 2026-06-06 | v4.58 — tarjeta "Productos Más Vendidos del Mes" en el dashboard.*
+
+---
+
+## Estado v4.59 (2026-06-06)
+
+### Cambios implementados en esta sesión
+
+| Archivo | Cambio |
+|---------|--------|
+| `public_html/dashboard.php` | Nueva consulta `$top_cajeros`: ranking del mes en curso por usuario que registró la venta (`ventas.created_by` JOIN `usuarios`), con número de ventas, total vendido y ticket promedio — **solo se ejecuta y se muestra para roles `admin`/`superadmin`**; nueva tarjeta `.meta-card` "👤 Rendimiento de Cajeros" debajo de "Productos Más Vendidos", con medallas 🥇🥈🥉, barra de progreso relativa al líder y nota "🔒 Visible solo para administradores" |
+
+### Funcionalidad v4.59
+
+- **Visibilidad de desempeño del personal**: el dueño/administrador puede ver de un vistazo qué empleado generó más ventas en el mes — útil para reconocimientos, ajustes de turnos o detectar quién necesita más apoyo/capacitación.
+- **Restricción de acceso intencional**: a diferencia de "Top Clientes" (v4.57) y "Productos Más Vendidos" (v4.58), que son visibles para cualquiera con acceso a ventas, esta tarjeta **solo se consulta y renderiza si `$_SESSION['usuario_rol']` es `admin` o `superadmin`** — los datos de comparación entre compañeros de trabajo son sensibles y no deben ser visibles para todo el personal operativo.
+- **Ticket promedio**: además del total vendido, cada cajero muestra cuántas ventas registró y el valor promedio por venta (`total_vendido / num_ventas`) — una métrica más justa que solo el monto total cuando los turnos tienen duración distinta.
+- No requiere migración: usa `ventas.created_by`, `ventas.total/fecha_venta/estado/metodo_pago` y `usuarios.nombre` ya existentes.
+
+*Última actualización: 2026-06-06 | v4.59 — tarjeta "Rendimiento de Cajeros" (solo admin) en el dashboard.*

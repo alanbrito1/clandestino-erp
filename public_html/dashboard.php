@@ -114,11 +114,31 @@ if (permiso_tiene('ventas', 'solo_ver')) {
              LIMIT 5"
         )->fetchAll();
     } catch (\Exception $e) {}
+
+    // Rendimiento de cajeros del mes (solo admin/superadmin — datos de desempeño del personal)
+    $top_cajeros = [];
+    if (in_array($_SESSION['usuario_rol'] ?? '', ['admin','superadmin'], true)) {
+        try {
+            $top_cajeros = db()->query(
+                "SELECT u.id, u.nombre,
+                        COUNT(v.id)  AS num_ventas,
+                        SUM(v.total) AS total_vendido
+                 FROM ventas v
+                 JOIN usuarios u ON u.id = v.created_by
+                 WHERE v.fecha_venta >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
+                   AND v.estado = 'completada' AND v.metodo_pago != 'obsequio'
+                 GROUP BY u.id, u.nombre
+                 ORDER BY total_vendido DESC
+                 LIMIT 5"
+            )->fetchAll();
+        } catch (\Exception $e) {}
+    }
 } else {
     $meta_diaria = 0.0; $meta_pct = 0; $meta_alcanzada = false;
     $grafico_7d  = [];  $total_7d  = 0.0;
     $top_clientes  = [];
     $top_productos = [];
+    $top_cajeros   = [];
     $meses_es = [1=>'Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio',
                  'Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 }
@@ -727,6 +747,41 @@ $nivel_labels = [
                 </div>
             </div>
             <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
+        <?php if (!empty($top_cajeros)): ?>
+        <div class="meta-card">
+            <div class="meta-header">
+                <span class="meta-lbl">👤 Rendimiento de Cajeros</span>
+                <span style="font-size:11px;font-weight:400;color:var(--gray-5)"><?= $meses_es[(int)date('n')] ?> <?= date('Y') ?></span>
+            </div>
+            <?php
+            $max_vendido_tcj = max(array_column($top_cajeros, 'total_vendido'));
+            foreach ($top_cajeros as $i => $tcj):
+                $medalla_tcj   = ['🥇','🥈','🥉'][$i] ?? ($i + 1) . '.';
+                $pct_barra_tcj = $max_vendido_tcj > 0 ? max(6, (int)round($tcj['total_vendido'] / $max_vendido_tcj * 100)) : 0;
+                $ticket_prom   = $tcj['num_ventas'] > 0 ? $tcj['total_vendido'] / $tcj['num_ventas'] : 0;
+            ?>
+            <div style="padding:8px 0;border-bottom:1px solid var(--gray-9)">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                    <div>
+                        <span style="font-size:15px;margin-right:6px"><?= $medalla_tcj ?></span>
+                        <strong style="font-size:13px"><?= htmlspecialchars($tcj['nombre']) ?></strong>
+                        <div style="font-size:11px;color:var(--gray-5);margin-left:21px">
+                            <?= (int)$tcj['num_ventas'] ?> venta<?= $tcj['num_ventas'] != 1 ? 's' : '' ?> · ticket prom. $<?= number_format($ticket_prom, 0, ',', '.') ?>
+                        </div>
+                    </div>
+                    <div style="text-align:right">
+                        <div style="font-weight:800;color:var(--brand);font-size:14px">$<?= number_format($tcj['total_vendido'], 0, ',', '.') ?></div>
+                    </div>
+                </div>
+                <div style="height:5px;background:var(--gray-9);border-radius:3px;overflow:hidden">
+                    <div style="height:100%;width:<?= $pct_barra_tcj ?>%;background:var(--brand);border-radius:3px"></div>
+                </div>
+            </div>
+            <?php endforeach; ?>
+            <p style="font-size:11px;color:var(--gray-5);margin:8px 0 0">🔒 Visible solo para administradores</p>
         </div>
         <?php endif; ?>
 
