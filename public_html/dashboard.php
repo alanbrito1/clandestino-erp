@@ -115,6 +115,25 @@ if (permiso_tiene('ventas', 'solo_ver')) {
         )->fetchAll();
     } catch (\Exception $e) {}
 
+    // Clientes para reactivar — compraron antes pero no en los últimos 30 días
+    $clientes_reactivar = [];
+    try {
+        $clientes_reactivar = db()->query(
+            "SELECT c.id, c.nombre, c.telefono,
+                    MAX(v.fecha_venta)  AS ultima_compra,
+                    COUNT(v.id)         AS num_compras_total,
+                    SUM(v.total)        AS total_historico
+             FROM clientes c
+             JOIN ventas v ON v.cliente_id = c.id
+                          AND v.estado = 'completada' AND v.metodo_pago != 'obsequio'
+             WHERE c.activo = 1 AND c.telefono IS NOT NULL AND c.telefono != ''
+             GROUP BY c.id, c.nombre, c.telefono
+             HAVING MAX(v.fecha_venta) < (CURDATE() - INTERVAL 30 DAY)
+             ORDER BY total_historico DESC
+             LIMIT 5"
+        )->fetchAll();
+    } catch (\Exception $e) {}
+
     // Rendimiento de cajeros del mes (solo admin/superadmin — datos de desempeño del personal)
     $top_cajeros = [];
     if (in_array($_SESSION['usuario_rol'] ?? '', ['admin','superadmin'], true)) {
@@ -136,9 +155,10 @@ if (permiso_tiene('ventas', 'solo_ver')) {
 } else {
     $meta_diaria = 0.0; $meta_pct = 0; $meta_alcanzada = false;
     $grafico_7d  = [];  $total_7d  = 0.0;
-    $top_clientes  = [];
-    $top_productos = [];
-    $top_cajeros   = [];
+    $top_clientes       = [];
+    $top_productos      = [];
+    $top_cajeros        = [];
+    $clientes_reactivar = [];
     $meses_es = [1=>'Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio',
                  'Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 }
@@ -709,6 +729,40 @@ $nivel_labels = [
                     <?php if ($tel_tcw): ?>
                     <a href="https://wa.me/<?= $tel_tcw ?>?text=<?= $msg_tc ?>" target="_blank" rel="noopener noreferrer"
                        style="color:#25d366;font-weight:700;text-decoration:none;font-size:11px">🎉 Agradecer</a>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
+        <?php if (!empty($clientes_reactivar)): ?>
+        <div class="meta-card">
+            <div class="meta-header">
+                <span class="meta-lbl">💌 Clientes para Reactivar</span>
+                <span style="font-size:11px;font-weight:400;color:var(--gray-5)">+30 días sin comprar</span>
+            </div>
+            <?php foreach ($clientes_reactivar as $cr):
+                $dias_inactivo = (int)floor((time() - strtotime($cr['ultima_compra'])) / 86400);
+                $tel_cr  = preg_replace('/[^0-9]/', '', $cr['telefono'] ?? '');
+                $tel_crw = (strlen($tel_cr) === 10 && str_starts_with($tel_cr, '3')) ? '57'.$tel_cr : $tel_cr;
+                $msg_cr  = rawurlencode(
+                    "Hola {$cr['nombre']}, ¡te extrañamos en " . APP_NAME . "! 🥪 Hace tiempo no te vemos por aquí. "
+                    . "¿Te provoca pasar pronto por tus sándwiches favoritos? ¡Te esperamos con gusto! 😊"
+                );
+            ?>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--gray-9)">
+                <div>
+                    <strong style="font-size:13px"><?= htmlspecialchars($cr['nombre']) ?></strong>
+                    <div style="font-size:11px;color:var(--gray-5)">
+                        Hace <?= $dias_inactivo ?> días · <?= (int)$cr['num_compras_total'] ?> compra<?= $cr['num_compras_total'] != 1 ? 's' : '' ?> históricas
+                    </div>
+                </div>
+                <div style="text-align:right">
+                    <div style="font-weight:800;color:var(--brand);font-size:14px">$<?= number_format($cr['total_historico'], 0, ',', '.') ?></div>
+                    <?php if ($tel_crw): ?>
+                    <a href="https://wa.me/<?= $tel_crw ?>?text=<?= $msg_cr ?>" target="_blank" rel="noopener noreferrer"
+                       style="color:#25d366;font-weight:700;text-decoration:none;font-size:11px">💌 Reconectar</a>
                     <?php endif; ?>
                 </div>
             </div>

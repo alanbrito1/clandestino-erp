@@ -6,7 +6,7 @@
  */
 
 define('APP_NAME',    'ClanDestino ERP');
-define('APP_VERSION', '4.59'); // 2026-06-06: v4.59 tarjeta "Rendimiento de Cajeros" (admin) en el dashboard
+define('APP_VERSION', '4.60'); // 2026-06-06: v4.60 tarjeta "Clientes para Reactivar" con WhatsApp de reconexión
 define('APP_ENV',     'production'); // cambiar a 'development' para depurar
 
 // Ruta absoluta a public_html/ (raíz web del proyecto)
