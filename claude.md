@@ -1,4 +1,4 @@
-# ClanDestino ERP v4.61 — Memoria de Sesión
+# ClanDestino ERP v4.62 — Memoria de Sesión
 # Última sesión: 2026-06-06 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
@@ -1524,3 +1524,22 @@ Si `es_base` se cambia en una receta después de realizar ventas, la restauraci�
 - No requiere migración: usa `activos.garantia_hasta/serial/nombre/activo` ya existentes (campo presente desde migración 005).
 
 *Última actualización: 2026-06-06 | v4.61 — alerta "Garantías por vencer" en el panel operativo del dashboard.*
+
+---
+
+## Estado v4.62 (2026-06-06)
+
+### Cambios implementados en esta sesión
+
+| Archivo | Cambio |
+|---------|--------|
+| `public_html/ayuda/index.php` | Nueva sección "Dashboard" (`id="dashboard"`, primer ítem del grupo "Módulos" en el sidebar): documenta Resumen del día (4 tarjetas), Meta del día (v4.48), Gráfico de ventas 7 días (v4.49), las 4 tarjetas de seguimiento de clientes/productos (Top Clientes v4.57, Clientes para Reactivar v4.60, Productos Más Vendidos v4.58, Rendimiento de Cajeros v4.59) y las 4 categorías del Panel de Alertas operativas (insumos bajos, fiados pendientes, stock de producto bajo, garantías por vencer v4.61); incluye tablas, tips sobre los "tres tonos de WhatsApp" y advertencia sobre la sensibilidad del ranking de cajeros; badge de versión de "Visión General" actualizado a v4.62 |
+
+### Funcionalidad v4.62
+
+- **Cierra una brecha de documentación**: el Dashboard llevaba 9 versiones (v4.43 a v4.61) acumulando funcionalidad — resumen del día, meta diaria, gráfico de tendencia, 4 tarjetas de WhatsApp/ranking y 4 categorías de alertas — sin tener una sección propia en `ayuda/index.php` (solo existía un párrafo breve mencionando el panel de alertas).
+- **Tabla de "tonos de WhatsApp"**: documenta explícitamente que el sistema usa tres mensajes pre-armados con propósitos distintos según la relación con el cliente — cobranza (v4.51), fidelización (v4.57) y reconexión (v4.60) — para que el usuario entienda que cada botón verde de WhatsApp tiene un propósito comunicacional específico.
+- **Aclaración de privacidad**: explica por qué "Rendimiento de Cajeros" solo es visible para roles `admin`/`superadmin` (comparación de desempeño entre compañeros = información sensible).
+- No requiere cambios de código funcional — es documentación pura, sin migración ni alteración de queries.
+
+*Última actualización: 2026-06-06 | v4.62 — documentación completa del Dashboard en el módulo de Ayuda.*

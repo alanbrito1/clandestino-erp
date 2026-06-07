@@ -195,6 +195,7 @@ $nav_activo = 'ayuda';
         </div>
         <div class="side-group">
             <div class="side-group-lbl">Módulos</div>
+            <a href="#dashboard"  class="side-link" onclick="activar(this)">Dashboard</a>
             <a href="#clientes"   class="side-link" onclick="activar(this)">Clientes</a>
             <a href="#ventas"     class="side-link" onclick="activar(this)">Ventas / POS</a>
             <a href="#inventario" class="side-link" onclick="activar(this)">Inventario</a>
@@ -286,7 +287,7 @@ $nav_activo = 'ayuda';
                 <div class="section-icon" style="background:#fef2f0">&#127829;</div>
                 <div>
                     <div class="section-title">ClanDestino ERP — Visión General</div>
-                    <div class="section-badge">v4.46 · Colombia</div>
+                    <div class="section-badge">v4.62 · Colombia</div>
                 </div>
             </div>
             <p>Sistema de gestión empresarial para negocios de sándwiches. Controla ventas, inventario, producción, nómina, activos y costos desde un único panel adaptado a la legislación colombiana.</p>
@@ -453,6 +454,74 @@ Es el ingrediente que más limita la producción (el cuello de botella).</span><
 
         <!-- ══════════════════════════════════════════════════════════════ -->
         <!--  MÓDULO: CLIENTES                                             -->
+        <!-- ══════════════════════════════════════════════════════════════ -->
+        <!-- ══════════════════════════════════════════════════════════════ -->
+        <!--  DASHBOARD                                                     -->
+        <!-- ══════════════════════════════════════════════════════════════ -->
+        <div class="section" id="dashboard">
+            <div class="section-hdr">
+                <div class="section-icon" style="background:#f0f9ff">&#127968;</div>
+                <div><div class="section-title">Dashboard</div></div>
+            </div>
+            <p>Página de inicio del sistema. Combina un resumen del día, indicadores de tendencia, reconocimientos automáticos por WhatsApp y un panel de alertas operativas — cada sección aparece solo si el usuario tiene permiso sobre el módulo correspondiente y solo si hay datos que mostrar.</p>
+
+            <div class="sub-title">Resumen del día</div>
+            <table class="data-table">
+                <thead><tr><th>Tarjeta</th><th>Qué muestra</th><th>Visible para</th></tr></thead>
+                <tbody>
+                    <tr><td>Ventas hoy</td><td>Total cobrado en el día (incluye fiados pendientes, excluye obsequios). Clic → abre el Cierre de caja del día.</td><td><code>ventas:solo_ver</code></td></tr>
+                    <tr><td>Turno de caja</td><td>Estado del turno actual: 🟢 Abierto (con fondo inicial) / ⚪ Cerrado / 🟡 Sin apertura. Clic → Apertura de turno.</td><td><code>ventas:solo_ver</code> (si mig. 037 aplicada)</td></tr>
+                    <tr><td>Producidos hoy</td><td>Unidades producidas en el día. Solo aparece si hubo producción registrada hoy.</td><td><code>productos:solo_ver</code></td></tr>
+                    <tr><td>Stock disponible</td><td>Total de unidades de producto terminado listas para vender hoy.</td><td><code>productos:solo_ver</code></td></tr>
+                </tbody>
+            </table>
+
+            <div class="sub-title">Meta del día (v4.48)</div>
+            <p>Si el negocio configura una <code>meta_ventas_diaria</code> (clave en <code>configuracion_negocio</code>), aparece una barra de progreso comparando lo vendido hoy contra la meta. El color cambia según el avance: rojo &lt;50%, ámbar 50–79%, verde ≥80%. Los administradores ven un botón ✏️ que revela un formulario inline para editar la meta sin salir del dashboard.</p>
+
+            <div class="sub-title">Gráfico de ventas — últimos 7 días (v4.49)</div>
+            <p>Barras hechas en HTML/CSS puro (sin librerías externas) que comparan el total vendido cada día de la última semana. La barra de hoy resalta en rojo (<code>--brand</code>); los días anteriores en gris. Pasar el cursor sobre una barra muestra el monto exacto del día. Útil para detectar patrones — por ejemplo, si los fines de semana venden más que entre semana.</p>
+
+            <div class="sub-title">Tarjetas de seguimiento de clientes y productos (v4.57 – v4.60)</div>
+            <table class="data-table">
+                <thead><tr><th>Tarjeta</th><th>Qué hace</th><th>Acción rápida</th></tr></thead>
+                <tbody>
+                    <tr><td>🏆 Top Clientes del Mes</td><td>Los 5 clientes que más compraron en el mes en curso (suma de <code>ventas.total</code>, excluye obsequios y ventas de mostrador), con medallas 🥇🥈🥉 para el top 3.</td><td>"🎉 Agradecer" — abre WhatsApp con mensaje de fidelización pre-armado</td></tr>
+                    <tr><td>💌 Clientes para Reactivar</td><td>Clientes activos con teléfono que tienen historial de compras pero llevan más de 30 días sin volver, ordenados por valor histórico total acumulado.</td><td>"💌 Reconectar" — abre WhatsApp con mensaje de reconexión tipo "te extrañamos"</td></tr>
+                    <tr><td>🥪 Productos Más Vendidos</td><td>Los 5 productos más vendidos del mes en curso (por unidades), con monto generado y una barra de progreso proporcional al producto líder.</td><td>— informativo: ayuda a decidir qué producir primero según la demanda real</td></tr>
+                    <tr><td>👤 Rendimiento de Cajeros</td><td>Ranking mensual de ventas agrupado por el usuario que registró cada venta (<code>ventas.created_by</code>): número de ventas, total vendido y ticket promedio.</td><td>— informativo. <strong>Solo visible para roles <code>admin</code>/<code>superadmin</code></strong></td></tr>
+                </tbody>
+            </table>
+            <div class="tip"><strong>Tres tonos distintos de WhatsApp según el contexto de la relación:</strong> cobranza ("te recordamos tu saldo pendiente…" — fiados pendientes, v4.51), fidelización ("¡gracias por ser uno de nuestros mejores clientes!" — Top Clientes, v4.57) y reconexión ("¡te extrañamos! ¿cuándo te vemos de nuevo?" — Clientes para Reactivar, v4.60). Cada mensaje llega pre-escrito y solo falta pulsar enviar.</div>
+            <div class="warn"><strong>"Rendimiento de Cajeros" es información sensible:</strong> compara el desempeño de los empleados entre sí. Por eso la consulta ni siquiera se ejecuta si el usuario no tiene rol <code>admin</code> o <code>superadmin</code> — el resto del personal no puede verla bajo ninguna circunstancia, ni inspeccionando la página.</div>
+
+            <div class="sub-title">Panel de Alertas operativas</div>
+            <p>Aparece automáticamente cuando hay algo que requiere atención — y solo entonces. Cada tarjeta enlaza directo al módulo correspondiente para resolver el problema sin tener que buscarlo.</p>
+            <table class="data-table">
+                <thead><tr><th>Alerta</th><th>Condición</th><th>Acción rápida incluida</th></tr></thead>
+                <tbody>
+                    <tr><td>🧂 Insumos bajos / agotados <span style="display:inline-block;margin-left:4px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:#fef2f2;color:#991b1b">rojo</span></td><td><code>stock_actual ≤ stock_seguridad</code></td><td>"📦 Pedir a [Proveedor] ↗" — WhatsApp con mensaje de restock pre-armado (v4.55), si el insumo tiene proveedor activo con teléfono</td></tr>
+                    <tr><td>💳 Fiados pendientes <span style="display:inline-block;margin-left:4px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:#fff7ed;color:#9a3412">naranja</span></td><td><code>saldo_fiado &gt; 0</code> en clientes activos</td><td>"WA ↗" — recordatorio de cobro por WhatsApp (v4.51), si el cliente tiene teléfono registrado</td></tr>
+                    <tr><td>🥪 Stock de producto bajo <span style="display:inline-block;margin-left:4px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:#fff7ed;color:#9a3412">naranja</span></td><td><code>stock_disponible &lt; stock_minimo</code></td><td>Enlace directo a "Producir"</td></tr>
+                    <tr><td>🛡️ Garantías por vencer <span style="display:inline-block;margin-left:4px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:#fffbeb;color:#92400e">amarillo</span></td><td><code>garantia_hasta</code> entre hoy y los próximos 30 días</td><td>Enlace a "Ver activos"; muestra serial (si tiene) y días restantes (v4.61)</td></tr>
+                </tbody>
+            </table>
+            <div class="tip"><strong>Solo aparece lo relevante:</strong> cada categoría de alerta se consulta únicamente si el usuario tiene acceso al módulo correspondiente (inventario, ventas, productos, activos), y cada tarjeta —y el panel completo— se oculta si no hay nada que reportar. El dashboard nunca muestra paneles vacíos.</div>
+
+            <div class="int-list">
+                <span class="int-badge">Usa →</span>
+                <span class="int-badge arrow">ventas (resumen del día, gráfico 7 días, top clientes/productos/cajeros)</span>
+                <span class="int-badge arrow">clientes (fiados pendientes, clientes para reactivar)</span>
+                <span class="int-badge arrow">inventario (insumos bajos)</span>
+                <span class="int-badge arrow">productos (stock bajo, producidos hoy)</span>
+                <span class="int-badge arrow">activos (garantías por vencer)</span>
+                <span class="int-badge arrow">turnos_caja — mig. 037 (estado del turno)</span>
+                <span class="int-badge arrow">configuracion_negocio (meta de ventas diaria)</span>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════════ -->
+        <!--  MÓDULO: CLIENTES                                              -->
         <!-- ══════════════════════════════════════════════════════════════ -->
         <div class="section" id="clientes">
             <div class="section-hdr">
