@@ -1,4 +1,4 @@
-# ClanDestino ERP v4.62 — Memoria de Sesión
+# ClanDestino ERP v4.63 — Memoria de Sesión
 # Última sesión: 2026-06-06 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
@@ -1543,3 +1543,23 @@ Si `es_base` se cambia en una receta después de realizar ventas, la restauraci�
 - No requiere cambios de código funcional — es documentación pura, sin migración ni alteración de queries.
 
 *Última actualización: 2026-06-06 | v4.62 — documentación completa del Dashboard en el módulo de Ayuda.*
+
+---
+
+## Estado v4.63 (2026-06-06)
+
+### Cambios implementados en esta sesión
+
+| Archivo | Cambio |
+|---------|--------|
+| `public_html/dashboard.php` | Nueva variable `$racha_meta`: cuenta los días consecutivos (hacia atrás desde ayer) en que `SUM(ventas.total)` alcanzó o superó `meta_ventas_diaria`, calculado en PHP iterando sobre un mapa fecha→monto de los últimos 30 días (`FETCH_KEY_PAIR`, sin window functions por límite de MySQL 5.7); nuevo badge "🔥 Racha: N días" junto al porcentaje de la tarjeta "Meta del día", visible solo cuando `$racha_meta > 0` |
+
+### Funcionalidad v4.63
+
+- **Gamificación de la meta diaria**: complementa la tarjeta "Meta del día" (v4.48) con un indicador de constancia — reconoce no solo si HOY se cumplió la meta, sino cuántos días seguidos el negocio ha venido cumpliéndola, motivando al equipo a mantener la racha.
+- **Cálculo en PHP, no en SQL**: dado que MariaDB/MySQL 5.7 no soporta funciones de ventana, la racha se calcula iterando día por día hacia atrás desde ayer sobre un mapa `fecha => monto` obtenido con `FETCH_KEY_PAIR`, deteniéndose en el primer día que no alcanzó la meta.
+- **Cuenta desde ayer, no desde hoy**: el día actual puede estar incompleto (la jornada de ventas sigue en curso), así que la racha solo considera días ya cerrados — evita mostrar una racha "rota" prematuramente a media tarde.
+- **Badge visual coherente**: pill redondeada en tonos naranja/fuego (`#fff7ed`/`#c2410c`) junto al badge de porcentaje existente, con singular/plural correcto ("1 día" / "N días") y `title` explicativo en hover.
+- No requiere migración: usa `ventas.fecha_venta/total/estado/metodo_pago` y `configuracion_negocio.meta_ventas_diaria` ya existentes (la misma clave que alimenta la tarjeta "Meta del día" desde v4.48).
+
+*Última actualización: 2026-06-06 | v4.63 — badge "Racha de Metas" (días consecutivos cumpliendo la meta diaria) en el dashboard.*

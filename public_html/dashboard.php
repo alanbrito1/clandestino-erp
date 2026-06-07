@@ -53,6 +53,29 @@ if (permiso_tiene('ventas', 'solo_ver')) {
         $meta_alcanzada = false;
     }
 
+    // Racha de días consecutivos cumpliendo la meta diaria (gamificación)
+    $racha_meta = 0;
+    if ($meta_diaria > 0) {
+        try {
+            $dias_meta = db()->query(
+                "SELECT DATE(fecha_venta) AS dia, SUM(total) AS monto
+                 FROM ventas
+                 WHERE fecha_venta >= CURDATE() - INTERVAL 30 DAY
+                   AND estado = 'completada' AND metodo_pago != 'obsequio'
+                 GROUP BY DATE(fecha_venta)"
+            )->fetchAll(PDO::FETCH_KEY_PAIR);
+            // Se cuenta hacia atrás desde ayer — el día de hoy aún puede estar incompleto
+            for ($i = 1; $i <= 30; $i++) {
+                $dia_chk = date('Y-m-d', strtotime("-{$i} day"));
+                if ((float)($dias_meta[$dia_chk] ?? 0) >= $meta_diaria) {
+                    $racha_meta++;
+                } else {
+                    break;
+                }
+            }
+        } catch (\Exception $e) {}
+    }
+
     // Gráfico de ventas últimos 7 días
     $grafico_7d = [];
     $total_7d   = 0.0;
@@ -153,7 +176,7 @@ if (permiso_tiene('ventas', 'solo_ver')) {
         } catch (\Exception $e) {}
     }
 } else {
-    $meta_diaria = 0.0; $meta_pct = 0; $meta_alcanzada = false;
+    $meta_diaria = 0.0; $meta_pct = 0; $meta_alcanzada = false; $racha_meta = 0;
     $grafico_7d  = [];  $total_7d  = 0.0;
     $top_clientes       = [];
     $top_productos      = [];
@@ -652,6 +675,12 @@ $nivel_labels = [
                     <span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:99px;background:<?= $meta_color_bg ?>;color:<?= $meta_color_txt ?>">
                         <?= $meta_pct ?>%<?= $meta_alcanzada ? ' ✓' : '' ?>
                     </span>
+                    <?php if ($racha_meta > 0): ?>
+                    <span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:99px;background:#fff7ed;color:#c2410c"
+                          title="Días consecutivos cumpliendo la meta diaria (sin contar hoy)">
+                        🔥 Racha: <?= $racha_meta ?> día<?= $racha_meta != 1 ? 's' : '' ?>
+                    </span>
+                    <?php endif; ?>
                     <?php else: ?>
                     <span style="font-size:12px;color:var(--gray-5)">Sin meta configurada</span>
                     <?php endif; ?>
