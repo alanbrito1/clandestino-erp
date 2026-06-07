@@ -1,4 +1,4 @@
-# ClanDestino ERP v4.54 — Memoria de Sesión
+# ClanDestino ERP v4.55 — Memoria de Sesión
 # Última sesión: 2026-06-06 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
@@ -1387,3 +1387,21 @@ Si `es_base` se cambia en una receta después de realizar ventas, la restauraci�
 - No requiere migración: `proveedores.telefono` ya existía en el esquema original.
 
 *Última actualización: 2026-06-06 | v4.54 — contacto rápido por WhatsApp en directorio de proveedores.*
+
+---
+
+## Estado v4.55 (2026-06-06)
+
+### Cambios implementados en esta sesión
+
+| Archivo | Cambio |
+|---------|--------|
+| `public_html/dashboard.php` | La consulta de "insumos bajos / agotados" ahora hace `LEFT JOIN proveedores` (vía `insumos.proveedor_id`) trayendo `proveedor_nombre`/`proveedor_telefono`; en cada ítem de la alerta se agrega un enlace "📦 Pedir a [Proveedor] ↗" que abre WhatsApp con un mensaje pre-armado pidiendo restock del insumo específico (nombre, nivel agotado/bajo, stock actual y unidad) |
+
+### Funcionalidad v4.55
+
+- **Pedido rápido al proveedor desde la alerta de stock bajo**: cuando un insumo cae bajo su stock de seguridad y tiene un proveedor activo con teléfono registrado, el panel de alertas del dashboard muestra un enlace directo de WhatsApp con un mensaje ya redactado (nombre del insumo en negrita, si está agotado o bajo, cantidad actual y unidad) — se ahorra el paso de buscar el proveedor y escribir el mensaje manualmente.
+- Cierra el círculo de las funciones de WhatsApp introducidas en v4.51 (recordatorio a clientes) y v4.54 (contacto con proveedores): ahora la alerta operativa más urgente del negocio (quedarse sin insumos) tiene una acción de un clic para resolverla.
+- Si el insumo no tiene proveedor asociado o el proveedor no tiene teléfono válido, simplemente no se muestra el enlace (sin romper el layout).
+
+*Última actualización: 2026-06-06 | v4.55 — pedido rápido por WhatsApp al proveedor desde alerta de insumos bajos.*

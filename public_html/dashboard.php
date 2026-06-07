@@ -122,11 +122,13 @@ $alertas = [];
 if (permiso_tiene('inventario', 'solo_ver')) {
     try {
         $rows = db()->query(
-            "SELECT nombre, stock_actual, stock_seguridad, unidad_medida,
-                    CASE WHEN stock_actual = 0 THEN 'agotado' ELSE 'bajo' END AS nivel
-             FROM insumos
-             WHERE activo = 1 AND stock_actual <= stock_seguridad
-             ORDER BY stock_actual ASC
+            "SELECT i.nombre, i.stock_actual, i.stock_seguridad, i.unidad_medida,
+                    CASE WHEN i.stock_actual = 0 THEN 'agotado' ELSE 'bajo' END AS nivel,
+                    p.nombre AS proveedor_nombre, p.telefono AS proveedor_telefono
+             FROM insumos i
+             LEFT JOIN proveedores p ON p.id = i.proveedor_id AND p.activo = 1
+             WHERE i.activo = 1 AND i.stock_actual <= i.stock_seguridad
+             ORDER BY i.stock_actual ASC
              LIMIT 5"
         )->fetchAll();
         if (!empty($rows)) {
@@ -628,12 +630,30 @@ $nivel_labels = [
                     <a href="<?= APP_BASE ?>/inventario/">Ver todos</a>
                 </div>
                 <?php foreach ($alertas['insumos_bajos'] as $ins): ?>
+                <?php
+                $tel_ip  = preg_replace('/[^0-9]/', '', $ins['proveedor_telefono'] ?? '');
+                $tel_ipw = (strlen($tel_ip) === 10 && str_starts_with($tel_ip, '3')) ? '57'.$tel_ip : $tel_ip;
+                $msg_ip  = rawurlencode(
+                    "Hola {$ins['proveedor_nombre']}, te escribimos de " . APP_NAME . " para hacer un pedido de "
+                    . "*{$ins['nombre']}* — nuestro stock está " . ($ins['nivel'] === 'agotado' ? 'agotado' : 'bajo')
+                    . " ({$ins['stock_actual']} {$ins['unidad_medida']}). ¿Tienes disponibilidad? ¡Gracias! 🙏"
+                );
+                ?>
                 <div class="alerta-item">
                     <div>
                         <div class="alerta-nom"><?= htmlspecialchars($ins['nombre']) ?></div>
                         <div class="alerta-sub">
                             Mín: <?= number_format($ins['stock_seguridad'],2,',','.') ?>
                             <?= htmlspecialchars($ins['unidad_medida']) ?>
+                            <?php if ($tel_ipw): ?>
+                            &nbsp;·&nbsp;
+                            <a href="https://wa.me/<?= $tel_ipw ?>?text=<?= $msg_ip ?>"
+                               target="_blank" rel="noopener noreferrer"
+                               style="color:#25d366;font-weight:700;text-decoration:none;font-size:11px"
+                               title="Pedir a <?= htmlspecialchars($ins['proveedor_nombre']) ?> por WhatsApp">
+                                📦 Pedir a <?= htmlspecialchars($ins['proveedor_nombre']) ?> ↗
+                            </a>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="alerta-val">
