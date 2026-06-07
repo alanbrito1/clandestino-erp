@@ -30,6 +30,7 @@
  *   G25  Conteo Rápido       — endpoint y página existen, stock no negativo, logs coherentes
  *   G26  Turnos de Caja 037  — tabla existe, columnas, estado válido, sin duplicados abiertos, fondo≥0
  *   G27  Descuentos 038      — columnas existen, pct en 0-50, valor≥0, coherencia pct/valor, total≤bruto
+ *   G28  Abonos a Fiado      — snapshots saldo_anterior/posterior (034), coherencia, no negativos, métodos válidos
  *
  * EJECUTAR: /tests/suite.php (navegador, sesión activa como superadmin)
  */
@@ -1382,6 +1383,98 @@ if ($tiene_038) {
     t($G, "Total con descuento ≤ suma bruta de detalles",
         $totalMayorQueDetalle === 0,
         $totalMayorQueDetalle > 0 ? "{$totalMayorQueDetalle} ventas con total > bruto (incoherente)." : '');
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+//  G28 — ABONOS A FIADO (pagos_fiado + snapshots de saldo, mig. 034 — v4.50/v4.53)
+//  Verifica que cada abono registrado tenga snapshots coherentes de saldo y
+//  que el endpoint AJAX (clientes/api/registrar_abono.php) deje datos consistentes.
+// ════════════════════════════════════════════════════════════════════════════════
+
+$G = 'G28 Abonos a Fiado (pagos_fiado)';
+
+$tiene_snap_saldo = false;
+try {
+    $tiene_snap_saldo = (int)$pdo->query(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='pagos_fiado'
+           AND COLUMN_NAME IN ('saldo_anterior','saldo_posterior')"
+    )->fetchColumn() == 2;
+} catch (\Exception $e) {}
+
+t($G, "Columnas saldo_anterior / saldo_posterior existen en pagos_fiado (mig.034)",
+    $tiene_snap_saldo,
+    "Aplicar 034_snapshots_nombres_y_saldo.sql",
+    !$tiene_snap_saldo);
+
+if ($tiene_snap_saldo) {
+    // Test: monto siempre positivo
+    $montoInvalido = (int)scalar($pdo,
+        "SELECT COUNT(*) FROM pagos_fiado WHERE monto <= 0");
+    t($G, "monto del abono siempre mayor a $0",
+        $montoInvalido === 0,
+        $montoInvalido > 0 ? "{$montoInvalido} abonos con monto inválido (≤0)." : '');
+
+    // Test: snapshots no negativos (donde existan, ya que registros previos a la mig. quedan NULL)
+    $snapNegativo = (int)scalar($pdo,
+        "SELECT COUNT(*) FROM pagos_fiado
+         WHERE (saldo_anterior IS NOT NULL AND saldo_anterior < 0)
+            OR (saldo_posterior IS NOT NULL AND saldo_posterior < 0)");
+    t($G, "saldo_anterior y saldo_posterior nunca negativos",
+        $snapNegativo === 0,
+        $snapNegativo > 0 ? "{$snapNegativo} abonos con saldo snapshot negativo." : '');
+
+    // Test: coherencia aritmética — saldo_posterior = saldo_anterior - monto (con tolerancia de redondeo)
+    $incoherenteAritmetica = (int)scalar($pdo,
+        "SELECT COUNT(*) FROM pagos_fiado
+         WHERE saldo_anterior IS NOT NULL AND saldo_posterior IS NOT NULL
+           AND ABS((saldo_anterior - monto) - saldo_posterior) > 0.01");
+    t($G, "saldo_posterior = saldo_anterior − monto (coherencia aritmética)",
+        $incoherenteAritmetica === 0,
+        $incoherenteAritmetica > 0 ? "{$incoherenteAritmetica} abonos con snapshot aritméticamente incoherente." : '');
+
+    // Test: el abono nunca reduce la deuda por debajo de cero (saldo_posterior ≤ saldo_anterior)
+    $saldoSube = (int)scalar($pdo,
+        "SELECT COUNT(*) FROM pagos_fiado
+         WHERE saldo_anterior IS NOT NULL AND saldo_posterior IS NOT NULL
+           AND saldo_posterior > saldo_anterior");
+    t($G, "saldo_posterior nunca mayor que saldo_anterior",
+        $saldoSube === 0,
+        $saldoSube > 0 ? "{$saldoSube} abonos donde el saldo aumentó (incoherente)." : '');
+
+    // Test: metodo_pago siempre dentro del catálogo válido
+    $metodoInvalido = (int)scalar($pdo,
+        "SELECT COUNT(*) FROM pagos_fiado
+         WHERE metodo_pago NOT IN ('efectivo','nequi','daviplata','bancolombia')");
+    t($G, "metodo_pago siempre dentro del catálogo válido",
+        $metodoInvalido === 0,
+        $metodoInvalido > 0 ? "{$metodoInvalido} abonos con método de pago no reconocido." : '');
+
+    // Test: notas, cuando existen, no exceden el límite aplicado por el endpoint (255 caracteres)
+    $notasLargas = (int)scalar($pdo,
+        "SELECT COUNT(*) FROM pagos_fiado WHERE CHAR_LENGTH(notas) > 255");
+    t($G, "notas del abono dentro del límite de 255 caracteres",
+        $notasLargas === 0,
+        $notasLargas > 0 ? "{$notasLargas} abonos con notas más largas de lo permitido por el endpoint." : '',
+        true);
+
+    // Test: el saldo_fiado actual del cliente coincide con el saldo_posterior de su último abono
+    // (si nadie generó nuevas ventas a fiado después). Es una señal de alerta, no una falla dura.
+    $desfaseSaldo = (int)scalar($pdo,
+        "SELECT COUNT(*) FROM clientes c
+         JOIN (
+             SELECT pf.cliente_id, pf.saldo_posterior
+             FROM pagos_fiado pf
+             JOIN (SELECT cliente_id, MAX(created_at) AS ult FROM pagos_fiado GROUP BY cliente_id) m
+               ON m.cliente_id = pf.cliente_id AND m.ult = pf.created_at
+             WHERE pf.saldo_posterior IS NOT NULL
+         ) ult ON ult.cliente_id = c.id
+         WHERE ABS(c.saldo_fiado - ult.saldo_posterior) > 0.01
+           AND c.saldo_fiado < ult.saldo_posterior");
+    t($G, "saldo_fiado del cliente no es menor que el snapshot posterior de su último abono",
+        $desfaseSaldo === 0,
+        $desfaseSaldo > 0 ? "{$desfaseSaldo} clientes con saldo_fiado menor al esperado tras su último abono (revisar concurrencia)." : '',
+        true);
 }
 
 // ── Tiempo total de ejecución ─────────────────────────────────────────────────

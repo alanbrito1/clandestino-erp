@@ -1355,6 +1355,7 @@ Si `es_base` se cambia en una receta después de realizar ventas, la restauraci�
 | Archivo | Cambio |
 |---------|--------|
 | `public_html/ventas/fiado.php` | Modernizado: el formulario de abono ahora envía vía AJAX a `clientes/api/registrar_abono.php` (con SELECT FOR UPDATE y snapshots de saldo) en lugar del antiguo `ClienteModel::registrar_abono()`; agrega campo de notas, preview de saldo en tiempo real, botón "Abonar" con `IC_CASH`, enlace "Recordar" por WhatsApp (`IC_WA`) junto al botón "Extracto"; agrega toast de confirmación |
+| `public_html/tests/suite.php` | Nuevo grupo G28 "Abonos a Fiado": valida columnas snapshot (mig.034), coherencia aritmética saldo_anterior/posterior, montos y métodos de pago válidos, límite de notas y alerta de desfase de saldo por concurrencia |
 | `public_html/app/config/app.php` | APP_VERSION → 4.53 |
 
 ### Funcionalidad v4.53
@@ -1364,5 +1365,6 @@ Si `es_base` se cambia en una receta después de realizar ventas, la restauraci�
 - **Preview de saldo**: al escribir el monto se muestra "Saldo actual → Nuevo saldo" en tiempo real.
 - **Recordatorio WhatsApp**: enlace verde `wa.me` junto a cada cliente con teléfono y deuda, mismo mensaje y normalización de número (Colombia, prefijo 57) que en `clientes/index.php` y el dashboard.
 - El antiguo `ClienteModel::registrar_abono()` queda sin usar desde la UI (se mantiene por compatibilidad con pruebas existentes que lo invocan directamente).
+- **Tests G28 (nuevo)**: agregado a `tests/suite.php` — valida que `pagos_fiado` tenga las columnas snapshot de la migración 034, que `monto`/`saldo_anterior`/`saldo_posterior` sean coherentes y no negativos, que `saldo_posterior = saldo_anterior − monto`, que `metodo_pago` esté en el catálogo válido, que `notas` no exceda 255 caracteres, y una alerta (warning) si el `saldo_fiado` actual de un cliente quedó por debajo de lo esperado tras su último abono (señal de condición de carrera).
 
-*Última actualización: 2026-06-06 | v4.53 — modernizar ventas/fiado.php con abonos AJAX, notas y recordatorio WhatsApp.*
+*Última actualización: 2026-06-06 | v4.53 — modernizar ventas/fiado.php con abonos AJAX, notas, recordatorio WhatsApp y tests G28.*
