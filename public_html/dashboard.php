@@ -295,6 +295,27 @@ if (permiso_tiene('activos', 'solo_ver')) {
     } catch (Exception $e) {}
 }
 
+// E) Productos terminados sin movimiento — riesgo de merma (perecederos)
+if (permiso_tiene('productos', 'solo_ver')) {
+    try {
+        $rows = db()->query(
+            "SELECT p.nombre, p.nombre2, p.stock_disponible, MAX(v.fecha_venta) AS ultima_venta
+             FROM productos p
+             LEFT JOIN venta_detalles vd ON vd.producto_id = p.id
+             LEFT JOIN ventas v ON v.id = vd.venta_id AND v.estado = 'completada'
+             WHERE p.activo = 1 AND p.stock_disponible > 0
+               AND p.created_at <= (CURDATE() - INTERVAL 15 DAY)
+             GROUP BY p.id, p.nombre, p.nombre2, p.stock_disponible
+             HAVING ultima_venta IS NULL OR ultima_venta < (CURDATE() - INTERVAL 15 DAY)
+             ORDER BY p.stock_disponible DESC
+             LIMIT 5"
+        )->fetchAll();
+        if (!empty($rows)) {
+            $alertas['productos_estancados'] = $rows;
+        }
+    } catch (Exception $e) {}
+}
+
 // ---- Definición de módulos ----
 $modulos_config = [
     'ventas'      => ['label' => 'Ventas / POS',   'url' => '/ventas/',      'icon' => 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z'],
@@ -1011,6 +1032,31 @@ $nivel_labels = [
                         </div>
                     </div>
                     <div class="alerta-val"><?= $dias_restantes ?> día<?= $dias_restantes != 1 ? 's' : '' ?></div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+
+            <?php if (!empty($alertas['productos_estancados'])): ?>
+            <div class="alerta-card">
+                <div class="alerta-hdr naranja">
+                    <span>⏳ Productos sin rotación</span>
+                    <a href="<?= APP_BASE ?>/productos/">Ver productos</a>
+                </div>
+                <?php foreach ($alertas['productos_estancados'] as $est):
+                    $sub_estancado = $est['ultima_venta']
+                        ? 'Sin ventas hace ' . (int)floor((time() - strtotime($est['ultima_venta'])) / 86400) . ' días'
+                        : 'Nunca se ha vendido';
+                ?>
+                <div class="alerta-item">
+                    <div>
+                        <div class="alerta-nom"><?= htmlspecialchars($est['nombre']) ?></div>
+                        <?php if (!empty($est['nombre2'])): ?>
+                        <div class="alerta-sub"><?= htmlspecialchars($est['nombre2']) ?></div>
+                        <?php endif; ?>
+                        <div class="alerta-sub"><?= $sub_estancado ?></div>
+                    </div>
+                    <div class="alerta-val"><?= (int)$est['stock_disponible'] ?> u</div>
                 </div>
                 <?php endforeach; ?>
             </div>

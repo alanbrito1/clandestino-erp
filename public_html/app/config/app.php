@@ -6,7 +6,7 @@
  */
 
 define('APP_NAME',    'ClanDestino ERP');
-define('APP_VERSION', '4.63'); // 2026-06-06: v4.63 Racha de Metas — badge de días consecutivos cumpliendo la meta diaria
+define('APP_VERSION', '4.64'); // 2026-06-06: v4.64 alerta "Productos sin rotación" — riesgo de merma por inventario estancado
 define('APP_ENV',     'production'); // cambiar a 'development' para depurar
 
 // Ruta absoluta a public_html/ (raíz web del proyecto)
