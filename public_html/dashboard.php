@@ -75,9 +75,27 @@ if (permiso_tiene('ventas', 'solo_ver')) {
             $total_7d += $t;
         }
     } catch (\Exception $e) {}
+
+    // Top clientes del mes en curso (por monto comprado, excluye obsequios y mostrador)
+    $top_clientes = [];
+    try {
+        $top_clientes = db()->query(
+            "SELECT c.id, c.nombre, c.telefono,
+                    COUNT(v.id)  AS num_compras,
+                    SUM(v.total) AS total_comprado
+             FROM ventas v
+             JOIN clientes c ON c.id = v.cliente_id
+             WHERE v.fecha_venta >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
+               AND v.estado = 'completada' AND v.metodo_pago != 'obsequio'
+             GROUP BY c.id
+             ORDER BY total_comprado DESC
+             LIMIT 5"
+        )->fetchAll();
+    } catch (\Exception $e) {}
 } else {
     $meta_diaria = 0.0; $meta_pct = 0; $meta_alcanzada = false;
     $grafico_7d  = [];  $total_7d  = 0.0;
+    $top_clientes = [];
 }
 if (permiso_tiene('inventario', 'solo_ver')) {
     $row = db()->query(
@@ -615,6 +633,45 @@ $nivel_labels = [
                 <div class="chart-lbl <?= $g['hoy'] ? 'chart-hoy' : '' ?>"><?= $g['label'] ?></div>
                 <?php endforeach; ?>
             </div>
+        </div>
+        <?php endif; ?>
+
+        <?php if (!empty($top_clientes)): ?>
+        <div class="meta-card">
+            <div class="meta-header">
+                <span class="meta-lbl">🏆 Top Clientes del Mes</span>
+                <?php
+                $meses_es = [1=>'Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio',
+                             'Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+                ?>
+                <span style="font-size:11px;font-weight:400;color:var(--gray-5)"><?= $meses_es[(int)date('n')] ?> <?= date('Y') ?></span>
+            </div>
+            <?php foreach ($top_clientes as $i => $tc):
+                $medalla = ['🥇','🥈','🥉'][$i] ?? ($i + 1) . '.';
+                $tel_tc  = preg_replace('/[^0-9]/', '', $tc['telefono'] ?? '');
+                $tel_tcw = (strlen($tel_tc) === 10 && str_starts_with($tel_tc, '3')) ? '57'.$tel_tc : $tel_tc;
+                $msg_tc  = rawurlencode(
+                    "Hola {$tc['nombre']}, ¡queremos darte las gracias por ser uno de nuestros mejores "
+                    . "clientes este mes en " . APP_NAME . "! 🎉 Apreciamos mucho tu confianza. ¡Que sigas disfrutando! 🥪"
+                );
+            ?>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--gray-9)">
+                <div>
+                    <span style="font-size:15px;margin-right:6px"><?= $medalla ?></span>
+                    <strong style="font-size:13px"><?= htmlspecialchars($tc['nombre']) ?></strong>
+                    <div style="font-size:11px;color:var(--gray-5);margin-left:21px">
+                        <?= (int)$tc['num_compras'] ?> compra<?= $tc['num_compras'] != 1 ? 's' : '' ?>
+                    </div>
+                </div>
+                <div style="text-align:right">
+                    <div style="font-weight:800;color:var(--brand);font-size:14px">$<?= number_format($tc['total_comprado'], 0, ',', '.') ?></div>
+                    <?php if ($tel_tcw): ?>
+                    <a href="https://wa.me/<?= $tel_tcw ?>?text=<?= $msg_tc ?>" target="_blank" rel="noopener noreferrer"
+                       style="color:#25d366;font-weight:700;text-decoration:none;font-size:11px">🎉 Agradecer</a>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endforeach; ?>
         </div>
         <?php endif; ?>
 

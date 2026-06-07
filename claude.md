@@ -1,4 +1,4 @@
-# ClanDestino ERP v4.56 — Memoria de Sesión
+# ClanDestino ERP v4.57 — Memoria de Sesión
 # Última sesión: 2026-06-06 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
@@ -1425,3 +1425,23 @@ Si `es_base` se cambia en una receta después de realizar ventas, la restauraci�
 - No requiere migración nueva — usa las columnas de snapshot ya agregadas en la migración 034 y validadas por los tests G28 (v4.53).
 
 *Última actualización: 2026-06-06 | v4.56 — hoja "Abonos a Fiado" en el reporte de ventas + banner de recaudo del período.*
+
+---
+
+## Estado v4.57 (2026-06-06)
+
+### Cambios implementados en esta sesión
+
+| Archivo | Cambio |
+|---------|--------|
+| `public_html/dashboard.php` | Nueva consulta `$top_clientes`: top 5 clientes del mes en curso por monto comprado (excluye obsequios y ventas de mostrador, agrupado por cliente); nueva tarjeta `.meta-card` "🏆 Top Clientes del Mes" entre el gráfico de 7 días y el panel de alertas, con medallas 🥇🥈🥉, monto comprado, # de compras y enlace "🎉 Agradecer" por WhatsApp con mensaje de fidelización pre-armado; mapeo `$meses_es` para mostrar el nombre del mes en español |
+| `public_html/app/config/app.php` | APP_VERSION → 4.57 |
+
+### Funcionalidad v4.57
+
+- **Reconocimiento a los mejores clientes**: nueva tarjeta en el dashboard que muestra los 5 clientes que más compraron en el mes en curso (suma de `ventas.total`, excluyendo obsequios y ventas sin cliente asociado), con medallas para el top 3.
+- **WhatsApp de fidelización**: a diferencia de los enlaces de WA anteriores (recordatorio de deuda v4.51, contacto a proveedor v4.54, pedido de restock v4.55 — todos orientados a cobranza/operación), este es el primero **orientado a relación con el cliente**: un mensaje de agradecimiento pre-armado para fortalecer la fidelidad.
+- Solo se muestra si hay compras registradas con cliente identificado en el mes — no rompe el layout si el negocio recién empieza o no tiene clientes frecuentes.
+- No requiere migración: usa `ventas.cliente_id`, `ventas.total` y `clientes.telefono` ya existentes.
+
+*Última actualización: 2026-06-06 | v4.57 — tarjeta "Top Clientes del Mes" en el dashboard con agradecimiento por WhatsApp.*
