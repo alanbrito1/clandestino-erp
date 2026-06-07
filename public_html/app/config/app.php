@@ -6,7 +6,7 @@
  */
 
 define('APP_NAME',    'ClanDestino ERP');
-define('APP_VERSION', '4.64'); // 2026-06-06: v4.64 alerta "Productos sin rotación" — riesgo de merma por inventario estancado
+define('APP_VERSION', '4.65'); // 2026-06-06: v4.65 tarjeta "Comparativo del mes" — ventas vs. mismo tramo del mes anterior
 define('APP_ENV',     'production'); // cambiar a 'development' para depurar
 
 // Ruta absoluta a public_html/ (raíz web del proyecto)

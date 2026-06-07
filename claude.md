@@ -1,4 +1,4 @@
-# ClanDestino ERP v4.64 — Memoria de Sesión
+# ClanDestino ERP v4.65 — Memoria de Sesión
 # Última sesión: 2026-06-06 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
@@ -1583,3 +1583,23 @@ Si `es_base` se cambia en una receta después de realizar ventas, la restauraci�
 - No requiere migración: usa `productos.stock_disponible/created_at/activo` y `venta_detalles`/`ventas` ya existentes.
 
 *Última actualización: 2026-06-06 | v4.64 — alerta "Productos sin rotación" (riesgo de merma) en el panel operativo del dashboard.*
+
+---
+
+## Estado v4.65 (2026-06-06)
+
+### Cambios implementados en esta sesión
+
+| Archivo | Cambio |
+|---------|--------|
+| `public_html/dashboard.php` | Nueva variable `$comparativa_mensual`: compara el total vendido en lo que va del mes en curso contra el total del **mismo tramo de días** del mes anterior (usando `DATEDIFF(fecha_venta, inicio_mes_anterior) < DAY(CURDATE())` para una comparación "manzanas con manzanas" sin importar la duración de cada mes), calculando `$cambio_pct` (variación porcentual); nueva tarjeta "📊 Comparativo del mes" entre el gráfico de 7 días y "Top Clientes del Mes", con badge de variación (▲/▼ verde o rojo) y mensaje contextual de ánimo |
+
+### Funcionalidad v4.65
+
+- **Perspectiva de tendencia, no solo de corte**: el dashboard ya mostraba ventas de hoy y de los últimos 7 días — v4.65 añade la pregunta que más le importa a un dueño de negocio: *"¿voy mejor o peor que el mes pasado?"*.
+- **Comparación justa por tramo de días**: en vez de comparar el mes completo anterior (que penalizaría a mitad de mes), compara solo los primeros N días de cada mes — usando `DATEDIFF()` en SQL para evitar errores de límites de mes (p. ej. comparar 31 días de mayo cuando abril solo tuvo 30).
+- **Badge con código de color y mensaje de ánimo**: variación positiva en verde ("vas mejor que el mes pasado 🎉"), negativa en rojo ("un poco más flojo... ¡a recuperar terreno!") — refuerza el tono motivacional ya presente en "Meta del día" (v4.48) y "Racha de Metas" (v4.63).
+- **Reutiliza `$meses_es`**: aprovecha el arreglo de nombres de meses en español ya centralizado desde v4.58 para mostrar "los primeros 6 días de Junio" en vez de fechas crudas.
+- No requiere migración: usa `ventas.fecha_venta/total/estado/metodo_pago` ya existentes.
+
+*Última actualización: 2026-06-06 | v4.65 — tarjeta "Comparativo del mes" (tendencia vs. mes anterior) en el dashboard.*

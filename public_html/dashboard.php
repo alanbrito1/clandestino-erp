@@ -99,6 +99,39 @@ if (permiso_tiene('ventas', 'solo_ver')) {
         }
     } catch (\Exception $e) {}
 
+    // Comparativo: ventas del mes en curso vs. el mismo tramo de días del mes anterior
+    $comparativa_mensual = null;
+    try {
+        $dia_actual = (int)date('j');
+        $inicio_mes_ant = date('Y-m-01', strtotime('first day of last month'));
+        $total_mes_actual = (float)db()->query(
+            "SELECT IFNULL(SUM(total),0) FROM ventas
+             WHERE fecha_venta >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
+               AND estado = 'completada' AND metodo_pago != 'obsequio'"
+        )->fetchColumn();
+        $st_cmp = db()->prepare(
+            "SELECT IFNULL(SUM(total),0) FROM ventas
+             WHERE fecha_venta >= ?
+               AND DATEDIFF(fecha_venta, ?) < ?
+               AND estado = 'completada' AND metodo_pago != 'obsequio'"
+        );
+        $st_cmp->execute([$inicio_mes_ant, $inicio_mes_ant, $dia_actual]);
+        $total_mes_anterior = (float)$st_cmp->fetchColumn();
+        if ($total_mes_anterior > 0 || $total_mes_actual > 0) {
+            $cambio_pct = $total_mes_anterior > 0
+                ? (int)round((($total_mes_actual - $total_mes_anterior) / $total_mes_anterior) * 100)
+                : 100;
+            $comparativa_mensual = [
+                'actual'    => $total_mes_actual,
+                'anterior'  => $total_mes_anterior,
+                'pct'       => $cambio_pct,
+                'dias'      => $dia_actual,
+                'mes_act'   => (int)date('n'),
+                'mes_ant'   => (int)date('n', strtotime('first day of last month')),
+            ];
+        }
+    } catch (\Exception $e) {}
+
     // Top clientes del mes en curso (por monto comprado, excluye obsequios y mostrador)
     $top_clientes = [];
     try {
@@ -178,6 +211,7 @@ if (permiso_tiene('ventas', 'solo_ver')) {
 } else {
     $meta_diaria = 0.0; $meta_pct = 0; $meta_alcanzada = false; $racha_meta = 0;
     $grafico_7d  = [];  $total_7d  = 0.0;
+    $comparativa_mensual = null;
     $top_clientes       = [];
     $top_productos      = [];
     $top_cajeros        = [];
@@ -767,6 +801,31 @@ $nivel_labels = [
                 <div class="chart-lbl <?= $g['hoy'] ? 'chart-hoy' : '' ?>"><?= $g['label'] ?></div>
                 <?php endforeach; ?>
             </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- ── Comparativo mensual ──────────────────────────────────────────── -->
+        <?php if ($comparativa_mensual !== null):
+            $cmp = $comparativa_mensual;
+            $cmp_subio   = $cmp['pct'] >= 0;
+            $cmp_bg      = $cmp_subio ? '#d1fae5' : '#fee2e2';
+            $cmp_txt     = $cmp_subio ? '#065f46' : '#991b1b';
+            $cmp_flecha  = $cmp_subio ? '▲' : '▼';
+        ?>
+        <div class="meta-card">
+            <div class="meta-header">
+                <span class="meta-lbl">📊 Comparativo del mes</span>
+                <span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:99px;background:<?= $cmp_bg ?>;color:<?= $cmp_txt ?>">
+                    <?= $cmp_flecha ?> <?= abs($cmp['pct']) ?>%
+                </span>
+            </div>
+            <p style="font-size:12px;color:var(--gray-5);margin-top:8px;line-height:1.6">
+                Llevas <strong style="color:var(--dark)">$<?= number_format($cmp['actual'], 0, ',', '.') ?></strong>
+                en los primeros <?= $cmp['dias'] ?> día<?= $cmp['dias'] != 1 ? 's' : '' ?> de <?= $meses_es[$cmp['mes_act']] ?? '' ?>,
+                frente a <strong style="color:var(--dark)">$<?= number_format($cmp['anterior'], 0, ',', '.') ?></strong>
+                en el mismo periodo de <?= $meses_es[$cmp['mes_ant']] ?? '' ?>
+                — <?= $cmp_subio ? 'vas mejor que el mes pasado 🎉' : 'un poco más flojo que el mes pasado, ¡a recuperar terreno!' ?>
+            </p>
         </div>
         <?php endif; ?>
 
