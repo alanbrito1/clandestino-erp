@@ -190,6 +190,25 @@ if (permiso_tiene('ventas', 'solo_ver')) {
         )->fetchAll();
     } catch (\Exception $e) {}
 
+    // Aniversario de clientes — hoy se cumple N año(s) desde su primera compra
+    $clientes_aniversario = [];
+    try {
+        $clientes_aniversario = db()->query(
+            "SELECT c.id, c.nombre, c.telefono,
+                    MIN(v.fecha_venta) AS primera_compra,
+                    TIMESTAMPDIFF(YEAR, MIN(v.fecha_venta), CURDATE()) AS anios
+             FROM clientes c
+             JOIN ventas v ON v.cliente_id = c.id
+                          AND v.estado = 'completada' AND v.metodo_pago != 'obsequio'
+             WHERE c.activo = 1 AND c.telefono IS NOT NULL AND c.telefono != ''
+             GROUP BY c.id, c.nombre, c.telefono
+             HAVING DATE_FORMAT(MIN(v.fecha_venta), '%m-%d') = DATE_FORMAT(CURDATE(), '%m-%d')
+                AND TIMESTAMPDIFF(YEAR, MIN(v.fecha_venta), CURDATE()) >= 1
+             ORDER BY anios DESC
+             LIMIT 5"
+        )->fetchAll();
+    } catch (\Exception $e) {}
+
     // Rendimiento de cajeros del mes (solo admin/superadmin — datos de desempeño del personal)
     $top_cajeros = [];
     if (in_array($_SESSION['usuario_rol'] ?? '', ['admin','superadmin'], true)) {
@@ -216,6 +235,7 @@ if (permiso_tiene('ventas', 'solo_ver')) {
     $top_productos      = [];
     $top_cajeros        = [];
     $clientes_reactivar = [];
+    $clientes_aniversario = [];
     $meses_es = [1=>'Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio',
                  'Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 }
@@ -891,6 +911,41 @@ $nivel_labels = [
                     <?php if ($tel_crw): ?>
                     <a href="https://wa.me/<?= $tel_crw ?>?text=<?= $msg_cr ?>" target="_blank" rel="noopener noreferrer"
                        style="color:#25d366;font-weight:700;text-decoration:none;font-size:11px">💌 Reconectar</a>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
+        <?php if (!empty($clientes_aniversario)): ?>
+        <div class="meta-card">
+            <div class="meta-header">
+                <span class="meta-lbl">🎂 Aniversario de Clientes</span>
+                <span style="font-size:11px;font-weight:400;color:var(--gray-5)">primera compra hace años</span>
+            </div>
+            <?php foreach ($clientes_aniversario as $ca):
+                $tel_ca  = preg_replace('/[^0-9]/', '', $ca['telefono'] ?? '');
+                $tel_caw = (strlen($tel_ca) === 10 && str_starts_with($tel_ca, '3')) ? '57'.$tel_ca : $tel_ca;
+                $anios_ca = (int)$ca['anios'];
+                $msg_ca  = rawurlencode(
+                    "¡Hola {$ca['nombre']}! 🎉 Hoy se cumple {$anios_ca} año" . ($anios_ca != 1 ? 's' : '')
+                    . " desde tu primera visita a " . APP_NAME . ". ¡Gracias por seguir confiando en nosotros y "
+                    . "acompañarnos todo este tiempo! Como agradecimiento, hoy tienes una sorpresa especial si nos visitas 😊🥪"
+                );
+            ?>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--gray-9)">
+                <div>
+                    <strong style="font-size:13px"><?= htmlspecialchars($ca['nombre']) ?></strong>
+                    <div style="font-size:11px;color:var(--gray-5)">
+                        Cliente desde el <?= date('d/m/Y', strtotime($ca['primera_compra'])) ?>
+                    </div>
+                </div>
+                <div style="text-align:right">
+                    <div style="font-weight:800;color:var(--brand);font-size:14px">🎉 <?= $anios_ca ?> año<?= $anios_ca != 1 ? 's' : '' ?></div>
+                    <?php if ($tel_caw): ?>
+                    <a href="https://wa.me/<?= $tel_caw ?>?text=<?= $msg_ca ?>" target="_blank" rel="noopener noreferrer"
+                       style="color:#25d366;font-weight:700;text-decoration:none;font-size:11px">🎂 Felicitar</a>
                     <?php endif; ?>
                 </div>
             </div>

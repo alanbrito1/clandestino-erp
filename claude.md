@@ -1,4 +1,4 @@
-# ClanDestino ERP v4.65 — Memoria de Sesión
+# ClanDestino ERP v4.66 — Memoria de Sesión
 # Última sesión: 2026-06-06 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
@@ -1603,3 +1603,23 @@ Si `es_base` se cambia en una receta después de realizar ventas, la restauraci�
 - No requiere migración: usa `ventas.fecha_venta/total/estado/metodo_pago` ya existentes.
 
 *Última actualización: 2026-06-06 | v4.65 — tarjeta "Comparativo del mes" (tendencia vs. mes anterior) en el dashboard.*
+
+---
+
+## Estado v4.66 (2026-06-06)
+
+### Cambios implementados en esta sesión
+
+| Archivo | Cambio |
+|---------|--------|
+| `public_html/dashboard.php` | Nueva consulta `$clientes_aniversario`: detecta clientes activos cuya **primera compra** (`MIN(ventas.fecha_venta)`) ocurrió en esta misma fecha (mes y día, `DATE_FORMAT(...,'%m-%d')`) hace uno o más años (`TIMESTAMPDIFF(YEAR, ...) >= 1`); nueva tarjeta `.meta-card` "🎂 Aniversario de Clientes" (entre "Clientes para Reactivar" y "Productos Más Vendidos") mostrando fecha de ingreso, años cumplidos y enlace "🎂 Felicitar" por WhatsApp con mensaje de celebración pre-armado |
+
+### Funcionalidad v4.66
+
+- **Cuarto tono de WhatsApp — celebración**: se suma a cobranza (v4.51), fidelización/agradecimiento (v4.57) y reconexión/win-back (v4.60) un nuevo tono: **celebración de aniversario**, felicitando al cliente por "su" fecha especial con el negocio — un detalle que fortalece el vínculo emocional con la marca.
+- **Detección por fecha de primera compra, no de registro**: usa `MIN(ventas.fecha_venta)` (la primera compra real, no la fecha de creación del registro de cliente) para definir el "aniversario" — más significativo porque marca el inicio real de la relación comercial.
+- **Comparación mes-día con `DATE_FORMAT(...,'%m-%d')`**: evita usar `DAYOFYEAR()` (que se desfasa en años bisiestos) y compara directamente "MM-DD" entre la fecha de primera compra y hoy, capturando el aniversario exacto sin importar el año.
+- **Filtro de al menos 1 año**: `TIMESTAMPDIFF(YEAR, ...) >= 1` excluye clientes cuya "primera compra" fue este mismo año (no tendría sentido felicitar un aniversario de "0 años").
+- No requiere migración: usa `clientes.activo/telefono/nombre` y `ventas.cliente_id/fecha_venta/estado/metodo_pago/total` ya existentes.
+
+*Última actualización: 2026-06-06 | v4.66 — tarjeta "Aniversario de Clientes" con felicitación por WhatsApp en el dashboard.*
