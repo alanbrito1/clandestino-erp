@@ -1,4 +1,4 @@
-# ClanDestino ERP v4.73 — Memoria de Sesión
+# ClanDestino ERP v4.74 — Memoria de Sesión
 # Última sesión: 2026-06-06 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
@@ -1843,3 +1843,43 @@ El código de ClanDestino está, en términos generales, **limpio de residuos** 
 | `public_html/app/config/app.php` | APP_VERSION → 4.73 |
 
 *Última actualización: 2026-06-06 | v4.73 — auditoría de código obsoleto: elimina 2 piezas de código muerto (shim de proveedores, método ClienteModel::historial_fiado), activa 2 funciones huérfanas (botón recalcular costos, limpieza de caché de permisos al auto-editarse). Próximo ciclo: v4.74 (revisión responsive móvil + TV/pantallas grandes).*
+
+## Estado v4.74 (2026-06-06)
+
+### Auditoría responsive móvil + TV/pantallas grandes — cuarto ciclo de la mejora grande
+
+Se revisaron los 94 archivos PHP con vista de `public_html/` en busca de problemas de visualización en **móvil vertical** (≤480px) y **TV/pantallas grandes** (≥1920px). Sin herramienta de navegador disponible en este entorno, la auditoría se hizo por **análisis estático de código**: cobertura de `<meta viewport>`, sistema de breakpoints, anchos fijos de riesgo, envoltorios de scroll en tablas, tamaño de objetivos táctiles, y muestreo de las páginas más recientes (v4.4x–v4.7x, estadísticamente las más propensas a brechas porque son las menos probadas en producción).
+
+### ✅ Resultado: sistema responsive maduro y consistente — sin bugs funcionales encontrados
+
+| Verificación | Resultado |
+|---|---|
+| **`<meta viewport>`** | 100% de cobertura — los únicos 4 archivos PHP sin la etiqueta no son vistas HTML (son exportadores Excel y endpoints de redirección/JSON) |
+| **Sistema de breakpoints global** (`app/views/nav.php`) | Completo y escalonado: `≤359px` (phone XS) → `360-479px` → `480-639px` (phone landscape) → `640-1023px` (tablet) → `1024-1279px` → `≥1600px` (pantalla grande) → `≥1920px` (TV) |
+| **Menú hamburguesa móvil** | Tabs horizontales se ocultan ≤640px; drawer vertical con todas las secciones; cierra con Escape/clic-fuera/rotación a horizontal |
+| **Tipografía escalable para TV** (`nav.php`, ≥1920px) | `body`, `p/td/li/.tbl td`, `.muted/.kpi-lbl`, `.badge`, inputs — todos suben de tamaño con `!important` porque "el usuario está a mayor distancia" (comentario textual del código) |
+| **Grids auto-adaptables** | `grid-template-columns:repeat(auto-fill,minmax(280px,1fr))` (proveedores, activos, conteo) — se ajustan a cualquier ancho sin necesitar breakpoints explícitos |
+| **Objetivos táctiles** | POS (`ventas/index.php`) usa `min-height:44px /* touch-friendly */` + `-webkit-tap-highlight-color:transparent` — cumple el estándar de 44×44px de Apple/Google |
+| **Tablas anchas** | Envueltas en `.table-wrap{overflow-x:auto}` o `.card{overflow-x:auto}`, con `min-width` base (700-1000px) y columnas no esenciales ocultas vía `display:none !important` en `nth-child()` para móvil |
+| **Páginas recientes (v4.43-v4.70)** | `cierre.php`, `apertura.php`, `consolidar.php`, `conteo.php`, `estado_cuenta.php`, `produccion.php` — todas con viewport + al menos 1 breakpoint propio (ajustes de grid/columnas) que se apoya en el sistema global de `nav.php` para tablet/desktop/TV |
+| **`html{overflow-x:hidden;max-width:100%}` + `box-sizing:border-box`** | Regla global en `nav.php` (añadida en v4.25) previene scroll horizontal accidental en cualquier módulo |
+
+### 🟡 Hallazgo único — cosmético, no funcional (documentado, sin corregir)
+
+| Dónde | Qué pasa | Por qué no se corrigió en código |
+|---|---|---|
+| `dashboard.php` — tarjetas tipo ranking (`.meta-card`: Top Clientes v4.57, Productos Más Vendidos v4.58, Cajeros v4.59, Reactivar v4.60, Aniversario v4.66, Horas Pico v4.67, Rentables v4.68) | Cada fila usa `font-size` **inline** en `<span>/<strong>/<div>` (11-15px, ej. `style="font-size:13px"`). El sistema de escalado tipográfico para TV de `nav.php` (≥1920px) sube el tamaño de `body`, `p/td/li`, `.muted/.kpi-lbl`, `.badge` — pero **no** alcanza estos elementos porque no tienen esas clases ni son esos tags. Resultado: en una TV (≥1920px), estas 7 tarjetas mostrarán texto fijo de 11-15px mientras el resto de la interfaz escala +2px — una inconsistencia visual menor (texto comparativamente pequeño/disperso a la distancia de visualización de un TV) | Una corrección robusta requiere **refactorizar el marcado** (reemplazar los `style="font-size:Npx"` inline por clases CSS, p. ej. `.mc-medalla/.mc-nombre/.mc-detalle/.mc-monto`, y agregar reglas de escalado para esas clases en el media query de `nav.php` — el mismo patrón usado para `.nav-link`/`.subtab`). Es un cambio de **~7 tarjetas × ~5 elementos** sin posibilidad de verificación visual en este entorno (no hay navegador/captura disponible) — el riesgo de introducir una regresión visual no detectable supera el beneficio de un ajuste cosmético en un caso de uso poco frecuente (panel administrativo de un local pequeño visto en TV). Se documenta para una futura iteración con verificación visual en navegador real. |
+
+### Conclusión
+
+ClanDestino tiene un sistema de diseño responsive **notablemente maduro, consistente y completo** — construido sobre una única fuente de verdad (`nav.php`) que inyecta breakpoints, tipografía escalable y reglas globales a los 94 módulos. La revisión no encontró **ningún bug funcional** de visualización en móvil vertical ni en TV/pantallas grandes; el único hallazgo es una inconsistencia cosmética menor y de bajo impacto en 7 tarjetas del dashboard, documentada arriba con su causa raíz exacta y la ruta de corrección recomendada para cuando se pueda verificar visualmente.
+
+> **Nota de método:** esta auditoría se realizó 100% por análisis estático de código — no hay herramienta de navegador/captura de pantalla disponible en este entorno (confirmado al buscar en las herramientas disponibles). Se recomienda una verificación visual en navegador real (DevTools responsive mode + TV/monitor grande) como complemento antes de dar el sistema responsive por "cerrado" definitivamente.
+
+### Cambios de versión
+
+| Archivo | Cambio |
+|---------|--------|
+| `public_html/app/config/app.php` | APP_VERSION → 4.74 |
+
+*Última actualización: 2026-06-06 | v4.74 — auditoría responsive móvil + TV/pantallas grandes: confirma sistema maduro y consistente (viewport 100%, breakpoints 359px-1920px, touch targets 44px, grids auto-adaptables, tablas con scroll), documenta 1 hallazgo cosmético menor (font-size inline en 7 tarjetas del dashboard no escala en TV) sin corregir por imposibilidad de verificación visual. Próximo ciclo: v4.75 (sincronizar schema.sql + revisión final claude.md + verificación GitHub).*

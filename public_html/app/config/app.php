@@ -6,7 +6,7 @@
  */
 
 define('APP_NAME',    'ClanDestino ERP');
-define('APP_VERSION', '4.73'); // 2026-06-06: v4.73 auditoría de código obsoleto — elimina código muerto, activa funciones huérfanas
+define('APP_VERSION', '4.74'); // 2026-06-06: v4.74 auditoría responsive móvil + TV/pantallas grandes — confirma sistema maduro, documenta 1 hallazgo cosmético menor
 define('APP_ENV',     'production'); // cambiar a 'development' para depurar
 
 // Ruta absoluta a public_html/ (raíz web del proyecto)
