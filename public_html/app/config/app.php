@@ -6,7 +6,7 @@
  */
 
 define('APP_NAME',    'ClanDestino ERP');
-define('APP_VERSION', '4.60'); // 2026-06-06: v4.60 tarjeta "Clientes para Reactivar" con WhatsApp de reconexión
+define('APP_VERSION', '4.61'); // 2026-06-06: v4.61 alerta "Garantías por vencer" en el panel operativo del dashboard
 define('APP_ENV',     'production'); // cambiar a 'development' para depurar
 
 // Ruta absoluta a public_html/ (raíz web del proyecto)

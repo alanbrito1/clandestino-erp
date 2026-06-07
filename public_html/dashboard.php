@@ -253,6 +253,25 @@ if (permiso_tiene('productos', 'solo_ver')) {
     } catch (Exception $e) {}
 }
 
+// D) Garantías de activos por vencer en los próximos 30 días
+if (permiso_tiene('activos', 'solo_ver')) {
+    try {
+        $rows = db()->query(
+            "SELECT nombre, serial, garantia_hasta, categoria_activo
+             FROM activos
+             WHERE activo = 1
+               AND garantia_hasta IS NOT NULL
+               AND garantia_hasta >= CURDATE()
+               AND garantia_hasta <= (CURDATE() + INTERVAL 30 DAY)
+             ORDER BY garantia_hasta ASC
+             LIMIT 5"
+        )->fetchAll();
+        if (!empty($rows)) {
+            $alertas['garantias_por_vencer'] = $rows;
+        }
+    } catch (Exception $e) {}
+}
+
 // ---- Definición de módulos ----
 $modulos_config = [
     'ventas'      => ['label' => 'Ventas / POS',   'url' => '/ventas/',      'icon' => 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z'],
@@ -938,6 +957,31 @@ $nivel_labels = [
                         <div class="alerta-sub">Mín: <?= (int)$prod['stock_minimo'] ?> u</div>
                     </div>
                     <div class="alerta-val"><?= (int)$prod['stock_disponible'] ?> u</div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+
+            <?php if (!empty($alertas['garantias_por_vencer'])): ?>
+            <div class="alerta-card">
+                <div class="alerta-hdr amarillo">
+                    <span>🛡️ Garantías por vencer</span>
+                    <a href="<?= APP_BASE ?>/activos/">Ver activos</a>
+                </div>
+                <?php foreach ($alertas['garantias_por_vencer'] as $act):
+                    $dias_restantes = (int)ceil((strtotime($act['garantia_hasta']) - strtotime(date('Y-m-d'))) / 86400);
+                ?>
+                <div class="alerta-item">
+                    <div>
+                        <div class="alerta-nom"><?= htmlspecialchars($act['nombre']) ?></div>
+                        <div class="alerta-sub">
+                            <?php if (!empty($act['serial'])): ?>
+                            Serial: <?= htmlspecialchars($act['serial']) ?> ·
+                            <?php endif; ?>
+                            Vence: <?= date('d/m/Y', strtotime($act['garantia_hasta'])) ?>
+                        </div>
+                    </div>
+                    <div class="alerta-val"><?= $dias_restantes ?> día<?= $dias_restantes != 1 ? 's' : '' ?></div>
                 </div>
                 <?php endforeach; ?>
             </div>

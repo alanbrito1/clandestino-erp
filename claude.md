@@ -1,4 +1,4 @@
-# ClanDestino ERP v4.60 — Memoria de Sesión
+# ClanDestino ERP v4.61 — Memoria de Sesión
 # Última sesión: 2026-06-06 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
@@ -1505,3 +1505,22 @@ Si `es_base` se cambia en una receta después de realizar ventas, la restauraci�
 - No requiere migración: usa `clientes.activo/telefono` y `ventas.cliente_id/fecha_venta/total/estado/metodo_pago` ya existentes.
 
 *Última actualización: 2026-06-06 | v4.60 — tarjeta "Clientes para Reactivar" con WhatsApp de reconexión.*
+
+---
+
+## Estado v4.61 (2026-06-06)
+
+### Cambios implementados en esta sesión
+
+| Archivo | Cambio |
+|---------|--------|
+| `public_html/dashboard.php` | Nueva alerta `$alertas['garantias_por_vencer']`: activos cuya `garantia_hasta` vence dentro de los próximos 30 días (`garantia_hasta BETWEEN CURDATE() AND CURDATE()+30`), gateada por permiso `activos:solo_ver`; nueva tarjeta "🛡️ Garantías por vencer" (`alerta-hdr amarillo`) en el panel de Alertas operativas, mostrando nombre del activo, serial (si tiene), fecha de vencimiento y días restantes; enlace "Ver activos" |
+
+### Funcionalidad v4.61
+
+- **Aprovechar garantías a tiempo**: el dueño recibe una alerta proactiva cuando la garantía de un activo (nevera, horno, equipo de cocina, etc.) está por vencer en los próximos 30 días — suficiente margen para hacer un reclamo o mantenimiento preventivo antes de perder la cobertura.
+- **Cuarta tarjeta del panel de alertas**: se suma a "Insumos bajos/agotados" (rojo), "Fiados pendientes" (naranja/rojo) y "Stock de producto bajo" (naranja) — usa el color amarillo (`alerta-hdr.amarillo`) porque es informativa/preventiva, no urgente.
+- **Filtro de ventana**: solo muestra activos cuya garantía **aún no ha vencido** pero vence pronto (`garantia_hasta >= CURDATE()`) — evita mostrar activos con garantías ya vencidas (esas ya no son accionables).
+- No requiere migración: usa `activos.garantia_hasta/serial/nombre/activo` ya existentes (campo presente desde migración 005).
+
+*Última actualización: 2026-06-06 | v4.61 — alerta "Garantías por vencer" en el panel operativo del dashboard.*
