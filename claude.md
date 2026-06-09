@@ -1957,20 +1957,24 @@ Implementación completa del soporte para catálogos de presentaciones de compra
 ```sql
 CREATE TABLE insumo_presentaciones (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  insumo_id INT NOT NULL,          -- FK lógica → insumos.id
-  nombre VARCHAR(120) NOT NULL,
-  cantidad_base DECIMAL(12,4) NOT NULL DEFAULT 1.0000,
-  unidad_compra VARCHAR(60) DEFAULT NULL,
+  insumo_id INT NOT NULL,                          -- FK lógica → insumos.id
+  nombre VARCHAR(60) NOT NULL,                     -- Ej: Frasco 900ml, Galón 3.785L
+  cantidad_base DECIMAL(12,4) NOT NULL,            -- unidades canónicas por presentación
+  unidad_compra VARCHAR(30) NOT NULL DEFAULT '',   -- frasco, galón, paca, caja…
   precio_referencia DECIMAL(12,2) DEFAULT NULL,
+  equiv_cantidad DECIMAL(10,4) DEFAULT NULL,       -- override equiv_cantidad del insumo
+  equiv_unidad VARCHAR(20) DEFAULT NULL,
   es_predeterminada TINYINT(1) NOT NULL DEFAULT 0,
-  equiv_cantidad DECIMAL(12,4) DEFAULT NULL,
-  equiv_unidad VARCHAR(60) DEFAULT NULL,
   activo TINYINT(1) NOT NULL DEFAULT 1,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  created_by INT DEFAULT NULL
-);
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  created_by INT DEFAULT NULL,
+  updated_by INT DEFAULT NULL,
+  INDEX idx_ip_insumo (insumo_id),
+  INDEX idx_ip_activo (activo)
+) ENGINE=InnoDB;
 ALTER TABLE compra_detalles ADD COLUMN presentacion_id INT DEFAULT NULL;
+-- FK lógica → insumo_presentaciones.id. NULL = compra sin presentación catalogada.
 ```
 
 ### Archivos modificados
@@ -1978,12 +1982,15 @@ ALTER TABLE compra_detalles ADD COLUMN presentacion_id INT DEFAULT NULL;
 | Archivo | Cambio |
 |---|---|
 | `database/migrations/039_insumo_presentaciones.sql` | Nueva migración (tabla + columna) |
-| `public_html/app/models/PresentacionModel.php` | Nuevo modelo; método `tabla_existe_publica()` expuesto |
+| `public_html/app/models/PresentacionModel.php` | Nuevo modelo CRUD; `tabla_existe_publica()` para vistas |
+| `public_html/inventario/api/presentaciones.php` | API REST: listar, crear, editar, toggle-activo por insumo |
 | `public_html/app/models/CompraModel.php` | `criar()` y `editar()`: INSERT dinámico + detección mig. 039 + update `equiv_cantidad` |
+| `public_html/app/models/InsumoModel.php` | `todos()` incluye campo `pres_cat` (presentaciones por insumo para JS) |
 | `public_html/inventario/index.php` | Sección "Presentaciones de compra" en modal ajustar + JS CRUD |
 | `public_html/inventario/compras.php` | Selector de presentación catalogada + mini-modal nuevo insumo + `pres_cat` en `INSUMO_MAP` |
 | `public_html/tests/suite.php` | G29: 9 tests para tabla `insumo_presentaciones` y FK en `compra_detalles` |
 | `database/schema.sql` | v4.80 — tabla `insumo_presentaciones` (30 tablas totales); columna en `compra_detalles` |
+| `public_html/ayuda/index.php` | Sección "Presentaciones de compra por insumo (v4.80)" con ejemplos y flujo |
 | `public_html/app/config/app.php` | APP_VERSION → 4.80 |
 
 ### Cambios técnicos destacados
@@ -1993,4 +2000,10 @@ ALTER TABLE compra_detalles ADD COLUMN presentacion_id INT DEFAULT NULL;
 - **`cerrarModal(id)`**: Refactorizado para aceptar ID como parámetro (soporta `modalEditar` y `modalNuevoIns`).
 - **Creación inline de insumos**: `guardarNuevoInsInline()` crea el insumo vía API y lo inyecta en `INSUMOS`/`INSUMO_MAP` sin recarga de página.
 
-*Última actualización: 2026-06-08 | v4.80 — presentaciones múltiples de compra por insumo: nueva tabla `insumo_presentaciones` (mig. 039), selector en compras, CRUD en inventario, 9 tests G29, INSERT dinámico en CompraModel. 30 tablas en schema.*
+### Limpieza de archivos SQL obsoletos (2026-06-08)
+
+Eliminados del repo en commit `43bda19`:
+- `historicos_fase1..fase4c.sql`, `historicos_correctivo.sql`, `historicos_correctivo2.sql`, `historicos_fase4b_ventas_fix.sql`, `historicos_fix_dulce.sql` — scripts de carga histórica del 23/05/2026, ya aplicados a la BD.
+- `database/schema_completo_v4.20.sql` — snapshot antiguo de v4.20, reemplazado por `schema.sql`.
+
+*Última actualización: 2026-06-08 | v4.80 — presentaciones múltiples de compra por insumo: nueva tabla `insumo_presentaciones` (mig. 039), 11 archivos modificados/creados, 9 tests G29, INSERT dinámico en CompraModel, limpieza de 11 SQL auxiliares obsoletos. 30 tablas en schema.*
