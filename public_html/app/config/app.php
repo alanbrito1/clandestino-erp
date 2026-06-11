@@ -6,7 +6,7 @@
  */
 
 define('APP_NAME',    'ClanDestino ERP');
-define('APP_VERSION', '4.83'); // 2026-06-10: v4.83 sincronización automática presentación predeterminada → costo_actual
+define('APP_VERSION', '4.84'); // 2026-06-10: v4.84 simplificar panel "Tipo de empaque" en compras.php
 define('APP_ENV',     'production'); // cambiar a 'development' para depurar
 
 // Ruta absoluta a public_html/ (raíz web del proyecto)

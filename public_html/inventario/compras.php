@@ -669,20 +669,21 @@ function agregarLinea() {
             </select>
         </div>
 
-        <!-- Fila 2: panel informativo de presentación (solo lectura).
-             Se muestra al seleccionar un insumo y muestra el tipo de empaque,
-             la unidad básica, la cantidad por empaque y la equivalencia física
-             para dar contexto visual de qué se está comprando. -->
-        <div class="linea-pres" id="pres-block-${n}">
-            <div class="pres-info-panel">
-                <span>📦</span>
-                <span class="pres-badge"       id="pres-tipo-lbl-${n}">—</span>
-                <span class="pres-info-sep">·</span>
-                <span class="pres-info-detail" id="pres-unidad-lbl-${n}">—</span>
-                <span class="pres-info-sep">·</span>
-                <span class="pres-info-detail" id="pres-cant-lbl-${n}">—</span>
-                <span class="pres-equiv-badge" id="pres-equiv-lbl-${n}" style="display:none"></span>
-                <span class="pres-total-hint"  id="pres-total-hint-${n}" style="display:none"></span>
+        <!-- Fila 2: panel informativo de presentación legacy (capa 1, solo lectura).
+             Se oculta cuando el insumo tiene catálogo de presentaciones (mig 039) —
+             en ese caso pres-cat-block (capa 3) ya muestra esta información y más. -->
+        <div id="pres-legacy-${n}">
+            <div class="linea-pres" id="pres-block-${n}">
+                <div class="pres-info-panel">
+                    <span>📦</span>
+                    <span class="pres-badge"       id="pres-tipo-lbl-${n}">—</span>
+                    <span class="pres-info-sep">·</span>
+                    <span class="pres-info-detail" id="pres-unidad-lbl-${n}">—</span>
+                    <span class="pres-info-sep">·</span>
+                    <span class="pres-info-detail" id="pres-cant-lbl-${n}">—</span>
+                    <span class="pres-equiv-badge" id="pres-equiv-lbl-${n}" style="display:none"></span>
+                    <span class="pres-total-hint"  id="pres-total-hint-${n}" style="display:none"></span>
+                </div>
             </div>
         </div>
 
@@ -810,8 +811,13 @@ function selectInsumo(n) {
     const presCatBlock = document.getElementById('pres-cat-block-' + n);
     const presCatSel   = document.getElementById('pres-cat-sel-' + n);
     const hPresId      = document.getElementById('hpres-id-' + n);
+    const presLegacy   = document.getElementById('pres-legacy-' + n);
     if (presCatBlock && presCatSel) {
         const cats = ins.pres_cat || [];
+        // Si hay catálogo de presentaciones, oculta el panel legacy (capa 1) —
+        // pres-cat-block ya muestra tipo, cantidad/empaque y precio de referencia.
+        // Si está vacío, el panel legacy queda como fallback informativo.
+        if (presLegacy) presLegacy.style.display = cats.length > 0 ? 'none' : '';
         if (cats.length > 0) {
             // Reconstruir opciones del selector
             let opts = '<option value="">— Seleccionar presentación —</option>';

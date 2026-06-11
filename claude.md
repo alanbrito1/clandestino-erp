@@ -1,4 +1,4 @@
-# ClanDestino ERP v4.83 — Memoria de Sesión
+# ClanDestino ERP v4.84 — Memoria de Sesión
 # Última sesión: 2026-06-10 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
@@ -2171,3 +2171,40 @@ El usuario decidió continuar con v4.83 en la misma sesión que v4.82, pese a la
 - **v4.86**: conversión presentación↔ajuste de stock/conteo en `inventario/index.php` y `inventario/conteo.php`.
 
 *Última actualización: 2026-06-10 | v4.83 — consolidación de arquitectura de presentaciones (Fase 3.1): `PresentacionModel::sincronizarLegacy()` sincroniza la presentación predeterminada (mig. 039) hacia los campos legacy (mig. 010) disparando el trigger `costo_actual`; modal "Agregar Insumo" simplificado (sin calculadora capa 1); modal "Ajustar" marca capa 1 read-only+badge cuando hay catálogo; tras crear insumo se invita a configurar su primera presentación. Sin migraciones. Pendiente prueba manual del flujo completo. Próximo ciclo: v4.84 (simplificar panel "Tipo de empaque" en compras.php).*
+
+## Estado v4.84 (2026-06-10)
+
+### Fase 3.2 — Simplificar panel "Tipo de empaque" en compras.php, sin migración
+
+Continuación directa de v4.83: ahora que `insumo_presentaciones` (mig. 039) es la fuente primaria de "cómo se compra el insumo", el panel legacy de `compras.php` (capa 1, derivado de `insumos.presentacion/cantidad_presentacion/equiv_*`) queda redundante cuando el insumo tiene catálogo — `pres-cat-block` (capa 3) ya muestra esa información (y más: precio de referencia, selector de presentación específica).
+
+### `inventario/compras.php` — `agregarLinea()`
+
+- El panel informativo `<div class="linea-pres" id="pres-block-${n}">` (badge tipo de empaque + unidad básica + cant/empaque + equivalencia + hint de total) quedó envuelto en un nuevo contenedor `<div id="pres-legacy-${n}">`, para poder ocultarlo como unidad sin tocar sus IDs internos (`pres-tipo-lbl-${n}`, `pres-equiv-lbl-${n}`, `pres-total-hint-${n}`, etc.) ni la lógica que ya los rellena.
+
+### `inventario/compras.php` — `selectInsumo()`
+
+- Nueva referencia `presLegacy = document.getElementById('pres-legacy-' + n)`.
+- Dentro del bloque que resuelve `cats = ins.pres_cat || []`: `presLegacy.style.display = cats.length > 0 ? 'none' : ''`.
+  - **Con catálogo** (`pres_cat.length > 0`): se oculta el panel legacy completo; solo se muestra `pres-cat-block` (selector de presentación + detalle + hint de cálculo).
+  - **Sin catálogo** (`pres_cat` vacío, insumo simple): el panel legacy permanece visible como fallback informativo — comportamiento idéntico a versiones anteriores.
+- `equiv-hint-${n}` (en `units-row-${n}`, fuera de `pres-legacy-${n}`) no se ve afectado — sigue mostrando el hint "= X unidades total" independientemente del estado del panel legacy, ya que `_actualizarHintCant()` actualiza ambos (`pres-total-hint-${n}` dentro del panel oculto y `equiv-hint-${n}` siempre visible) sin distinción.
+- Sin cambios en `agregarLineaModal()`/`mSelectInsumo()` (modal de edición de compra): esa vista no tiene `pres-cat-block`, está fuera del alcance del plan.
+
+### Archivos modificados
+
+| Archivo | Cambio |
+|---|---|
+| `inventario/compras.php` | Envuelve panel legacy en `pres-legacy-${n}`; `selectInsumo()` lo oculta cuando `pres_cat.length > 0` |
+| `app/config/app.php` | APP_VERSION → 4.84 |
+
+### Verificación
+
+`php -l` sin errores en `compras.php`. **Pendiente prueba manual en navegador**: seleccionar un insumo con presentaciones catalogadas (mig. 039) → confirmar que el panel "📦 [tipo] · [unidad] · [cant/empaque]" desaparece y solo se ve el selector "📦 Presentación catalogada"; seleccionar un insumo sin catálogo → confirmar que el panel legacy sigue apareciendo igual que antes.
+
+### Pendiente (próximas sesiones, ver plan v4.81+)
+
+- **v4.85**: conversión receta↔equivalencia física en `productos/index.php`.
+- **v4.86**: conversión presentación↔ajuste de stock/conteo en `inventario/index.php` y `inventario/conteo.php`.
+
+*Última actualización: 2026-06-10 | v4.84 — simplifica panel "Tipo de empaque" en compras.php: envuelve el panel legacy (capa 1) en `pres-legacy-${n}` y lo oculta cuando el insumo tiene catálogo de presentaciones (mig. 039), mostrando solo `pres-cat-block` (capa 3); sin catálogo, el panel legacy permanece como fallback. Sin migraciones. Pendiente prueba manual. Próximo ciclo: v4.85 (conversión receta↔equivalencia física en productos/index.php).*
