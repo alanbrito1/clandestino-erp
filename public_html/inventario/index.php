@@ -296,7 +296,7 @@ $CATEGORIAS = !empty($CATEGORIAS_LISTA)
                         <?php endif; ?>
                     </td>
                     <td>
-                        <?= number_format($ins['stock_actual'],3,',','.') ?>
+                        <?= number_format($ins['stock_actual'],2,',','.') ?>
                         <small style="color:var(--g5)"><?= htmlspecialchars($ins['unidad_medida']) ?></small>
                         <span class="sb"><span class="sf <?= $fillC ?>" style="width:<?= $pct ?>%"></span></span>
                         <br><small style="color:var(--g5)">Mín: <?= number_format($ins['stock_seguridad'],2,',','.') ?></small>
@@ -839,22 +839,22 @@ function abrirEditar(ins) {
     document.getElementById('aj-titulo').textContent = 'Ajustar: ' + ins.nombre;
     document.getElementById('aj-id').value     = ins.id;
     document.getElementById('aj-nombre').value = ins.nombre;
-    document.getElementById('aj-stock-actual').value = ins.stock_actual + ' ' + ins.unidad_medida;
+    document.getElementById('aj-stock-actual').value = formatDecimal(ins.stock_actual, 2) + ' ' + ins.unidad_medida;
     document.getElementById('aj-tipo').value   = 'entrada';
     document.getElementById('aj-cantidad').value = '';
     document.getElementById('aj-motivo').value = '';
-    document.getElementById('aj-seg').value    = ins.stock_seguridad || 0;
+    document.getElementById('aj-seg').value    = (parseFloat(ins.stock_seguridad) || 0).toFixed(2);
     actualizarLabelCantidadAjuste();
 
     if (TIENE_PRESENT) {
         document.getElementById('aj-pres').value      = ins.presentacion || '';
         document.getElementById('aj-unidad').value    = ins.unidad_medida || 'unidad';
-        document.getElementById('aj-cant-pres').value = ins.cantidad_presentacion || '';
+        document.getElementById('aj-cant-pres').value = ins.cantidad_presentacion ? parseFloat(ins.cantidad_presentacion).toFixed(2) : '';
         document.getElementById('aj-precio-pres').value = ins.precio_presentacion || '';
-        document.getElementById('aj-costo').value     = ins.costo_actual || '';
+        document.getElementById('aj-costo').value     = (parseFloat(ins.costo_actual) || 0).toFixed(2);
         document.getElementById('aj-notas').value     = ins.notas || '';
         // Cargar equivalencia física si existe
-        document.getElementById('aj-equiv-cant').value   = ins.equiv_cantidad || '';
+        document.getElementById('aj-equiv-cant').value   = ins.equiv_cantidad ? parseFloat(ins.equiv_cantidad).toFixed(2) : '';
         document.getElementById('aj-equiv-unidad').value = ins.equiv_unidad   || 'g';
         // Mostrar/ocultar sección de equivalencia según unidad actual
         toggleEquiv('aj');
@@ -906,7 +906,7 @@ function calcCostoAj(source) {
     // Re-leer tras el cálculo para mostrar el resultado correcto en la vista previa
     costo = parseFloat(costoEl.value) || 0;
     if (costo > 0) {
-        if (calc) calc.innerHTML = '<strong>$' + costo.toFixed(2).replace('.', ',') + '</strong>';
+        if (calc) calc.innerHTML = '<strong>$' + formatDecimal(costo, 2) + '</strong>';
         if (prev) prev.style.display = 'block';
     } else {
         if (prev) prev.style.display = 'none';
@@ -1093,10 +1093,10 @@ async function cargarPresentaciones(insumo_id) {
         var html = '';
         pres.forEach(function(p) {
             var pred = p.es_predeterminada == 1 ? ' <span style="background:#dcfce7;color:#166534;border-radius:8px;padding:1px 6px;font-size:10px">★ Predeterminada</span>' : '';
-            var equiv = (p.equiv_cantidad && p.equiv_unidad) ? ' · equiv: ' + p.equiv_cantidad + ' ' + p.equiv_unidad : '';
+            var equiv = (p.equiv_cantidad && p.equiv_unidad) ? ' · equiv: ' + formatDecimal(p.equiv_cantidad, 2) + ' ' + p.equiv_unidad : '';
             html += '<div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--g9)">'
                   + '<div style="flex:1;font-size:12px"><strong>' + htmlEsc(p.nombre) + '</strong>' + pred + '<br>'
-                  + '<span style="color:var(--g5)">' + p.cantidad_base + ' ' + htmlEsc(p.unidad_compra || 'und')
+                  + '<span style="color:var(--g5)">' + formatDecimal(p.cantidad_base, 2) + ' ' + htmlEsc(p.unidad_compra || 'und')
                   + (p.precio_referencia > 0 ? ' · $' + Number(p.precio_referencia).toLocaleString('es-CO') : '')
                   + equiv + '</span></div>'
                   + '<button onclick="editarPresentacion(' + p.id + ')" style="padding:4px 8px;font-size:11px;border:1px solid var(--g7);border-radius:6px;background:#fff;cursor:pointer">Editar</button>'
@@ -1114,11 +1114,11 @@ function editarPresentacion(id) {
     if (!p) { toast('Presentación no encontrada', 'err'); return; }
     document.getElementById('pf-id').value            = p.id;
     document.getElementById('pf-nombre').value        = p.nombre;
-    document.getElementById('pf-cantidad-base').value = p.cantidad_base;
+    document.getElementById('pf-cantidad-base').value = (parseFloat(p.cantidad_base) || 0).toFixed(2);
     document.getElementById('pf-unidad-compra').value = p.unidad_compra || '';
     document.getElementById('pf-precio-ref').value    = p.precio_referencia || '';
     document.getElementById('pf-predeterminada').checked = p.es_predeterminada == 1;
-    document.getElementById('pf-equiv-cant').value    = p.equiv_cantidad || '';
+    document.getElementById('pf-equiv-cant').value    = p.equiv_cantidad ? parseFloat(p.equiv_cantidad).toFixed(2) : '';
     document.getElementById('pf-equiv-unidad').value  = p.equiv_unidad   || 'g';
     var wrap = document.getElementById('aj-pres-form-wrap');
     wrap.open = true;
