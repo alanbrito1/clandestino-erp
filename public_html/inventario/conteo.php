@@ -6,16 +6,6 @@
  * auditorías rápidas sin editar insumo por insumo.
  */
 
-// TEMPORAL — diagnóstico de página en blanco. Quitar tras encontrar la causa.
-register_shutdown_function(function () {
-    $e = error_get_last();
-    if ($e && in_array($e['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
-        echo '<pre style="background:#fee2e2;color:#991b1b;padding:16px;font-size:13px;white-space:pre-wrap">';
-        echo htmlspecialchars(print_r($e, true));
-        echo '</pre>';
-    }
-});
-
 require_once __DIR__ . '/../app/middleware/auth_check.php';
 require_once __DIR__ . '/../app/models/InsumoModel.php';
 require_once __DIR__ . '/../app/models/PresentacionModel.php';
@@ -137,7 +127,7 @@ ksort($grupos);
     </style>
 </head>
 <body>
-<?php require_once __DIR__ . '/../views/nav.php'; ?>
+<?php require_once __DIR__ . '/../app/views/nav.php'; ?>
 
 <div class="main">
     <h1>📋 Conteo de Stock</h1>
