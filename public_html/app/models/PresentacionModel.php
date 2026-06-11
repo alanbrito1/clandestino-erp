@@ -187,6 +187,44 @@ class PresentacionModel
         )->execute([$uid, $id]);
     }
 
+    /**
+     * Sincroniza los campos legacy de insumos (presentacion, cantidad_presentacion,
+     * precio_presentacion — migración 010) con la presentación marcada como
+     * predeterminada (migración 039).
+     *
+     * El UPDATE resultante dispara el trigger trg_insumos_costo_from_presentacion_update
+     * (mig 010), que recalcula costo_actual = precio_presentacion / cantidad_presentacion.
+     *
+     * Solo sincroniza si la predeterminada tiene precio_referencia definido, para no
+     * pisar el último costo real de compra con un precio de referencia vacío.
+     */
+    public static function sincronizarLegacy(int $insumo_id): void
+    {
+        if (!self::tabla_existe()) return;
+
+        $stmt = db()->prepare(
+            'SELECT unidad_compra, cantidad_base, precio_referencia
+             FROM insumo_presentaciones
+             WHERE insumo_id = ? AND es_predeterminada = 1 AND activo = 1
+             LIMIT 1'
+        );
+        $stmt->execute([$insumo_id]);
+        $p = $stmt->fetch();
+
+        if (!$p || $p['precio_referencia'] === null) return;
+
+        db()->prepare(
+            'UPDATE insumos
+             SET presentacion = ?, cantidad_presentacion = ?, precio_presentacion = ?
+             WHERE id = ?'
+        )->execute([
+            substr(trim($p['unidad_compra']), 0, 30) ?: null,
+            (float)$p['cantidad_base'],
+            (float)$p['precio_referencia'],
+            $insumo_id,
+        ]);
+    }
+
     private static function _requerir_tabla(): void
     {
         if (!self::tabla_existe()) {

@@ -1,4 +1,4 @@
-# ClanDestino ERP v4.82 — Memoria de Sesión
+# ClanDestino ERP v4.83 — Memoria de Sesión
 # Última sesión: 2026-06-10 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
@@ -2114,3 +2114,60 @@ Se confirmó con el usuario mantener el formato colombiano ya dominante (punto =
 - **v4.83-v4.86**: consolidación de arquitectura de presentaciones — `insumo_presentaciones` (mig. 039) como UI primaria con sincronización automática a campos legacy (`PresentacionModel::sincronizarLegacy()`), simplificación del panel "Tipo de empaque" en compras, conversión receta↔equivalencia física, conversión presentación↔ajuste de stock/conteo. Riesgo medio-alto (toca trigger `costo_actual`) — recomendado para sesión dedicada.
 
 *Última actualización: 2026-06-10 | v4.82 — normalización numérica a 2 decimales (es-CO): nuevo helper `FormatoHelper.php` + `formatMiles`/`formatDecimal` en nav.php, 4 funciones duplicadas eliminadas, ~9 correcciones `number_format`/`.toFixed`, sin migraciones. Próximo ciclo: v4.83 (consolidación arquitectura de presentaciones, sesión dedicada por riesgo medio-alto).*
+
+## Estado v4.83 (2026-06-10)
+
+### Fase 3.1 — Consolidación UI de insumos + sincronización automática a capa legacy, sin migración
+
+El usuario decidió continuar con v4.83 en la misma sesión que v4.82, pese a la recomendación del plan de dedicarle una sesión aparte (riesgo medio-alto: toca el trigger `costo_actual`). Dirección: `insumo_presentaciones` (mig. 039) pasa a ser la **única UI editable** para "cómo se compra el insumo". Los campos legacy `insumos.presentacion/cantidad_presentacion/precio_presentacion` (mig. 010, de los que depende el trigger `costo_actual`) se mantienen en BD pero ahora se sincronizan automáticamente desde la presentación marcada `es_predeterminada=1`. **Cero migraciones SQL.**
+
+### `PresentacionModel::sincronizarLegacy(int $insumo_id): void` (nuevo)
+
+- Lee la presentación `es_predeterminada=1 AND activo=1` del insumo.
+- Si no existe o `precio_referencia IS NULL`, no hace nada (evita pisar el último costo real de compra con un precio de referencia vacío).
+- `UPDATE insumos SET presentacion=:unidad_compra, cantidad_presentacion=:cantidad_base, precio_presentacion=:precio_referencia WHERE id=:insumo_id`.
+- **Decisión de mapeo**: `unidad_compra` (VARCHAR 30, ej. "frasco") → `insumos.presentacion` (VARCHAR 30 desde mig. 031), NO `nombre` (VARCHAR 60, ej. "Frasco 900ml") — `insumos.presentacion` se usa en `compras.php` como etiqueta corta de tipo de empaque (`Cantidad (${ins.presentacion}s)`), consistente con `unidad_compra` y el catálogo `listas_sistema` tipo=`presentacion`.
+- El `UPDATE` dispara el trigger `trg_insumos_costo_from_presentacion_update` (mig. 010, sin modificar) que recalcula `costo_actual = ROUND(precio_presentacion / cantidad_presentacion, 4)`.
+
+### `inventario/api/presentaciones.php`
+
+- Tras `accion=crear` o `accion=editar` exitoso con `es_predeterminada=1` (POST), llama a `PresentacionModel::sincronizarLegacy($insumo_id)`. En `editar`, `$insumo_id` viene de `$_POST['insumo_id']` (siempre enviado por `guardarPresentacion()`).
+
+### `inventario/index.php` — modal "Agregar Insumo" simplificado
+
+- Eliminada la sección "Presentación de compra" (capa 1): select `ni-pres`, calculadora bidireccional `ni-cant-pres`/`ni-precio-pres`/preview.
+- Nueva sección "Unidad y costo": solo `ni-unidad` (unidad básica) + `ni-costo` como campo directo opcional ("Costo actual por unidad"), con hint invitando a configurar presentaciones después de guardar.
+- Se mantiene `ni-equiv-sec` (equivalencia física) sin cambios — no es parte de "presentación de compra".
+- Eliminada por completo la función `calcCosto()` (calculadora bidireccional del modal Agregar Insumo) — sus campos ya no existen.
+- `guardarNuevoInsumo()` ya no envía `presentacion`/`cantidad_presentacion`/`precio_presentacion` (el backend `insumo_crud.php` los trata como `NULL` si están ausentes; `costo_actual` se guarda directo desde `ni-costo`).
+
+### `inventario/index.php` — modal "Ajustar": capa 1 read-only + badge cuando hay catálogo
+
+- `$insumos` (de `InsumoModel::todos_con_estado()`) ahora incluye `pres_cat` por insumo (merge de `PresentacionModel::todas_agrupadas()`, mismo patrón que `compras.php`).
+- Nueva función `actualizarCapa1ReadOnly(ins)`: si `ins.pres_cat.length > 0`, marca `aj-pres`/`aj-cant-pres`/`aj-precio-pres`/`aj-costo` como `disabled`/`readOnly` (gris) y muestra el badge "snapshot automático desde presentación predeterminada" junto al título "Presentación y costo". Si `pres_cat` está vacío, quedan editables (fallback para insumos simples sin catálogo). `aj-unidad` (unidad básica del insumo) **no** se incluye — es una propiedad del insumo, no de "cómo se compra".
+- `cargarPresentaciones()` también llama `actualizarCapa1ReadOnly({pres_cat: pres})` tras cada fetch, para reflejar el cambio de inmediato si el usuario agrega/elimina presentaciones sin recargar la página.
+
+### `inventario/index.php` — flujo "crear insumo → invitar a configurar presentación"
+
+- Tras `guardarNuevoInsumo()` exitoso, ya no se hace `location.reload()` inmediato: se cierra el modal "Agregar Insumo", se construye un objeto `ins` mínimo con los datos recién guardados (`pres_cat: []`) y se llama `abrirEditar(ins)`, dejando expandidos `aj-pres-section` y `aj-pres-form-wrap` (mig. 039) para invitar a registrar la primera presentación de compra. El reload ocurre normalmente al guardar desde el modal Ajustar (`confirmarAjuste()`).
+
+### Archivos modificados (3)
+
+| Archivo | Cambio |
+|---|---|
+| `app/models/PresentacionModel.php` | + `sincronizarLegacy(int $insumo_id): void` |
+| `inventario/api/presentaciones.php` | crear/editar con `es_predeterminada=1` → llama `sincronizarLegacy()` |
+| `inventario/index.php` | `pres_cat` en `$insumos`, modal Agregar simplificado, capa 1 read-only+badge en Ajustar, flujo post-creación, elimina `calcCosto()` |
+| `app/config/app.php` | APP_VERSION → 4.83 |
+
+### Verificación
+
+`php -l` sin errores en los 3 archivos PHP tocados. **Pendiente prueba manual en navegador** (siguiente sesión o antes de cerrar): crear insumo → agregar presentación predeterminada con precio de referencia → verificar que `costo_actual` se recalcula (trigger mig. 010) y que la capa 1 del modal Ajustar pasa a read-only con badge; comprar usando esa presentación → verificar que `costo_actual`/`stock_actual` siguen actualizándose igual que en v4.80.
+
+### Pendiente (próximas sesiones, ver plan v4.81+)
+
+- **v4.84**: simplificar panel "Tipo de empaque" en `compras.php` — ocultar badge legacy (capa 1) cuando `pres_cat.length > 0`.
+- **v4.85**: conversión receta↔equivalencia física en `productos/index.php`.
+- **v4.86**: conversión presentación↔ajuste de stock/conteo en `inventario/index.php` y `inventario/conteo.php`.
+
+*Última actualización: 2026-06-10 | v4.83 — consolidación de arquitectura de presentaciones (Fase 3.1): `PresentacionModel::sincronizarLegacy()` sincroniza la presentación predeterminada (mig. 039) hacia los campos legacy (mig. 010) disparando el trigger `costo_actual`; modal "Agregar Insumo" simplificado (sin calculadora capa 1); modal "Ajustar" marca capa 1 read-only+badge cuando hay catálogo; tras crear insumo se invita a configurar su primera presentación. Sin migraciones. Pendiente prueba manual del flujo completo. Próximo ciclo: v4.84 (simplificar panel "Tipo de empaque" en compras.php).*

@@ -60,6 +60,9 @@ try {
                 throw new \RuntimeException('La cantidad base debe ser mayor a cero.');
 
             $id = PresentacionModel::crear($insumo_id, $_POST);
+            if (!empty($_POST['es_predeterminada'])) {
+                PresentacionModel::sincronizarLegacy($insumo_id);
+            }
             echo json_encode([
                 'success'  => true,
                 'id'       => $id,
@@ -81,6 +84,10 @@ try {
                 throw new \RuntimeException('La cantidad base debe ser mayor a cero.');
 
             PresentacionModel::editar($id, $_POST);
+            if (!empty($_POST['es_predeterminada'])) {
+                $insumo_id = (int)($_POST['insumo_id'] ?? 0);
+                if ($insumo_id > 0) PresentacionModel::sincronizarLegacy($insumo_id);
+            }
             echo json_encode(['success' => true, 'mensaje' => 'Presentación actualizada.']);
             break;
 

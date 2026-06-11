@@ -20,6 +20,24 @@ permiso_requerir('inventario', 'solo_ver');
 
 $insumos = InsumoModel::todos_con_estado();
 
+// Catálogo de presentaciones de compra (mig 039) por insumo — usado para el
+// snapshot legacy (capa 1, read-only) y para la invitación a configurar
+// presentaciones tras crear un insumo nuevo.
+$pres_por_insumo = PresentacionModel::todas_agrupadas();
+foreach ($insumos as &$ins_pc) {
+    $ins_pc['pres_cat'] = array_map(fn($p) => [
+        'id'                => (int)$p['id'],
+        'nombre'            => $p['nombre'],
+        'cantidad_base'     => (float)$p['cantidad_base'],
+        'unidad_compra'     => $p['unidad_compra'],
+        'precio_referencia' => $p['precio_referencia'] ? (float)$p['precio_referencia'] : null,
+        'equiv_cantidad'    => $p['equiv_cantidad']  ? (float)$p['equiv_cantidad']  : null,
+        'equiv_unidad'      => $p['equiv_unidad'] ?? null,
+        'es_predeterminada' => (int)$p['es_predeterminada'],
+    ], $pres_por_insumo[$ins_pc['id']] ?? []);
+}
+unset($ins_pc);
+
 $total    = count($insumos);
 $bajos    = count(array_filter($insumos, fn($i) => $i['estado'] === 'bajo'));
 $agotados = count(array_filter($insumos, fn($i) => $i['estado'] === 'agotado'));
@@ -347,25 +365,18 @@ $CATEGORIAS = !empty($CATEGORIAS_LISTA)
       </div>
     </div>
 
-    <p class="form-section">Presentación de compra</p>
-    <p style="font-size:12px;color:var(--g5);margin-bottom:10px">
-        Cómo viene el producto cuando lo compras y cuánto trae, para calcular automáticamente el costo por unidad básica.
-    </p>
+    <p class="form-section">Unidad y costo</p>
     <div class="form-grid">
-      <div class="fg"><label>Presentación</label>
-        <select id="ni-pres" onchange="calcCosto('pres')">
-          <option value="">— Sin definir —</option>
-          <?php foreach ($PRESENTACIONES as $p): ?>
-          <option value="<?= $p ?>"><?= ucfirst($p) ?></option>
-          <?php endforeach; ?>
-        </select>
-      </div>
       <div class="fg"><label>Unidad básica de medida *</label>
-        <select id="ni-unidad" onchange="calcCosto(); toggleEquiv('ni')">
+        <select id="ni-unidad" onchange="toggleEquiv('ni')">
           <?php foreach ($UNIDADES_LABEL as $k => $v): ?>
           <option value="<?= $k ?>"><?= htmlspecialchars($v) ?></option>
           <?php endforeach; ?>
         </select>
+      </div>
+      <div class="fg"><label>Costo actual por unidad ($)</label>
+        <input type="number" id="ni-costo" placeholder="Ej: 9.44" min="0" step="0.01">
+        <span class="hint">Opcional. Después de guardar podrás definir presentaciones de compra para calcularlo automáticamente.</span>
       </div>
     </div>
 
@@ -396,34 +407,6 @@ $CATEGORIAS = !empty($CATEGORIAS_LISTA)
           </select>
         </div>
       </div>
-    </div>
-
-    <div class="form-grid">
-      <div class="fg"><label>Cantidad por presentación *</label>
-        <input type="number" id="ni-cant-pres" placeholder="Ej: 900 (ml en un frasco)"
-               min="0.001" step="0.001" oninput="calcCosto('cant')">
-        <span class="hint">Cuántas unidades básicas hay en una presentación</span>
-      </div>
-      <div class="fg"><label>Precio por presentación ($)</label>
-        <input type="number" id="ni-precio-pres" placeholder="Ej: 8500"
-               min="0" step="100" oninput="calcCosto('precio')">
-      </div>
-    </div>
-
-    <!-- Vista previa del cálculo — se actualiza con cualquier par de valores -->
-    <div class="costo-preview" id="ni-costo-preview">
-      <strong>Costo por unidad:</strong>
-      <span id="ni-costo-calc">—</span>
-      <br><small style="color:var(--g5)">Llena dos campos y el tercero se calcula solo</small>
-    </div>
-
-    <div class="fg">
-      <label>Costo por unidad ($)</label>
-      <input type="number" id="ni-costo" placeholder="O escríbelo directamente"
-             min="0" step="0.01" oninput="calcCosto('costo')">
-      <span class="hint">
-        Puedes llenar cualquier par: cantidad + precio → costo; cantidad + costo → precio; precio + costo → cantidad
-      </span>
     </div>
 
     <p class="form-section">Stock</p>
@@ -491,7 +474,11 @@ $CATEGORIAS = !empty($CATEGORIAS_LISTA)
     </div>
 
     <?php if ($tienePresent): ?>
-    <p class="form-section">Presentación y costo</p>
+    <p class="form-section">Presentación y costo
+      <span id="aj-capa1-badge" style="display:none;font-weight:400;font-size:11px;color:#3730a3;background:#eef2ff;border-radius:8px;padding:2px 8px;margin-left:6px;white-space:normal">
+        snapshot automático desde presentación predeterminada
+      </span>
+    </p>
     <div class="form-grid">
       <div class="fg"><label>Presentación</label>
         <select id="aj-pres" onchange="calcCostoAj('pres')">
@@ -716,58 +703,6 @@ function toggleEquiv(prefijo) {
     seccion.style.display = esFisica ? 'none' : '';
 }
 
-// ── Cálculo bidireccional entre los tres campos de costo (modal nuevo) ─────
-// Los tres campos están relacionados por: costo_unitario = precio_pres / cantidad_pres
-// Al cambiar cualquiera de los dos se recalcula el tercero:
-//   source='cant'  → si hay precio → calcula costo; si hay costo → calcula precio
-//   source='precio' → si hay cant → calcula costo; si hay costo → calcula cant
-//   source='costo'  → si hay cant → calcula precio; si hay precio → calcula cant
-//
-// Esto permite al usuario ingresar cualquier par de valores y obtener el tercero
-// automáticamente, facilitando registrar insumos desde distintos puntos de partida.
-function calcCosto(source) {
-    var cantEl   = document.getElementById('ni-cant-pres');
-    var precioEl = document.getElementById('ni-precio-pres');
-    var costoEl  = document.getElementById('ni-costo');
-    var unidad   = document.getElementById('ni-unidad').value;
-    var pres     = document.getElementById('ni-pres').value;
-    var prev     = document.getElementById('ni-costo-preview');
-    var calc     = document.getElementById('ni-costo-calc');
-
-    var cant  = parseFloat(cantEl.value)   || 0;
-    var precio = parseFloat(precioEl.value) || 0;
-    var costo  = parseFloat(costoEl.value)  || 0;
-
-    // Según el campo que cambió, calcular el tercero
-    if (source === 'cant') {
-        if (precio > 0 && cant > 0)       { costo = precio / cant;  costoEl.value  = costo.toFixed(2); }
-        else if (costo > 0 && cant > 0)   { precio = costo * cant;  precioEl.value = precio.toFixed(0); }
-    } else if (source === 'precio') {
-        if (cant > 0 && precio > 0)       { costo = precio / cant;  costoEl.value  = costo.toFixed(2); }
-        else if (costo > 0 && precio > 0) { cant  = precio / costo; cantEl.value   = cant.toFixed(2); }
-    } else if (source === 'costo') {
-        if (cant > 0 && costo > 0)        { precio = costo * cant;  precioEl.value = precio.toFixed(0); }
-        else if (precio > 0 && costo > 0) { cant   = precio / costo; cantEl.value  = cant.toFixed(2); }
-    }
-
-    // Re-leer valores tras el cálculo
-    cant  = parseFloat(cantEl.value)   || 0;
-    precio = parseFloat(precioEl.value) || 0;
-    costo  = parseFloat(costoEl.value)  || 0;
-
-    // Actualizar la línea de vista previa con los valores actuales
-    if (costo > 0) {
-        var eq = '';
-        if (precio > 0 && cant > 0)
-            eq = ' = $' + precio.toLocaleString('es-CO') + ' ÷ ' + cant + ' ' + (pres || unidad);
-        calc.innerHTML = '<strong>$' + costo.toFixed(2).replace('.', ',')
-            + ' / ' + unidad + '</strong>' + eq;
-        prev.style.display = 'block';
-    } else {
-        prev.style.display = 'none';
-    }
-}
-
 // ── Guardar nuevo insumo ─────────────────────────────────────────────────────
 async function guardarNuevoInsumo() {
     var nombre = document.getElementById('ni-nombre').value.trim();
@@ -778,10 +713,7 @@ async function guardarNuevoInsumo() {
     fd.append('accion',                 'crear');
     fd.append('nombre',                 nombre);
     fd.append('categoria',              document.getElementById('ni-cat').value);
-    fd.append('presentacion',           document.getElementById('ni-pres').value);
     fd.append('unidad_medida',          document.getElementById('ni-unidad').value);
-    fd.append('cantidad_presentacion',  document.getElementById('ni-cant-pres').value || '0');
-    fd.append('precio_presentacion',    document.getElementById('ni-precio-pres').value || '0');
     fd.append('costo_actual',           document.getElementById('ni-costo').value || '0');
     fd.append('stock_actual',           document.getElementById('ni-stock').value  || '0');
     fd.append('stock_seguridad',        document.getElementById('ni-seg').value    || '0');
@@ -797,9 +729,59 @@ async function guardarNuevoInsumo() {
     var d = await r.json();
     if (d.success) {
         cerrar('modal-nuevo-insumo');
-        toast('Insumo guardado', 'ok');
-        setTimeout(() => location.reload(), 900);
+        toast('Insumo guardado. Configura su primera presentación de compra.', 'ok');
+
+        // Abrir el modal de edición invitando a configurar la primera
+        // presentación de compra (mig 039). Como el insumo es nuevo, aún
+        // no tiene catálogo: pres_cat=[] mantiene la capa 1 editable.
+        var nuevoIns = {
+            id: d.id,
+            nombre: nombre,
+            categoria: document.getElementById('ni-cat').value,
+            unidad_medida: document.getElementById('ni-unidad').value,
+            costo_actual: parseFloat(document.getElementById('ni-costo').value) || 0,
+            stock_actual: parseFloat(document.getElementById('ni-stock').value) || 0,
+            stock_seguridad: parseFloat(document.getElementById('ni-seg').value) || 0,
+            presentacion: null,
+            cantidad_presentacion: null,
+            precio_presentacion: null,
+            equiv_cantidad: null,
+            equiv_unidad: null,
+            notas: document.getElementById('ni-notas').value,
+            pres_cat: [],
+        };
+        if (document.getElementById('ni-equiv-sec').style.display !== 'none') {
+            nuevoIns.equiv_cantidad = parseFloat(document.getElementById('ni-equiv-cant').value) || null;
+            nuevoIns.equiv_unidad   = document.getElementById('ni-equiv-unidad').value || 'g';
+        }
+
+        abrirEditar(nuevoIns);
+        if (TIENE_039) {
+            var sec  = document.getElementById('aj-pres-section');
+            var wrap = document.getElementById('aj-pres-form-wrap');
+            if (sec)  sec.open  = true;
+            if (wrap) wrap.open = true;
+        }
     } else toast(d.error || 'Error', 'err');
+}
+
+// ── Capa 1 (legacy, mig 010) read-only cuando hay catálogo de presentaciones (mig 039) ──
+// Si el insumo tiene presentaciones catalogadas, presentación/cantidad/precio/costo
+// son un snapshot automático de la predeterminada (PresentacionModel::sincronizarLegacy)
+// y no deben editarse manualmente aquí. Sin catálogo, quedan editables (fallback).
+function actualizarCapa1ReadOnly(ins) {
+    if (!TIENE_PRESENT) return;
+    var tieneCatalogo = Array.isArray(ins.pres_cat) && ins.pres_cat.length > 0;
+    ['aj-pres', 'aj-cant-pres', 'aj-precio-pres', 'aj-costo'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        if (el.tagName === 'SELECT') el.disabled = tieneCatalogo;
+        else el.readOnly = tieneCatalogo;
+        el.style.background = tieneCatalogo ? 'var(--g9)' : '';
+        el.style.color      = tieneCatalogo ? 'var(--g5)' : '';
+    });
+    var badge = document.getElementById('aj-capa1-badge');
+    if (badge) badge.style.display = tieneCatalogo ? 'inline' : 'none';
 }
 
 // ── Abrir modal de ajuste/edición ────────────────────────────────────────────
@@ -829,6 +811,8 @@ function abrirEditar(ins) {
         toggleEquiv('aj');
         // Sin source: solo actualiza la vista previa con los valores ya cargados
         calcCostoAj('precio');
+        // Read-only/badge si ya hay presentaciones catalogadas (mig 039)
+        actualizarCapa1ReadOnly(ins);
     }
     abrirModal('modal-ajustar');
 
@@ -840,7 +824,7 @@ function abrirEditar(ins) {
     }
 }
 
-// ── Cálculo bidireccional (modal editar/ajustar) — misma lógica que calcCosto() ──
+// ── Cálculo bidireccional entre presentación/cantidad/precio/costo (modal editar/ajustar) ──
 // source: 'cant' | 'precio' | 'costo'
 function calcCostoAj(source) {
     var cantEl   = document.getElementById('aj-cant-pres');
@@ -1042,6 +1026,11 @@ async function cargarPresentaciones(insumo_id) {
         var pres = d.presentaciones || [];
         presentacionesActuales = pres;
         if (badge) badge.textContent = pres.length > 0 ? pres.length : '';
+        // Reflejar de inmediato el estado read-only/badge de la capa 1 al
+        // crear/eliminar presentaciones, sin esperar a recargar la página
+        if (ajusteInsumoActual && ajusteInsumoActual.id == insumo_id) {
+            actualizarCapa1ReadOnly({ pres_cat: pres });
+        }
         if (pres.length === 0) {
             lista.innerHTML = '<p style="font-size:11px;color:var(--g5);margin:0">Sin presentaciones configuradas.</p>';
             return;
