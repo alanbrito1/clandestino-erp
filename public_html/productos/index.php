@@ -539,7 +539,8 @@ $stock_total     = array_sum(array_column($productos, 'stock_disponible'));
 
 <script>
 const INSUMOS = <?= json_encode(array_map(
-    fn($i) => ['id'=>(int)$i['id'],'nombre'=>$i['nombre'],'unidad'=>$i['unidad_medida'],'costo'=>(float)$i['costo_actual']],
+    fn($i) => ['id'=>(int)$i['id'],'nombre'=>$i['nombre'],'unidad'=>$i['unidad_medida'],'costo'=>(float)$i['costo_actual'],
+               'equiv_cantidad'=>(float)($i['equiv_cantidad'] ?? 0),'equiv_unidad'=>$i['equiv_unidad'] ?? ''],
     $insumos_todos
 ), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) ?>;
 
@@ -611,11 +612,14 @@ function renderReceta(id, ings, precio, rinde, combo, variantes) {
     });
 
     // Formulario para agregar ingrediente
-    const optIns = INSUMOS.map(i => `<option value="${i.id}" data-costo="${i.costo}" data-u="${esc(i.unidad)}">${esc(i.nombre)} (${esc(i.unidad)})</option>`).join('');
+    const optIns = INSUMOS.map(i => `<option value="${i.id}" data-costo="${i.costo}" data-u="${esc(i.unidad)}" data-equiv-cant="${i.equiv_cantidad}" data-equiv-unidad="${esc(i.equiv_unidad)}">${esc(i.nombre)} (${esc(i.unidad)})</option>`).join('');
     const addForm = puedEdt ? `
         <div class="add-row">
-            <select id="si-${id}">${optIns}</select>
-            <input type="number" id="ci-${id}" placeholder="Cantidad" step="0.001" min="0.001" style="width:110px">
+            <select id="si-${id}" onchange="onSelectInsumoReceta(${id})">${optIns}</select>
+            <input type="number" id="ci-${id}" placeholder="Cantidad" step="0.001" min="0.001" style="width:110px" oninput="convertirCantidadReceta(${id})">
+            <span id="cu-label-${id}" style="display:none;font-size:12px;color:var(--g5)">en:</span>
+            <select id="cu-${id}" style="display:none" onchange="convertirCantidadReceta(${id})"></select>
+            <span id="cu-hint-${id}" style="display:none;font-size:11px;color:var(--g5);align-self:center"></span>
             <label style="font-size:12px;display:flex;align-items:center;gap:4px;color:var(--g5)">
                 <input type="checkbox" id="krit-${id}"> Crítico
             </label>
@@ -694,15 +698,66 @@ function renderReceta(id, ings, precio, rinde, combo, variantes) {
 
     // Inicializar calculadora con 1 unidad
     calcIngredientes(id, rinde);
+
+    // Inicializar selector "Ingresar en" para el insumo preseleccionado
+    if (puedEdt) onSelectInsumoReceta(id);
+}
+
+// ── Conversión receta ↔ equivalencia física (mig 030) ──────────────────────
+// Si el insumo tiene equiv_cantidad/equiv_unidad (ej: "1 lata = 160 g"), permite
+// ingresar la cantidad en esa unidad y convertirla a unidad_medida del insumo
+// (la única que viaja a guardar_receta.php / cantidad_requerida).
+function onSelectInsumoReceta(prodId) {
+    const sel    = document.getElementById('si-' + prodId);
+    const opt    = sel.options[sel.selectedIndex];
+    const cuSel  = document.getElementById('cu-' + prodId);
+    const cuLbl  = document.getElementById('cu-label-' + prodId);
+    const equivCant   = parseFloat(opt.dataset.equivCant) || 0;
+    const equivUnidad = opt.dataset.equivUnidad || '';
+    if (equivCant > 0 && equivUnidad) {
+        cuSel.innerHTML = `<option value="base">${esc(opt.dataset.u)}</option><option value="equiv">${esc(equivUnidad)}</option>`;
+        cuSel.style.display = '';
+        cuLbl.style.display = '';
+    } else {
+        cuSel.innerHTML = '';
+        cuSel.style.display = 'none';
+        cuLbl.style.display = 'none';
+    }
+    convertirCantidadReceta(prodId);
+}
+
+function convertirCantidadReceta(prodId) {
+    const hint  = document.getElementById('cu-hint-' + prodId);
+    const cuSel = document.getElementById('cu-' + prodId);
+    if (!cuSel || cuSel.style.display === 'none' || cuSel.value !== 'equiv') {
+        hint.style.display = 'none';
+        return;
+    }
+    const sel       = document.getElementById('si-' + prodId);
+    const opt       = sel.options[sel.selectedIndex];
+    const equivCant = parseFloat(opt.dataset.equivCant) || 0;
+    const cantidad  = parseFloat(document.getElementById('ci-' + prodId).value) || 0;
+    if (equivCant <= 0 || cantidad <= 0) { hint.style.display = 'none'; return; }
+    hint.textContent = `= ${formatDecimal(cantidad / equivCant, 2)} ${opt.dataset.u}`;
+    hint.style.display = '';
 }
 
 // ── CRUD de ingredientes ──────────────────────────────────────────────────────
 async function addIng(prodId) {
     const insumoId = document.getElementById('si-' + prodId).value;
-    const cantidad = document.getElementById('ci-' + prodId).value;
+    let   cantidad = document.getElementById('ci-' + prodId).value;
     const critico  = document.getElementById('krit-' + prodId).checked ? 1 : 0;
     const esBase   = document.getElementById('base-' + prodId).checked ? 1 : 0;
     if (!cantidad || parseFloat(cantidad) <= 0) { toast('Cantidad inválida', 'err'); return; }
+    // Si el usuario ingresó la cantidad en la unidad de equivalencia (ej: "unidades"
+    // de huevo), convertir a la unidad_medida del insumo antes de guardar.
+    const cuSel = document.getElementById('cu-' + prodId);
+    if (cuSel && cuSel.style.display !== 'none' && cuSel.value === 'equiv') {
+        const sel       = document.getElementById('si-' + prodId);
+        const opt       = sel.options[sel.selectedIndex];
+        const equivCant = parseFloat(opt.dataset.equivCant) || 0;
+        if (equivCant > 0) cantidad = (parseFloat(cantidad) / equivCant).toFixed(6);
+    }
     const fd = new FormData();
     fd.append('csrf_token', csrf()); fd.append('accion','guardar');
     fd.append('producto_id', prodId); fd.append('insumo_id', insumoId);

@@ -1,5 +1,5 @@
-# ClanDestino ERP v4.84 — Memoria de Sesión
-# Última sesión: 2026-06-10 | Próxima sesión: continuar desde este punto
+# ClanDestino ERP v4.85 — Memoria de Sesión
+# Última sesión: 2026-06-11 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
 
@@ -2208,3 +2208,37 @@ Continuación directa de v4.83: ahora que `insumo_presentaciones` (mig. 039) es 
 - **v4.86**: conversión presentación↔ajuste de stock/conteo en `inventario/index.php` y `inventario/conteo.php`.
 
 *Última actualización: 2026-06-10 | v4.84 — simplifica panel "Tipo de empaque" en compras.php: envuelve el panel legacy (capa 1) en `pres-legacy-${n}` y lo oculta cuando el insumo tiene catálogo de presentaciones (mig. 039), mostrando solo `pres-cat-block` (capa 3); sin catálogo, el panel legacy permanece como fallback. Sin migraciones. Pendiente prueba manual. Próximo ciclo: v4.85 (conversión receta↔equivalencia física en productos/index.php).*
+
+## Estado v4.85 (2026-06-11)
+
+### Fase 3.3 — Conversión receta ↔ equivalencia física en productos/index.php, sin migración
+
+Continuación del plan v4.81+ (Fase 3): escenario "120 g de huevo → 2 unidades". El insumo "Huevo" tiene `unidad_medida='g'` y `equiv_cantidad=160, equiv_unidad='unidad'` (mig. 030, "1 unidad = 160 g"). Antes de v4.85, al agregar este insumo a una receta había que calcular mentalmente cuántos gramos pesan "2 unidades". Ahora el formulario permite ingresar la cantidad directamente en `equiv_unidad` y la convierte a `unidad_medida` (la única que viaja a `guardar_receta.php`/`cantidad_requerida`) antes de guardar. **100% conversión de entrada (UX) — `RecetaModel`/BD no cambian.**
+
+### `productos/index.php` — `INSUMOS` (JS) y `optIns`
+
+- `INSUMOS` (línea ~541) ahora incluye `equiv_cantidad`/`equiv_unidad` por insumo (ya expuestos por `InsumoModel::todos()`, sin cambios de backend).
+- `optIns` (dentro de `renderReceta()`) agrega `data-equiv-cant`/`data-equiv-unidad` (además de `data-costo`/`data-u` existentes) a cada `<option>` del selector de insumo.
+
+### `productos/index.php` — formulario "Agregar ingrediente" (`addForm`)
+
+- Selector de insumo `si-${id}` ahora dispara `onSelectInsumoReceta(${id})` en `onchange`.
+- Input de cantidad `ci-${id}` dispara `convertirCantidadReceta(${id})` en `oninput`.
+- Nuevos elementos, ocultos por defecto: `<span id="cu-label-${id}">en:</span>` + `<select id="cu-${id}">` ("Ingresar en: [unidad_medida | equiv_unidad]") + `<span id="cu-hint-${id}">` (hint de conversión en vivo, ej. "= 0,75 unidad").
+
+### `productos/index.php` — nuevas funciones JS
+
+- **`onSelectInsumoReceta(prodId)`**: lee `data-equiv-cant`/`data-equiv-unidad` del insumo seleccionado. Si `equivCant > 0 && equivUnidad`, llena `cu-${id}` con `<option value="base">unidad_medida</option>` + `<option value="equiv">equiv_unidad</option>` y muestra el selector + label "en:"; si no, los oculta. Se invoca al final de `renderReceta()` (sobre el insumo preseleccionado) y en cada cambio de `si-${id}`.
+- **`convertirCantidadReceta(prodId)`**: si `cu-${id}` está visible y en `'equiv'`, calcula `cantidad / equivCant` y muestra el hint "= X unidad_medida" (formateado con `formatDecimal`, 2 decimales). Si no, oculta el hint.
+- **`addIng(prodId)`**: si `cu-${id}` está en `'equiv'` al guardar, convierte `cantidad = (cantidad / equivCant).toFixed(6)` antes de enviarla a `guardar_receta.php` — `cantidad_requerida` (DECIMAL 12,6) sigue almacenándose en `unidad_medida` del insumo, igual que siempre.
+
+### Verificación
+
+`php -l` sin errores en `productos/index.php`. `guardar_receta.php` confirmado sin cambios necesarios — solo recibe `cantidad` ya convertida. **Pendiente prueba manual en navegador**: en un insumo con `equiv_cantidad`/`equiv_unidad` configurados (ej. Huevo: 160 g = 1 unidad), expandir receta → seleccionar ese insumo → confirmar que aparece selector "en: [g | unidad]" → elegir "unidad", ingresar "2" → confirmar hint "= 320,00 g" → Agregar → confirmar que `cantidad_requerida` quedó en 320 g (no en 2). Insumos sin `equiv_cantidad`/`equiv_unidad` deben comportarse exactamente igual que antes (selector oculto).
+
+### Pendiente (próximas sesiones, ver plan v4.81+)
+
+- **v4.86**: conversión presentación↔ajuste de stock/conteo en `inventario/index.php` y `inventario/conteo.php`.
+- Prueba manual combinada v4.83+v4.84+v4.85 (ver notas de cada versión).
+
+*Última actualización: 2026-06-11 | v4.85 — productos/index.php: formulario de ingrediente de receta agrega selector "Ingresar en: [unidad_medida | equiv_unidad]" cuando el insumo tiene equivalencia física (mig. 030); nuevas funciones `onSelectInsumoReceta()`/`convertirCantidadReceta()`; `addIng()` convierte la cantidad a `unidad_medida` antes de enviarla a `guardar_receta.php`. 100% UX, sin cambios de backend ni migraciones. Pendiente prueba manual. Próximo ciclo: v4.86 (conversión presentación↔ajuste de stock/conteo).*
