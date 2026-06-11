@@ -329,7 +329,7 @@ $CATEGORIAS = !empty($CATEGORIAS_LISTA)
                         </button>
                         <?php if (permiso_tiene('inventario','editar_existentes')): ?>
                         <button class="btn-eliminar ic" title="Eliminar"
-                            onclick="eliminarInsumo(<?= $ins['id'] ?>, <?= json_encode($ins['nombre']) ?>)">
+                            onclick="eliminarInsumo(<?= $ins['id'] ?>, <?= htmlspecialchars(json_encode($ins['nombre'])) ?>)">
                             <?= IC_TRASH ?>
                         </button>
                         <?php endif; ?>

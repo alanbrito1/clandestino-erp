@@ -222,7 +222,7 @@ $CAT_DESC = [
                         Editar
                     </button>
                     <button class="btn-del-row"
-                            onclick="eliminarParam(<?= $param['id'] ?>, <?= json_encode($param['nombre']) ?>)">
+                            onclick="eliminarParam(<?= $param['id'] ?>, <?= htmlspecialchars(json_encode($param['nombre']), ENT_QUOTES) ?>)">
                         ✕
                     </button>
                 </td>

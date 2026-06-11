@@ -141,7 +141,7 @@ ksort($grupos);
         <button class="chip-filtro active" data-cat="todos" onclick="filtrarCat(this,'todos')">Todos</button>
         <?php foreach (array_keys($grupos) as $cat): ?>
         <button class="chip-filtro" data-cat="<?= htmlspecialchars($cat) ?>"
-                onclick="filtrarCat(this,<?= json_encode($cat) ?>)">
+                onclick="filtrarCat(this,<?= htmlspecialchars(json_encode($cat), ENT_QUOTES) ?>)">
             <?= htmlspecialchars(ucfirst($cat)) ?>
         </button>
         <?php endforeach; ?>
