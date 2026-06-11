@@ -1,4 +1,4 @@
-# ClanDestino ERP v4.85 — Memoria de Sesión
+# ClanDestino ERP v4.86 — Memoria de Sesión
 # Última sesión: 2026-06-11 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
@@ -2242,3 +2242,39 @@ Continuación del plan v4.81+ (Fase 3): escenario "120 g de huevo → 2 unidades
 - Prueba manual combinada v4.83+v4.84+v4.85 (ver notas de cada versión).
 
 *Última actualización: 2026-06-11 | v4.85 — productos/index.php: formulario de ingrediente de receta agrega selector "Ingresar en: [unidad_medida | equiv_unidad]" cuando el insumo tiene equivalencia física (mig. 030); nuevas funciones `onSelectInsumoReceta()`/`convertirCantidadReceta()`; `addIng()` convierte la cantidad a `unidad_medida` antes de enviarla a `guardar_receta.php`. 100% UX, sin cambios de backend ni migraciones. Pendiente prueba manual. Próximo ciclo: v4.86 (conversión presentación↔ajuste de stock/conteo).*
+
+## Estado v4.86 (2026-06-11)
+
+### Fase 3.4 (cierre Fase 3) — Conversión presentación ↔ ajuste de stock / conteo, sin migración
+
+Cierra la Fase 3 del plan v4.81+ (arquitectura de presentaciones). Escenario: "conté 3 bidones de 18L". El insumo tiene `unidad_medida='L'` y una presentación catalogada (mig. 039) "Bidón 18L" con `cantidad_base=18`. Antes de v4.86, había que calcular mentalmente 3×18=54 e ingresar "54" a mano. Ahora un helper "Convertir desde presentación" + "Nro." calcula y llena el campo automáticamente. **100% UX — no toca `ajustar_stock.php`, `conteo_guardar.php` ni el trigger `costo_actual`.**
+
+### `inventario/index.php` — modal "Ajustar stock"
+
+- Nuevo bloque `<div id="aj-pres-conv-wrap">` (oculto por defecto) entre "Cantidad a ajustar" y "Motivo": `<select id="aj-pres-conv-sel">` (presentaciones catalogadas del insumo, con la `es_predeterminada` preseleccionada) + `<input id="aj-pres-conv-num">` ("Nro.") + hint `<span id="aj-pres-conv-hint">`.
+- **`actualizarConversionPresentacionAj(ins)`** (nueva): si `ins.pres_cat.length > 0`, llena `aj-pres-conv-sel` con `<option value="cantidad_base">nombre (cantidad_base unidad_medida/u)</option>` por presentación y muestra el bloque; si está vacío, lo oculta. Se invoca desde `abrirEditar(ins)` (independiente de `TIENE_PRESENT`, solo depende de `pres_cat`/mig. 039) y desde `cargarPresentaciones()` (para refrescar en vivo si el usuario agrega/elimina presentaciones sin recargar).
+- **`convertirDesdePresentacionAj()`** (nueva): lee `cantidad_base` de la opción seleccionada × "Nro.", escribe el resultado en `aj-cantidad` (`.toFixed(3)`, consistente con `step="0.001"`) y muestra el hint "= X unidad_medida". El valor resultante fluye sin cambios al flujo existente de `confirmarAjuste()` (funciona con `tipo='total'`, `'correccion'`, `'entrada'`, etc. — v4.81 §1.3).
+
+### `inventario/conteo.php`
+
+- Ahora incluye `PresentacionModel` y agrega `pres_cat` (solo `nombre`+`cantidad_base`) a cada insumo, igual que `compras.php`/`inventario/index.php`.
+- Cada tarjeta de insumo con `pres_cat` no vacío gana un bloque `.ins-pres-conv`: `<select id="pc-sel-${id}">` (presentaciones, value=`cantidad_base`) + `<input id="pc-num-${id}">` ("Nro.").
+- **`convertirDesdePresentacionConteo(id)`** (nueva): `cantidad_base × Nro.` → `inp-${id}.value` (`.toFixed(2)`, consistente con `step="0.01"` del conteo) y llama a `marcarCambio(id, stock_anterior)` para que la tarjeta se marque como modificada y el botón "Guardar conteo" se habilite, igual que si el usuario hubiera tecleado el valor directamente.
+
+### Archivos modificados
+
+| Archivo | Cambio |
+|---|---|
+| `inventario/index.php` | `aj-pres-conv-wrap` en modal Ajustar; `actualizarConversionPresentacionAj()`/`convertirDesdePresentacionAj()`; llamadas desde `abrirEditar()` y `cargarPresentaciones()` |
+| `inventario/conteo.php` | `pres_cat` por insumo; bloque `.ins-pres-conv` por tarjeta; `convertirDesdePresentacionConteo()` |
+| `app/config/app.php` | APP_VERSION → 4.86 |
+
+### Verificación
+
+`php -l` sin errores en los 3 archivos PHP tocados. **Pendiente prueba manual en navegador**: en un insumo con presentación catalogada (ej. "Bidón 18L", `cantidad_base=18`, `unidad_medida='L'`) — (1) modal Ajustar: seleccionar "Bidón 18L", ingresar "3" en Nro. → confirmar que "Cantidad a ajustar" queda en 54.000 y el hint dice "= 54,00 L"; probar con `tipo='total'` y `tipo='correccion'`; (2) Conteo de Stock: mismo insumo, usar el selector+Nro. de la tarjeta → confirmar que el campo de stock contado queda en 54.00 y la tarjeta se marca como modificada (botón "Guardar conteo" habilitado). Insumos sin `pres_cat` deben verse exactamente igual que antes (sin el bloque nuevo).
+
+### Cierre de la Fase 3 (plan v4.81+)
+
+Con v4.86 se cierran las 3 fases del plan `curried-napping-hollerith.md` (v4.81→v4.86). Pendiente acumulado para próximas sesiones: pruebas manuales en navegador de v4.83 a v4.86 (ver cada sección "Verificación").
+
+*Última actualización: 2026-06-11 | v4.86 — cierre Fase 3 (arquitectura de presentaciones): inventario/index.php (modal Ajustar) e inventario/conteo.php agregan helper "Convertir desde presentación" (selector de presentación catalogada + "Nro.") que calcula `cantidad_base × Nro.` y llena el campo de cantidad/stock contado correspondiente. 100% UX, sin cambios de backend ni migraciones. Pendiente prueba manual. Plan v4.81+ completo (v4.81-v4.86).*

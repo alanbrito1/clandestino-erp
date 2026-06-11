@@ -6,7 +6,7 @@
  */
 
 define('APP_NAME',    'ClanDestino ERP');
-define('APP_VERSION', '4.85'); // 2026-06-11: v4.85 conversión receta↔equivalencia física en productos/index.php
+define('APP_VERSION', '4.86'); // 2026-06-11: v4.86 conversión presentación↔ajuste de stock/conteo
 define('APP_ENV',     'production'); // cambiar a 'development' para depurar
 
 // Ruta absoluta a public_html/ (raíz web del proyecto)

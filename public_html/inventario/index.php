@@ -466,6 +466,14 @@ $CATEGORIAS = !empty($CATEGORIAS_LISTA)
     <div class="fg"><label id="aj-cantidad-label">Cantidad a ajustar</label>
       <input type="number" id="aj-cantidad" placeholder="0.000" step="0.001" min="0.001">
     </div>
+    <div class="fg" id="aj-pres-conv-wrap" style="display:none">
+      <label>Convertir desde presentación</label>
+      <div style="display:flex;gap:6px">
+        <select id="aj-pres-conv-sel" onchange="convertirDesdePresentacionAj()" style="flex:2"></select>
+        <input type="number" id="aj-pres-conv-num" placeholder="Nro." min="0" step="0.01" style="flex:1" oninput="convertirDesdePresentacionAj()">
+      </div>
+      <span id="aj-pres-conv-hint" class="hint"></span>
+    </div>
     <div class="fg"><label>Motivo (opcional)</label>
       <input type="text" id="aj-motivo" placeholder="Ej: conteo físico, merma por vencimiento...">
     </div>
@@ -784,6 +792,47 @@ function actualizarCapa1ReadOnly(ins) {
     if (badge) badge.style.display = tieneCatalogo ? 'inline' : 'none';
 }
 
+// ── Conversión presentación → cantidad de ajuste (mig 039) ──────────────────
+// Si el insumo tiene presentaciones catalogadas (ej. "Bidón 18L"), permite
+// indicar "Nro. de presentaciones" (ej. 3) y calcula automáticamente
+// aj-cantidad = nro × cantidad_base ("conté 3 bidones de 18L" → 54 L).
+function actualizarConversionPresentacionAj(ins) {
+    var wrap = document.getElementById('aj-pres-conv-wrap');
+    var sel  = document.getElementById('aj-pres-conv-sel');
+    var num  = document.getElementById('aj-pres-conv-num');
+    var hint = document.getElementById('aj-pres-conv-hint');
+    if (!wrap || !sel) return;
+    var cats = (ins && Array.isArray(ins.pres_cat)) ? ins.pres_cat : [];
+    if (cats.length > 0) {
+        sel.innerHTML = cats.map(function(p) {
+            return '<option value="' + p.cantidad_base + '">' + htmlEsc(p.nombre)
+                 + ' (' + formatDecimal(p.cantidad_base, 2) + ' ' + htmlEsc(ins.unidad_medida) + '/u)</option>';
+        }).join('');
+        var pred = cats.find(function(p){ return p.es_predeterminada == 1; });
+        if (pred) sel.value = pred.cantidad_base;
+        wrap.style.display = '';
+    } else {
+        sel.innerHTML = '';
+        wrap.style.display = 'none';
+    }
+    if (num)  num.value = '';
+    if (hint) hint.textContent = '';
+}
+
+function convertirDesdePresentacionAj() {
+    var sel  = document.getElementById('aj-pres-conv-sel');
+    var num  = document.getElementById('aj-pres-conv-num');
+    var hint = document.getElementById('aj-pres-conv-hint');
+    if (!sel || !num || sel.value === '') return;
+    var cantBase = parseFloat(sel.value) || 0;
+    var nro      = parseFloat(num.value) || 0;
+    if (cantBase <= 0 || nro <= 0) { hint.textContent = ''; return; }
+    var total  = nro * cantBase;
+    var unidad = (ajusteInsumoActual && ajusteInsumoActual.unidad_medida) || '';
+    document.getElementById('aj-cantidad').value = total.toFixed(3);
+    hint.textContent = '= ' + formatDecimal(total, 2) + ' ' + unidad;
+}
+
 // ── Abrir modal de ajuste/edición ────────────────────────────────────────────
 function abrirEditar(ins) {
     ajusteInsumoActual = ins;
@@ -814,6 +863,10 @@ function abrirEditar(ins) {
         // Read-only/badge si ya hay presentaciones catalogadas (mig 039)
         actualizarCapa1ReadOnly(ins);
     }
+
+    // Helper "Convertir desde presentación" (mig 039) — independiente de TIENE_PRESENT
+    actualizarConversionPresentacionAj(ins);
+
     abrirModal('modal-ajustar');
 
     // Cargar presentaciones catalogadas si mig 039 está aplicada
@@ -1026,10 +1079,12 @@ async function cargarPresentaciones(insumo_id) {
         var pres = d.presentaciones || [];
         presentacionesActuales = pres;
         if (badge) badge.textContent = pres.length > 0 ? pres.length : '';
-        // Reflejar de inmediato el estado read-only/badge de la capa 1 al
-        // crear/eliminar presentaciones, sin esperar a recargar la página
+        // Reflejar de inmediato el estado read-only/badge de la capa 1 y el
+        // selector "Convertir desde presentación" al crear/eliminar
+        // presentaciones, sin esperar a recargar la página
         if (ajusteInsumoActual && ajusteInsumoActual.id == insumo_id) {
             actualizarCapa1ReadOnly({ pres_cat: pres });
+            actualizarConversionPresentacionAj({ pres_cat: pres, unidad_medida: ajusteInsumoActual.unidad_medida });
         }
         if (pres.length === 0) {
             lista.innerHTML = '<p style="font-size:11px;color:var(--g5);margin:0">Sin presentaciones configuradas.</p>';

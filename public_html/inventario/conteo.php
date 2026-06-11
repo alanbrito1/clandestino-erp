@@ -8,12 +8,24 @@
 
 require_once __DIR__ . '/../app/middleware/auth_check.php';
 require_once __DIR__ . '/../app/models/InsumoModel.php';
+require_once __DIR__ . '/../app/models/PresentacionModel.php';
 
 $nav_activo = 'inventario';
 permiso_requerir('inventario', 'editar_existentes');
 
 // Categorías para filtrar columnas
 $insumos = InsumoModel::todos_con_estado();
+
+// Catálogo de presentaciones de compra (mig 039) por insumo — permite el
+// helper "Convertir desde presentación" (ej. "conté 3 bidones de 18L").
+$pres_por_insumo = PresentacionModel::todas_agrupadas();
+foreach ($insumos as &$ins_pc) {
+    $ins_pc['pres_cat'] = array_map(fn($p) => [
+        'nombre'        => $p['nombre'],
+        'cantidad_base' => (float)$p['cantidad_base'],
+    ], $pres_por_insumo[$ins_pc['id']] ?? []);
+}
+unset($ins_pc);
 
 // Agrupar por categoría para mostrar secciones
 $grupos = [];
@@ -75,6 +87,13 @@ ksort($grupos);
                      color:var(--dark); outline:none; -webkit-appearance:none; background:var(--white); }
         .ins-input:focus { border-color:var(--brand); }
         .ins-unidad { font-size:11px; font-weight:600; color:var(--g5); white-space:nowrap; }
+        /* Convertir desde presentación (mig 039) — ej. "conté 3 bidones de 18L" */
+        .ins-pres-conv { display:flex; gap:4px; margin-top:6px; }
+        .ins-pres-conv select { flex:2; min-width:0; font-size:10px; padding:4px 6px;
+                                 border:1px solid var(--g8); border-radius:6px;
+                                 background:var(--white); color:var(--g5); -webkit-appearance:none; }
+        .ins-pres-conv input { flex:1; min-width:0; font-size:11px; padding:4px 6px;
+                                border:1px solid var(--g8); border-radius:6px; text-align:right; }
         /* Badge estado */
         .badge { font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; display:inline-block; }
         .b-ok   { background:#d1fae5; color:#065f46; }
@@ -161,6 +180,20 @@ ksort($grupos);
                                data-insumo-id="<?= $ins['id'] ?>">
                         <span class="ins-unidad"><?= htmlspecialchars($ins['unidad_medida']) ?></span>
                     </div>
+                    <?php if (!empty($ins['pres_cat'])): ?>
+                    <div class="ins-pres-conv">
+                        <select id="pc-sel-<?= $ins['id'] ?>" title="Convertir desde presentación">
+                            <?php foreach ($ins['pres_cat'] as $p): ?>
+                            <option value="<?= $p['cantidad_base'] ?>">
+                                <?= htmlspecialchars($p['nombre']) ?> (<?= number_format($p['cantidad_base'], 2, ',', '.') ?> <?= htmlspecialchars($ins['unidad_medida']) ?>/u)
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <input type="number" placeholder="Nro." min="0" step="0.01"
+                               id="pc-num-<?= $ins['id'] ?>"
+                               oninput="convertirDesdePresentacionConteo(<?= $ins['id'] ?>)">
+                    </div>
+                    <?php endif; ?>
                 </div>
                 <?php endforeach; ?>
             </div>
@@ -191,6 +224,20 @@ const API_URL    = <?= json_encode(APP_BASE . '/inventario/api/conteo_guardar.ph
 
 let catActiva = 'todos';
 let modificados = new Set();
+
+// ── Convertir desde presentación (mig 039) ──────────────────────────────────
+// "Conté 3 bidones de 18L" → llena el campo de stock contado con 3 × 18 = 54.
+function convertirDesdePresentacionConteo(id) {
+    const sel = document.getElementById('pc-sel-' + id);
+    const num = document.getElementById('pc-num-' + id);
+    const cantBase = parseFloat(sel.value) || 0;
+    const nro      = parseFloat(num.value) || 0;
+    if (cantBase <= 0 || nro <= 0) return;
+    const inp  = document.getElementById('inp-' + id);
+    const card = document.getElementById('card-' + id);
+    inp.value = (nro * cantBase).toFixed(2);
+    marcarCambio(id, parseFloat(card.dataset.stock));
+}
 
 function marcarCambio(id, stockAnterior) {
     const inp = document.getElementById('inp-' + id);
