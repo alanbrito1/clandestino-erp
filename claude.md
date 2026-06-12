@@ -1,4 +1,4 @@
-# ClanDestino ERP v4.91 — Memoria de Sesión
+# ClanDestino ERP v4.92 — Memoria de Sesión
 # Última sesión: 2026-06-12 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
@@ -2721,3 +2721,66 @@ funcionalidad).
 `formatMiles()`/`formatDecimal()` (NUM_FORMAT) en 9 archivos / 25 sitios, 9 commits separados.
 Cierra el patrón v4.87-v4.91 de formato numérico configurable. Pendiente prueba manual en
 navegador (acumulada v4.83-v4.91).*
+
+---
+
+## Estado v4.92 (2026-06-12)
+
+### Módulo Reportes + inventario/compras usa formato numérico configurable
+
+Cierra el candidato pendiente de v4.91 ("revisar módulos restantes — compras/reportes — por si
+quedan casos sueltos"): se migraron los **8 archivos** restantes con `number_format`
+hardcodeado (`,`/`.`) a `fmt_cantidad()`/`fmt_moneda()` (PHP, disponibles globalmente vía
+`auth_check.php`), cubriendo `inventario/compras.php`, `inventario/lista_compras.php` y los 6
+`reportes/*.php`. Confirmado tras el cambio: `grep -rn "number_format" public_html/reportes/
+public_html/inventario/compras.php public_html/inventario/lista_compras.php` → 0 resultados.
+
+Reglas aplicadas (consistentes con v4.87-v4.91):
+- Montos en pesos a 0 decimales (`number_format($x,0,',','.')`) → `fmt_moneda($x)`.
+- "Cantidades" a N decimales (stock, presentaciones, % de descuento, etc.) →
+  `fmt_cantidad($x,N)` preservando N.
+- "costo/u", "dep_dia"/depreciación diaria y "valor/hora" a 2 decimales, "horas" a 1 decimal →
+  `fmt_cantidad($x,2)`/`fmt_cantidad($x,1)` (regla i de v4.88, también aplicada en
+  `reportes/precios.php` y `reportes/operativo.php`).
+- Helper local `$fmt` en `reportes/nomina.php` (línea 105) redefinido para delegar en
+  `fmt_moneda()` — cubre sus 18 usos con un solo cambio (mismo patrón que `fmt_cop()` en
+  v4.89).
+
+### Archivos modificados (8 commits)
+
+| Archivo | Commit | Cambio |
+|---|---|---|
+| `inventario/compras.php` | `9d7e9b0` | 3 sitios → `fmt_moneda()` |
+| `inventario/lista_compras.php` | `ac306f9` | 5 sitios → `fmt_moneda()`/`fmt_cantidad()` |
+| `reportes/ventas.php` | `a677dde` | 15 sitios → `fmt_moneda()`/`fmt_cantidad()` |
+| `reportes/costos.php` | `cada36e` | 14 sitios → `fmt_moneda()` |
+| `reportes/precios.php` | `55be418` | 19 sitios → `fmt_moneda()`/`fmt_cantidad()` |
+| `reportes/compras.php` | `b6bc726` | 9 sitios → `fmt_moneda()`/`fmt_cantidad()` |
+| `reportes/operativo.php` | `e47a066` | 19 sitios → `fmt_moneda()`/`fmt_cantidad()` |
+| `reportes/nomina.php` | `b0758b8` | helper `$fmt` → delega en `fmt_moneda()` (18 usos) |
+| `app/config/app.php` | (este commit) | APP_VERSION → 4.92 |
+
+### Verificación
+
+`php -l` sin errores en los 8 archivos (8 bloques, 8 commits separados, push tras cada uno).
+**Pendiente prueba manual en navegador** (acumulada con v4.83-v4.91, sin acceso a
+navegador/BD desde este entorno): con config por defecto (2/`.`/`,`) confirmar que los 6
+reportes y las 2 páginas de inventario se ven igual que antes; con config alternativa (3
+decimales, separadores en-US) confirmar que las cantidades muestran 3 decimales y los montos
+en pesos muestran los nuevos separadores, sin romper los exports a Excel (hoja "Rentabilidad"
+de `reportes/ventas.php` y las hojas de `reportes/operativo.php`/`reportes/nomina.php`).
+
+### v4.93+ (futuro)
+
+Con v4.87-v4.92 completos, la infraestructura de formato numérico configurable
+(`fmt_cantidad()`/`fmt_moneda()`/`NUM_FORMAT`/`formatDecimal()`/`formatMiles()`) cubre todos
+los módulos detectados con `number_format`/`toFixed`/`toLocaleString('es-CO')` hardcodeado
+(productos, ventas, nómina, inventario, costos, clientes, activos, compras, reportes). Sin
+candidatos pendientes de este patrón. Próxima sesión: abordar las pruebas manuales acumuladas
+v4.83-v4.92, o nueva funcionalidad/módulo.
+
+*Última actualización: 2026-06-12 | v4.92 — módulo Reportes (6 archivos) + `inventario/compras.php`
++ `inventario/lista_compras.php` migrados a formato numérico configurable
+(`fmt_cantidad()`/`fmt_moneda()`), 85 sitios / 8 archivos, 8 commits separados. Cierra el patrón
+v4.87-v4.92 de formato numérico configurable. Pendiente prueba manual en navegador (acumulada
+v4.83-v4.92).*
