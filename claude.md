@@ -1044,6 +1044,103 @@ Todo subido a GitHub. Sin pendientes de código ni migraciones.
 
 ---
 
+## 20. MAPA DE MÓDULOS — OBJETIVOS, INTERDEPENDENCIAS Y ROLES (v4.93)
+
+> Vista cruzada de los 12 módulos: para qué existe cada uno, qué nivel de permiso desbloquea
+> qué, y qué Model lee/escribe datos "de otro módulo". Complementa §3 (navegación), §4 (BD),
+> §5-§12/§19 (funcionalidad detallada) y la tabla `permisos_modulos` (§4).
+
+### 20.1 Objetivo y casos de uso por módulo
+
+| Módulo | Objetivo | Casos de uso principales | Ref. |
+|---|---|---|---|
+| **Ventas** (POS) | Registrar ventas en el punto de venta, controlar turnos de caja y mantener el stock de productos sincronizado. | Procesar venta (efectivo/transferencia/fiado, con descuento %, combo y variantes); abrir/cerrar turno de caja; anular venta (revierte stock/insumos/saldo); ver historial filtrable. | §9 |
+| **Clientes** | Gestionar la cartera de clientes y su deuda fiado. | Alta/edición de cliente; registrar abono a fiado; ver estado de cuenta/historial; fusionar duplicados (transfiere ventas/abonos/saldo); activar/desactivar. | `clientes/index.php` (docblock) |
+| **Inventario** | Mantener el catálogo de insumos (materia prima): stock, costo, unidades, equivalencias y presentaciones de compra. | CRUD insumos; ajustar stock (entradas/salidas manuales con motivo); conteo físico periódico; definir presentaciones catalogadas y equivalencias (mig. 039, v4.85-v4.86). | §19, §4 |
+| **Proveedores** | Catálogo de proveedores vinculados a insumos y compras. | CRUD proveedor; activar/desactivar; ver cantidad de insumos asociados. | §4 |
+| **Compras** | Registrar compras de insumos a proveedores, actualizando `costo_actual`/`stock_actual` y propagando el costo a `productos.costo_calculado`. | Registrar compra multi-línea (con presentaciones catalogadas); duplicar compra propia; editar/eliminar cualquier compra; ver historial filtrable y "Lista de compras" sugerida (insumos bajo `stock_seguridad`). | §19 |
+| **Productos + Producción** | Definir el menú vendible: recetas (consumo de insumos), variantes/combos, costo calculado y producción de lotes. | CRUD producto/receta (con conversión de equivalencias v4.85); configurar combo y variantes; producir lote (descuenta insumos, snapshot de `costo_unitario`); análisis de rentabilidad; obsequiar/desechar stock; consolidar productos duplicados (superadmin). | §7 |
+| **Nómina** | Liquidar nómina por tipo de contrato (Ley 2101/2021), registrar horas y parámetros laborales legales. | CRUD empleados; registrar horas (recargos festivos/nocturnos); generar liquidaciones del período (snapshot inmutable); eliminar período; configurar parámetros laborales. | §6 |
+| **Activos** | Inventario de activos fijos con depreciación mensual automática (mig. 017/018) que alimenta el costeo. | CRUD activo (depreciación automática); duplicar; subir foto; activar/desactivar; alerta de garantías por vencer en dashboard. | §5 |
+| **Costos** | Registrar costos indirectos (arriendo, servicios, etc.) como períodos de vigencia inmutables y mostrar KPIs de costeo del período. | CRUD costo indirecto (cada cambio de valor = fila/período nuevo, §14); ver KPIs del período (costo fijo total, depreciación, nómina). | §8 |
+| **Reportes** | Vistas agregadas/históricas de solo lectura (ventas, compras, nómina, costos, operación, precios), respetando los snapshots inmutables (§14). | Filtrar por mes/año; exportar a Excel; ver solo "propias" si el usuario tiene `solo_propios` en el módulo fuente del reporte. | §12 |
+| **Admin** | Configuración global: usuarios y permisos, apariencia/tema, catálogos (`listas_sistema`), respaldo de BD. Solo roles `admin`/`superadmin`. | Crear usuario y asignar permisos por módulo; cambiar tema/logo/formato numérico (Apariencia); editar catálogos (categorías, unidades); exportar/restaurar backup de BD. | §10 |
+| **Ayuda** | Documentación in-app de cada módulo, la matriz de permisos y los reportes. Visible para cualquier usuario autenticado. | Consultar cómo funciona cada módulo/permiso/reporte. | §11 |
+
+### 20.2 Matriz de permisos — qué desbloquea cada nivel, por módulo
+
+Jerarquía (§4): `sin_acceso(0) < solo_ver(1) < solo_propios(2) < editar_existentes(3) < admin_total(4)`.
+Cada nivel incluye lo de los niveles inferiores. Solo se listan los 9 módulos del ENUM
+`permisos_modulos.modulo`; Clientes/Admin/Ayuda y otros casos especiales están en §20.3.
+
+| Módulo | `solo_ver` | `solo_propios` | `editar_existentes` | `admin_total` |
+|---|---|---|---|---|
+| **ventas** | Ver historial y detalle de venta; ver listado de Clientes (permiso compartido) | Crear venta (POS), abrir turno de caja — filtra historial/reportes a "mis ventas" (`created_by`) | Editar venta, abono a fiado, aplicar descuento %, CRUD/fusionar Clientes, exportar Clientes a Excel | Anular venta (revierte stock/insumos/saldo del cliente); activar/desactivar Cliente |
+| **inventario** | Listar insumos, ver stock | *(no usado)* | CRUD insumos, ajustar stock, conteo físico, presentaciones catalogadas, eliminar insumo | *(no usado — el tope real del módulo es `editar_existentes`)* |
+| **proveedores** | Listar proveedores | *(no usado)* | CRUD proveedor | Activar/desactivar proveedor |
+| **compras** | *(no usado — el mínimo de acceso a la página es `solo_propios`)* | Acceso a `compras.php`/`lista_compras.php`; crear compra; duplicar compra propia | Editar/eliminar **cualquier** compra (`$puede_editar`) | *(no usado)* |
+| **productos** | Listar productos, ver receta/análisis | *(no usado)* | CRUD producto/receta/combo/variantes, obsequiar/desechar stock, producir lote | *(no usado dentro de `productos`)* — "Consolidar productos" exige `admin_total` del módulo **`admin`** (ver §20.3, equivale a superadmin) |
+| **nomina** | Ver liquidaciones | *(no usado)* | CRUD empleados, registrar horas, generar liquidaciones | Eliminar período de liquidaciones; activar/desactivar empleado; acceso a sub-tab "Parámetros" |
+| **activos** | Ver listado de activos | *(no usado)* | CRUD activo, duplicar, subir foto | Activar/desactivar activo |
+| **costos** | Ver KPIs del período | *(no usado)* | CRUD costo indirecto | *(no usado)* |
+| **reportes** | Ver `index`/`ventas`/`nomina`/`operativo`/`precios` (`reportes/compras.php` exige `compras:solo_ver` y `reportes/costos.php` exige `costos:solo_ver` — heredan el permiso del módulo fuente) | Reportes filtran a "propias" si el módulo fuente está en `solo_propios` | Exportar a Excel | *(no usado)* |
+
+### 20.3 Casos especiales — fuera de la matriz `permisos_modulos`
+
+| Caso | Mecanismo | Detalle |
+|---|---|---|
+| **Clientes** | Comparte el permiso de `'ventas'` — no tiene fila propia en `permisos_modulos` | `solo_ver`→ver lista/historial; `editar_existentes`→crear/editar/fusionar; `admin_total`→activar/desactivar (`clientes/api/crud.php:90`) |
+| **Admin** | Acceso por **rol** directo (`usuario_rol` IN `['admin','superadmin']`), sin entrada en `permisos_modulos` (`nav.php:130`) | Acceso a todo el módulo Admin (Usuarios, Apariencia, Catálogos, Backup); los 4 endpoints `admin/api/*.php` validan el rol directamente |
+| **Ayuda** | Cualquier usuario autenticado (`nav.php:135`) | Solo lectura, documentación in-app |
+| **Tarjetas "Rendimiento de Cajeros" / "Productos Más Rentables"** (`dashboard.php`) | Rol directo (`admin`/`superadmin`), **bypasea** `permisos_modulos` | Un empleado con `admin_total` en ventas/productos NO las ve — dato financiero/de personal sensible (intencional) |
+| **"Consolidar productos"** (`productos/index.php:264`, `productos/consolidar.php:19`) | `permiso_tiene('admin','admin_total')` — `'admin'` **no** es un módulo del ENUM `permisos_modulos`, así que solo `superadmin` lo obtiene automáticamente (§4: "los superadmin siempre retornan `admin_total` sin consultar la DB") | Efectivamente restringido a **superadmin**, aunque la funcionalidad vive dentro del módulo Productos — un admin con `admin_total` en `productos` NO ve este botón |
+
+### 20.4 Interdependencias entre módulos (Models y tablas compartidas)
+
+Los 9 Models en `app/models/`: `VentaModel`, `CompraModel`, `InsumoModel`, `PresentacionModel`,
+`RecetaModel`, `NominaModel`, `ActivoModel`, `CostoIndirectoModel`, `ClienteModel`. Productos no
+tiene Model propio — su CRUD vive en `productos/api/*.php` y delega cálculo de costos en
+`RecetaModel`.
+
+- **VentaModel** (ventas) → **lee** `productos`, `recetas`, `insumos`, `insumo_presentaciones`,
+  `producto_variantes`, `combo_configs`/`combo_insumos` (para descontar stock/insumos al
+  vender) y `clientes` (validar/actualizar `saldo_fiado`); **escribe** `ventas`,
+  `venta_detalles`, `ajustes_stock` (insumos en modo demanda), `pagos_fiado` (abonos, snapshot
+  saldo ant/post), `logs_historial`.
+- **CompraModel** (compras) → **lee** `proveedores` (validación FK); **escribe** `compras`,
+  `compra_detalles` (con snapshots `nombre_snap`/`unidad_snap`/`presentacion*`), y
+  `insumos.costo_actual`/`stock_actual` — este último dispara el recálculo de
+  `productos.costo_calculado` (vía `RecetaModel`) para todos los productos que usan ese insumo.
+- **RecetaModel** (productos) → **lee** `insumos` (costo_actual, equiv_cantidad) e
+  `insumo_presentaciones` (conversión receta↔presentación, v4.85); **escribe** `recetas`,
+  `producto_variantes`, `productos.costo_calculado`.
+- **InsumoModel** / **PresentacionModel** (inventario) → **leen** `listas_sistema` (catálogos de
+  categoría/unidad/presentación); **escriben** `insumos`, `insumo_presentaciones`. Usados por
+  **Compras** (selección de presentación al comprar) y **Productos** (conversión en recetas).
+- **ClienteModel** (clientes, comparte permiso `ventas`) → **lee** `ventas`, `venta_detalles`,
+  `pagos_fiado`; **escribe** `clientes`, `pagos_fiado`, `logs_historial`.
+- **NominaModel** (nómina) → **lee** `empleados`, `registro_horas`, `parametros_laborales`
+  (o `configuracion_negocio` como fallback); **escribe** `nomina_liquidaciones` (snapshots
+  `valor_hora_snap`/`valor_proyecto_snap`).
+- **ActivoModel** (activos) → autocontenido (`activos`), pero `depreciacion_mensual` (trigger
+  mig. 018) alimenta el KPI "Depreciación de activos" en **Costos** (`costos/index.php`) y el
+  costo fijo por unidad en **Productos** (`productos/analisis.php`).
+- **CostoIndirectoModel** (costos) → autocontenido (`costos_indirectos`), pero
+  `SUM(costos_indirectos.valor)` por período alimenta `costo_fijo_u` en
+  **Productos/análisis** y el reporte `reportes/costos.php`.
+- **Reportes** no tiene Model propio: cada `reportes/*.php` consulta directamente `ventas`,
+  `compras`, `nomina_liquidaciones`, `activos`, `costos_indirectos`, `produccion_lotes`, etc.
+  — es la capa que agrega datos de TODOS los demás módulos.
+
+**Implicación práctica**: una migración o bug en `insumos`/`insumo_presentaciones` (Inventario)
+puede afectar en cascada a Compras (costo de línea), Productos (`costo_calculado`,
+`análisis`/rentabilidad), Ventas (descuento de stock al vender) y Reportes (todos los reportes
+de costos/rentabilidad). De igual forma, `activos` y `costos_indirectos` no tienen escritura
+cruzada, pero sus KPIs se LEEN desde Costos, Productos/análisis y Reportes — un cambio en sus
+fórmulas de cálculo (depreciación, vigencia) debe revisarse en esos 3 consumidores.
+
+---
+
 ## Estado v4.40 (2026-06-06)
 
 ### Cambios implementados en esta sesión
@@ -2806,3 +2903,73 @@ v4.83-v4.92, o nueva funcionalidad/módulo.
 (`fmt_cantidad()`/`fmt_moneda()`), 85 sitios / 8 archivos, 8 commits separados. Cierra el patrón
 v4.87-v4.92 de formato numérico configurable. Pendiente prueba manual en navegador (acumulada
 v4.83-v4.92).*
+
+---
+
+## Estado v4.93 (2026-06-12)
+
+### 1. Bugs corregidos durante pruebas manuales (commit `99942c8`, validado en producción)
+
+1. `inventario/compras.php` — el historial "Últimas Compras" imprimía `cantidad` cruda
+   (ej. `46.0000`, `DECIMAL(10,4)` sin formatear) en vez de `fmt_cantidad((float)$lin['cantidad'])`.
+   Corregido.
+2. `nomina/index.php` — `generarNomina()` no enviaba `accion=generar` en el `FormData`, por lo
+   que `api/generar.php` respondía "Acción inválida." y nunca generaba liquidaciones pese a
+   tener horas registradas. Corregido.
+
+Issue descartado (no es bug, fuera del patrón de formato configurable): "MARGEN %" en
+`productos/index.php` se muestra con punto decimal (ej. "-105.7%") — es un ratio/porcentaje
+(`round(...,1)`), igual que `mult` (factor/multiplicador), explícitamente fuera del alcance de
+`fmt_cantidad()`/`fmt_moneda()` (§15).
+
+### 2. `tests/suite.php` — de 29 a 31 grupos (G01-G31)
+
+- **G16 Seguridad** (ampliado): nueva auditoría estática de los 33 archivos `*/api/*.php` —
+  todos deben verificar autorización (`permiso_requerir()` o el patrón
+  `usuario_rol`+`in_array` usado por `admin/api/*`), y los que leen `$_POST` deben validar
+  `csrf_verificar()`.
+- **G18 Eficiencia** (ampliado): barrido genérico por `information_schema` sobre 13 tablas de
+  detalle/transacción (`venta_detalles`, `compra_detalles`, `ajustes_stock`,
+  `produccion_lotes`, `nomina_liquidaciones`, `registro_horas`, `insumo_presentaciones`,
+  `pagos_fiado`, `combo_insumos`, `recetas`, `producto_variantes`, `costos_indirectos`,
+  `logs_historial`) — verifica (WARN) que cada columna `*_id` tenga índice. Guarda de
+  regresión para futuras migraciones; el esquema actual ya cumple.
+- **G30 Regresión de bugs v4.93** (nuevo): confirma que el código fuente sigue conteniendo el
+  fix de `inventario/compras.php` (`fmt_cantidad((float)$lin['cantidad'])`) y de
+  `nomina/index.php` (`fd.append('accion', 'generar')`) descritos en §1.
+- **G31 Manejo de errores** (nuevo): confirma que los 33 endpoints `api/*.php` envuelven su
+  lógica en `try/catch`, y que los `catch (Exception $e)` genéricos registran con
+  `error_log()` (WARN si no).
+- Docblock y meta HTML actualizados ("29 grupos" → "31 grupos"). `php -l` sin errores.
+
+### 3. CLAUDE.md — nueva §20 "Mapa de módulos"
+
+Nueva sección de referencia (§20, antes de "Estado v4.40") con 4 sub-secciones:
+- **20.1** Objetivo y casos de uso principales de los 12 módulos.
+- **20.2** Matriz módulo × nivel de permiso → qué desbloquea cada nivel (`solo_ver` …
+  `admin_total`), para los 9 módulos de `permisos_modulos`.
+- **20.3** Casos especiales fuera de la matriz (Clientes comparte permiso de ventas; Admin/Ayuda
+  por rol; tarjetas sensibles del dashboard; y un caso **nuevo documentado**: "Consolidar
+  productos" exige `permiso_tiene('admin','admin_total')` — como `'admin'` no es un módulo de
+  `permisos_modulos`, esto equivale a restringir el botón a `superadmin`, aunque vive dentro de
+  Productos).
+- **20.4** Interdependencias entre Models/tablas: qué módulo lee/escribe datos "de otro módulo"
+  (p. ej. `CompraModel` actualiza `insumos.costo_actual` → dispara recálculo de
+  `productos.costo_calculado`; `ActivoModel`/`CostoIndirectoModel` alimentan KPIs de Costos y
+  Productos/análisis; Reportes agrega de todos los demás módulos).
+
+### Cambios de versión
+
+- `app/config/app.php`: `APP_VERSION` → `4.93`.
+
+### Pendiente
+
+Sin tareas de desarrollo pendientes de este bloque. Próxima sesión: reanudar Bloque A2-A4/B1-B5
+de pruebas manuales acumuladas v4.83-v4.92 (cambiar Admin → Apariencia a 3 decimales +
+separadores en-US, verificar, revertir; luego presentaciones/equivalencias — ver
+`C:\Users\alan_\.claude\plans\curried-napping-hollerith.md`).
+
+*Última actualización: 2026-06-12 | v4.93 — `tests/suite.php` ampliado de 29 a 31 grupos
+(G16/G18 extendidos + G30/G31 nuevos: auditoría de permisos/CSRF, índices FK, regresión de los
+2 bugs de v4.92, manejo de errores); CLAUDE.md §20 nuevo (mapa de módulos: objetivos, casos de
+uso, matriz de roles/permisos, interdependencias). `APP_VERSION` → 4.93.*

@@ -6,7 +6,7 @@
  */
 
 define('APP_NAME',    'ClanDestino ERP');
-define('APP_VERSION', '4.92'); // 2026-06-12: v4.92 modulo Reportes usa formato numerico configurable (fmt_cantidad/fmt_moneda) en 8 archivos
+define('APP_VERSION', '4.93'); // 2026-06-12: v4.93 suite.php G16/G18 ampliados + G30/G31 nuevos (auditoria permisos/CSRF, indices FK, regresion bugs, manejo errores); CLAUDE.md SS20 mapa de modulos/roles/interdependencias
 define('APP_ENV',     'production'); // cambiar a 'development' para depurar
 
 // Ruta absoluta a public_html/ (raíz web del proyecto)
