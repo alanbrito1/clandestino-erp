@@ -268,7 +268,7 @@ $total_ventas   = array_sum(array_column($clientes, 'total_ventas'));
             <div class="kpi-l">Con deuda</div>
         </div>
         <div class="kpi">
-            <div class="kpi-n" style="color:var(--yellow)">$<?= number_format($deuda_total,0,',','.') ?></div>
+            <div class="kpi-n" style="color:var(--yellow)">$<?= fmt_moneda($deuda_total) ?></div>
             <div class="kpi-l">Total fiado</div>
         </div>
         <div class="kpi">
@@ -321,7 +321,7 @@ $total_ventas   = array_sum(array_column($clientes, 'total_ventas'));
                 <td>
                     <div style="font-weight:700"><?= $nc ?></div>
                     <?php if ((float)$c['saldo_fiado'] > 0): ?>
-                    <span class="badge b-deuda">Fiado $<?= number_format($c['saldo_fiado'],0,',','.') ?></span>
+                    <span class="badge b-deuda">Fiado $<?= fmt_moneda($c['saldo_fiado']) ?></span>
                     <?php elseif ((int)$c['activo']): ?>
                     <span class="badge b-ok">Activo</span>
                     <?php else: ?>
@@ -332,7 +332,7 @@ $total_ventas   = array_sum(array_column($clientes, 'total_ventas'));
                 <td class="hide-sm" style="color:var(--g5)"><?= htmlspecialchars($c['telefono'] ?? '—') ?></td>
                 <td class="r">
                     <?php if ((float)$c['saldo_fiado'] > 0): ?>
-                    <strong style="color:var(--red)">$<?= number_format($c['saldo_fiado'],0,',','.') ?></strong>
+                    <strong style="color:var(--red)">$<?= fmt_moneda($c['saldo_fiado']) ?></strong>
                     <?php else: ?>
                     <span style="color:var(--g5)">—</span>
                     <?php endif; ?>
@@ -386,7 +386,7 @@ $total_ventas   = array_sum(array_column($clientes, 'total_ventas'));
                     <?php
                     $tel_n  = preg_replace('/[^0-9]/', '', $c['telefono']);
                     $tel_wa = (strlen($tel_n) === 10 && str_starts_with($tel_n, '3')) ? '57'.$tel_n : $tel_n;
-                    $s_fmt  = '$' . number_format((float)$c['saldo_fiado'], 0, ',', '.');
+                    $s_fmt  = '$' . fmt_moneda($c['saldo_fiado']);
                     $msg_wa = rawurlencode(
                         "Hola {$c['nombre']}, te recordamos que tienes un saldo pendiente de {$s_fmt} en "
                         . APP_NAME . ". ¿Cuándo podemos acordar el pago? ¡Gracias! 🙏"
@@ -519,7 +519,7 @@ $total_ventas   = array_sum(array_column($clientes, 'total_ventas'));
                             data-saldo="<?= (float)$c['saldo_fiado'] ?>">
                         <?= htmlspecialchars($nc) ?>
                         <?php if ((float)$c['saldo_fiado'] > 0): ?>
-                        (Fiado: $<?= number_format($c['saldo_fiado'],0,',','.') ?>)
+                        (Fiado: $<?= fmt_moneda($c['saldo_fiado']) ?>)
                         <?php endif; ?>
                     </option>
                     <?php endforeach; ?>

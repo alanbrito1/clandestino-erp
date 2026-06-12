@@ -386,7 +386,7 @@ $saldo_final   = (float)$cliente['saldo_fiado']; // el saldo real actual en BD
         <div style="text-align:right">
             <div style="font-size:11px;color:var(--g5);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">Saldo actual</div>
             <div class="saldo-badge <?= $saldo_final > 0 ? 'saldo-positivo' : 'saldo-cero' ?>">
-                $<?= number_format($saldo_final, 0, ',', '.') ?>
+                $<?= fmt_moneda($saldo_final) ?>
             </div>
         </div>
     </div>
@@ -413,16 +413,16 @@ $saldo_final   = (float)$cliente['saldo_fiado']; // el saldo real actual en BD
     <!-- ── KPIs del período ───────────────────────────────────────────────── -->
     <div class="kpis no-print">
         <div class="kpi">
-            <div class="kpi-n" style="color:var(--red)">$<?= number_format($total_cargos, 0, ',', '.') ?></div>
+            <div class="kpi-n" style="color:var(--red)">$<?= fmt_moneda($total_cargos) ?></div>
             <div class="kpi-l">Total fiado en período</div>
         </div>
         <div class="kpi">
-            <div class="kpi-n" style="color:var(--green)">$<?= number_format($total_abonos, 0, ',', '.') ?></div>
+            <div class="kpi-n" style="color:var(--green)">$<?= fmt_moneda($total_abonos) ?></div>
             <div class="kpi-l">Total abonado en período</div>
         </div>
         <div class="kpi">
             <div class="kpi-n" style="color:<?= $saldo_final > 0 ? 'var(--red)' : '#065f46' ?>">
-                $<?= number_format($saldo_final, 0, ',', '.') ?>
+                $<?= fmt_moneda($saldo_final) ?>
             </div>
             <div class="kpi-l">Saldo pendiente actual</div>
         </div>
@@ -456,7 +456,7 @@ $saldo_final   = (float)$cliente['saldo_fiado']; // el saldo real actual en BD
                     <td><?= date('d/m/Y', strtotime($fecha_desde)) ?></td>
                     <td colspan="4">Saldo al inicio del período</td>
                     <td class="r" style="font-weight:800">
-                        $<?= number_format($saldoPrePeriodo, 0, ',', '.') ?>
+                        $<?= fmt_moneda($saldoPrePeriodo) ?>
                     </td>
                 </tr>
                 <?php endif; ?>
@@ -493,15 +493,15 @@ $saldo_final   = (float)$cliente['saldo_fiado']; // el saldo real actual en BD
                     </td>
                     <!-- Cargo: columna positiva (dinero que debe el cliente) -->
                     <td class="r <?= $esCargo && !$anulada ? 'monto-cargo' : '' ?>">
-                        <?= $esCargo && !$anulada ? '$' . number_format($mov['monto'], 0, ',', '.') : '—' ?>
+                        <?= $esCargo && !$anulada ? '$' . fmt_moneda($mov['monto']) : '—' ?>
                     </td>
                     <!-- Abono: columna negativa (dinero que paga el cliente) -->
                     <td class="r <?= $esAbono ? 'monto-abono' : '' ?>">
-                        <?= $esAbono ? '$' . number_format($mov['monto'], 0, ',', '.') : '—' ?>
+                        <?= $esAbono ? '$' . fmt_moneda($mov['monto']) : '—' ?>
                     </td>
                     <!-- Saldo corriente acumulado -->
                     <td class="r saldo-col <?= $anulada ? '' : $clsSaldo ?>">
-                        $<?= number_format($saldo, 0, ',', '.') ?>
+                        $<?= fmt_moneda($saldo) ?>
                     </td>
                 </tr>
                 <?php endforeach; ?>
@@ -512,16 +512,16 @@ $saldo_final   = (float)$cliente['saldo_fiado']; // el saldo real actual en BD
         <div class="tabla-footer">
             <div class="totales-col">
                 <div class="lbl">Total cargado</div>
-                <div class="val" style="color:var(--red)">+$<?= number_format($total_cargos, 0, ',', '.') ?></div>
+                <div class="val" style="color:var(--red)">+$<?= fmt_moneda($total_cargos) ?></div>
             </div>
             <div class="totales-col">
                 <div class="lbl">Total abonado</div>
-                <div class="val" style="color:var(--green)">−$<?= number_format($total_abonos, 0, ',', '.') ?></div>
+                <div class="val" style="color:var(--green)">−$<?= fmt_moneda($total_abonos) ?></div>
             </div>
             <div class="totales-col" style="border-left:2px solid var(--dark);padding-left:24px">
                 <div class="lbl">Saldo actual en sistema</div>
                 <div class="val" style="color:<?= $saldo_final > 0 ? 'var(--red)' : '#065f46' ?>">
-                    $<?= number_format($saldo_final, 0, ',', '.') ?>
+                    $<?= fmt_moneda($saldo_final) ?>
                 </div>
             </div>
         </div>
