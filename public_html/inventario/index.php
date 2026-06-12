@@ -284,10 +284,10 @@ $CATEGORIAS = !empty($CATEGORIAS_LISTA)
                         <span class="pres-tag"><?= ucfirst($pres) ?></span>
                         <?php if ($cant_pres > 0): ?>
                         <br><span style="font-size:12px;color:var(--g5)">
-                            <?= number_format($cant_pres,0,',','.') ?>
+                            <?= fmt_cantidad($cant_pres, 0) ?>
                             <?= htmlspecialchars($ins['unidad_medida']) ?>
                             <?php if ($precio_pres > 0): ?>
-                            · $<?= number_format($precio_pres,0,',','.') ?>
+                            · $<?= fmt_moneda($precio_pres) ?>
                             <?php endif; ?>
                         </span>
                         <?php endif; ?>
@@ -296,13 +296,13 @@ $CATEGORIAS = !empty($CATEGORIAS_LISTA)
                         <?php endif; ?>
                     </td>
                     <td>
-                        <?= number_format($ins['stock_actual'],2,',','.') ?>
+                        <?= fmt_cantidad($ins['stock_actual']) ?>
                         <small style="color:var(--g5)"><?= htmlspecialchars($ins['unidad_medida']) ?></small>
                         <span class="sb"><span class="sf <?= $fillC ?>" style="width:<?= $pct ?>%"></span></span>
-                        <br><small style="color:var(--g5)">Mín: <?= number_format($ins['stock_seguridad'],2,',','.') ?></small>
+                        <br><small style="color:var(--g5)">Mín: <?= fmt_cantidad($ins['stock_seguridad']) ?></small>
                     </td>
                     <td class="r">
-                        <strong>$<?= number_format($ins['costo_actual'],2,',','.') ?></strong>
+                        <strong>$<?= fmt_cantidad($ins['costo_actual']) ?></strong>
                         <br><small style="color:var(--g5)">/ <?= htmlspecialchars($ins['unidad_medida']) ?></small>
                         <?php
                         // Si tiene equivalencia física, mostrar el costo por unidad física también
@@ -311,7 +311,7 @@ $CATEGORIAS = !empty($CATEGORIAS_LISTA)
                             && !empty($ins['equiv_unidad'])): ?>
                         <br><small style="color:var(--g5);font-size:10px">
                             1 <?= htmlspecialchars($ins['unidad_medida']) ?>
-                            = <?= number_format((float)$ins['equiv_cantidad'],2,',','.') ?>
+                            = <?= fmt_cantidad((float)$ins['equiv_cantidad']) ?>
                             <?= htmlspecialchars($ins['equiv_unidad']) ?>
                         </small>
                         <?php endif; ?>
@@ -394,7 +394,7 @@ $CATEGORIAS = !empty($CATEGORIAS_LISTA)
       <div class="form-grid">
         <div class="fg">
           <label>1 unidad equivale a…</label>
-          <input type="number" id="ni-equiv-cant" placeholder="Ej: 30" min="0.001" step="0.001">
+          <input type="number" id="ni-equiv-cant" placeholder="Ej: 30" min="0.001" step="any">
           <span class="hint">Cantidad en la unidad física (30 si 1 loncha pesa 30 g)</span>
         </div>
         <div class="fg">
@@ -412,9 +412,9 @@ $CATEGORIAS = !empty($CATEGORIAS_LISTA)
     <p class="form-section">Stock</p>
     <div class="form-grid">
       <div class="fg"><label>Stock actual</label>
-        <input type="number" id="ni-stock" value="0" min="0" step="0.001"></div>
+        <input type="number" id="ni-stock" value="0" min="0" step="any"></div>
       <div class="fg"><label>Stock de seguridad (mínimo)</label>
-        <input type="number" id="ni-seg" value="0" min="0" step="0.001">
+        <input type="number" id="ni-seg" value="0" min="0" step="any">
         <span class="hint">Alerta cuando el stock baje de este valor</span>
       </div>
       <div class="fg"><label>Proveedor</label>
@@ -464,7 +464,7 @@ $CATEGORIAS = !empty($CATEGORIAS_LISTA)
       </select>
     </div>
     <div class="fg"><label id="aj-cantidad-label">Cantidad a ajustar</label>
-      <input type="number" id="aj-cantidad" placeholder="0.00" step="0.01" min="0.01">
+      <input type="number" id="aj-cantidad" placeholder="0.00" step="any" min="0.01">
     </div>
     <div class="fg" id="aj-pres-conv-wrap" style="display:none">
       <label>Convertir desde presentación</label>
@@ -478,7 +478,7 @@ $CATEGORIAS = !empty($CATEGORIAS_LISTA)
       <input type="text" id="aj-motivo" placeholder="Ej: conteo físico, merma por vencimiento...">
     </div>
     <div class="fg"><label>Stock de seguridad</label>
-      <input type="number" id="aj-seg" step="0.001" min="0">
+      <input type="number" id="aj-seg" step="any" min="0">
     </div>
 
     <?php if ($tienePresent): ?>
@@ -504,7 +504,7 @@ $CATEGORIAS = !empty($CATEGORIAS_LISTA)
         </select>
       </div>
       <div class="fg"><label>Cantidad por presentación</label>
-        <input type="number" id="aj-cant-pres" step="0.001" min="0" oninput="calcCostoAj('cant')"></div>
+        <input type="number" id="aj-cant-pres" step="any" min="0" oninput="calcCostoAj('cant')"></div>
       <div class="fg"><label>Precio por presentación ($)</label>
         <input type="number" id="aj-precio-pres" step="1" min="0" oninput="calcCostoAj('precio')"></div>
     </div>
@@ -513,7 +513,7 @@ $CATEGORIAS = !empty($CATEGORIAS_LISTA)
     </div>
     <div class="fg">
       <label>Costo por unidad ($)</label>
-      <input type="number" id="aj-costo" step="0.0001" min="0" oninput="calcCostoAj('costo')">
+      <input type="number" id="aj-costo" step="any" min="0" oninput="calcCostoAj('costo')">
       <span class="hint">Llena cualquier par de campos y el tercero se calcula automáticamente</span>
     </div>
 
@@ -525,7 +525,7 @@ $CATEGORIAS = !empty($CATEGORIAS_LISTA)
       <div class="form-grid">
         <div class="fg">
           <label>1 unidad equivale a…</label>
-          <input type="number" id="aj-equiv-cant" placeholder="Ej: 30" min="0.001" step="0.001">
+          <input type="number" id="aj-equiv-cant" placeholder="Ej: 30" min="0.001" step="any">
           <span class="hint">Ej: 30 si 1 loncha pesa 30 g</span>
         </div>
         <div class="fg">
@@ -574,7 +574,7 @@ $CATEGORIAS = !empty($CATEGORIAS_LISTA)
               </div>
               <div class="fg">
                 <label>Cantidad base (unidades canónicas) *</label>
-                <input type="number" id="pf-cantidad-base" placeholder="Ej: 900 (para 900ml)" min="0.0001" step="0.0001">
+                <input type="number" id="pf-cantidad-base" placeholder="Ej: 900 (para 900ml)" min="0.0001" step="any">
                 <span class="hint" id="pf-hint-base"></span>
               </div>
               <div class="fg">
@@ -599,7 +599,7 @@ $CATEGORIAS = !empty($CATEGORIAS_LISTA)
               <div style="padding:10px" class="form-grid">
                 <div class="fg">
                   <label>1 unidad equivale a…</label>
-                  <input type="number" id="pf-equiv-cant" placeholder="Ej: 170" min="0.001" step="0.001">
+                  <input type="number" id="pf-equiv-cant" placeholder="Ej: 170" min="0.001" step="any">
                   <span class="hint">Deja vacío para usar el equivalente genérico del insumo</span>
                 </div>
                 <div class="fg">
@@ -806,7 +806,7 @@ function actualizarConversionPresentacionAj(ins) {
     if (cats.length > 0) {
         sel.innerHTML = cats.map(function(p) {
             return '<option value="' + p.cantidad_base + '">' + htmlEsc(p.nombre)
-                 + ' (' + formatDecimal(p.cantidad_base, 2) + ' ' + htmlEsc(ins.unidad_medida) + '/u)</option>';
+                 + ' (' + formatDecimal(p.cantidad_base) + ' ' + htmlEsc(ins.unidad_medida) + '/u)</option>';
         }).join('');
         var pred = cats.find(function(p){ return p.es_predeterminada == 1; });
         if (pred) sel.value = pred.cantidad_base;
@@ -829,8 +829,8 @@ function convertirDesdePresentacionAj() {
     if (cantBase <= 0 || nro <= 0) { hint.textContent = ''; return; }
     var total  = nro * cantBase;
     var unidad = (ajusteInsumoActual && ajusteInsumoActual.unidad_medida) || '';
-    document.getElementById('aj-cantidad').value = total.toFixed(2);
-    hint.textContent = '= ' + formatDecimal(total, 2) + ' ' + unidad;
+    document.getElementById('aj-cantidad').value = total.toFixed(NUM_FORMAT.decimales);
+    hint.textContent = '= ' + formatDecimal(total) + ' ' + unidad;
 }
 
 // ── Abrir modal de ajuste/edición ────────────────────────────────────────────
@@ -839,22 +839,22 @@ function abrirEditar(ins) {
     document.getElementById('aj-titulo').textContent = 'Ajustar: ' + ins.nombre;
     document.getElementById('aj-id').value     = ins.id;
     document.getElementById('aj-nombre').value = ins.nombre;
-    document.getElementById('aj-stock-actual').value = formatDecimal(ins.stock_actual, 2) + ' ' + ins.unidad_medida;
+    document.getElementById('aj-stock-actual').value = formatDecimal(ins.stock_actual) + ' ' + ins.unidad_medida;
     document.getElementById('aj-tipo').value   = 'entrada';
     document.getElementById('aj-cantidad').value = '';
     document.getElementById('aj-motivo').value = '';
-    document.getElementById('aj-seg').value    = (parseFloat(ins.stock_seguridad) || 0).toFixed(2);
+    document.getElementById('aj-seg').value    = (parseFloat(ins.stock_seguridad) || 0).toFixed(NUM_FORMAT.decimales);
     actualizarLabelCantidadAjuste();
 
     if (TIENE_PRESENT) {
         document.getElementById('aj-pres').value      = ins.presentacion || '';
         document.getElementById('aj-unidad').value    = ins.unidad_medida || 'unidad';
-        document.getElementById('aj-cant-pres').value = ins.cantidad_presentacion ? parseFloat(ins.cantidad_presentacion).toFixed(2) : '';
+        document.getElementById('aj-cant-pres').value = ins.cantidad_presentacion ? parseFloat(ins.cantidad_presentacion).toFixed(NUM_FORMAT.decimales) : '';
         document.getElementById('aj-precio-pres').value = ins.precio_presentacion || '';
-        document.getElementById('aj-costo').value     = (parseFloat(ins.costo_actual) || 0).toFixed(2);
+        document.getElementById('aj-costo').value     = (parseFloat(ins.costo_actual) || 0).toFixed(NUM_FORMAT.decimales);
         document.getElementById('aj-notas').value     = ins.notas || '';
         // Cargar equivalencia física si existe
-        document.getElementById('aj-equiv-cant').value   = ins.equiv_cantidad ? parseFloat(ins.equiv_cantidad).toFixed(2) : '';
+        document.getElementById('aj-equiv-cant').value   = ins.equiv_cantidad ? parseFloat(ins.equiv_cantidad).toFixed(NUM_FORMAT.decimales) : '';
         document.getElementById('aj-equiv-unidad').value = ins.equiv_unidad   || 'g';
         // Mostrar/ocultar sección de equivalencia según unidad actual
         toggleEquiv('aj');
@@ -893,20 +893,20 @@ function calcCostoAj(source) {
     var costo  = parseFloat(costoEl.value)  || 0;
 
     if (source === 'cant') {
-        if (precio > 0 && cant > 0)       { costo = precio / cant;  costoEl.value  = costo.toFixed(2); }
+        if (precio > 0 && cant > 0)       { costo = precio / cant;  costoEl.value  = costo.toFixed(NUM_FORMAT.decimales); }
         else if (costo > 0 && cant > 0)   { precio = costo * cant;  precioEl.value = precio.toFixed(0); }
     } else if (source === 'precio') {
-        if (cant > 0 && precio > 0)       { costo = precio / cant;  costoEl.value  = costo.toFixed(2); }
-        else if (costo > 0 && precio > 0) { cant  = precio / costo; cantEl.value   = cant.toFixed(2); }
+        if (cant > 0 && precio > 0)       { costo = precio / cant;  costoEl.value  = costo.toFixed(NUM_FORMAT.decimales); }
+        else if (costo > 0 && precio > 0) { cant  = precio / costo; cantEl.value   = cant.toFixed(NUM_FORMAT.decimales); }
     } else if (source === 'costo') {
         if (cant > 0 && costo > 0)        { precio = costo * cant;  precioEl.value = precio.toFixed(0); }
-        else if (precio > 0 && costo > 0) { cant   = precio / costo; cantEl.value  = cant.toFixed(2); }
+        else if (precio > 0 && costo > 0) { cant   = precio / costo; cantEl.value  = cant.toFixed(NUM_FORMAT.decimales); }
     }
 
     // Re-leer tras el cálculo para mostrar el resultado correcto en la vista previa
     costo = parseFloat(costoEl.value) || 0;
     if (costo > 0) {
-        if (calc) calc.innerHTML = '<strong>$' + formatDecimal(costo, 2) + '</strong>';
+        if (calc) calc.innerHTML = '<strong>$' + formatDecimal(costo) + '</strong>';
         if (prev) prev.style.display = 'block';
     } else {
         if (prev) prev.style.display = 'none';
@@ -1093,11 +1093,11 @@ async function cargarPresentaciones(insumo_id) {
         var html = '';
         pres.forEach(function(p) {
             var pred = p.es_predeterminada == 1 ? ' <span style="background:#dcfce7;color:#166534;border-radius:8px;padding:1px 6px;font-size:10px">★ Predeterminada</span>' : '';
-            var equiv = (p.equiv_cantidad && p.equiv_unidad) ? ' · equiv: ' + formatDecimal(p.equiv_cantidad, 2) + ' ' + p.equiv_unidad : '';
+            var equiv = (p.equiv_cantidad && p.equiv_unidad) ? ' · equiv: ' + formatDecimal(p.equiv_cantidad) + ' ' + p.equiv_unidad : '';
             html += '<div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--g9)">'
                   + '<div style="flex:1;font-size:12px"><strong>' + htmlEsc(p.nombre) + '</strong>' + pred + '<br>'
-                  + '<span style="color:var(--g5)">' + formatDecimal(p.cantidad_base, 2) + ' ' + htmlEsc(p.unidad_compra || 'und')
-                  + (p.precio_referencia > 0 ? ' · $' + Number(p.precio_referencia).toLocaleString('es-CO') : '')
+                  + '<span style="color:var(--g5)">' + formatDecimal(p.cantidad_base) + ' ' + htmlEsc(p.unidad_compra || 'und')
+                  + (p.precio_referencia > 0 ? ' · $' + formatMiles(p.precio_referencia) : '')
                   + equiv + '</span></div>'
                   + '<button onclick="editarPresentacion(' + p.id + ')" style="padding:4px 8px;font-size:11px;border:1px solid var(--g7);border-radius:6px;background:#fff;cursor:pointer">Editar</button>'
                   + '<button onclick="eliminarPresentacion(' + p.id + ')" style="padding:4px 8px;font-size:11px;border:1px solid #fca5a5;border-radius:6px;background:#fff;color:#dc2626;cursor:pointer">✕</button>'
@@ -1114,11 +1114,11 @@ function editarPresentacion(id) {
     if (!p) { toast('Presentación no encontrada', 'err'); return; }
     document.getElementById('pf-id').value            = p.id;
     document.getElementById('pf-nombre').value        = p.nombre;
-    document.getElementById('pf-cantidad-base').value = (parseFloat(p.cantidad_base) || 0).toFixed(2);
+    document.getElementById('pf-cantidad-base').value = (parseFloat(p.cantidad_base) || 0).toFixed(NUM_FORMAT.decimales);
     document.getElementById('pf-unidad-compra').value = p.unidad_compra || '';
     document.getElementById('pf-precio-ref').value    = p.precio_referencia || '';
     document.getElementById('pf-predeterminada').checked = p.es_predeterminada == 1;
-    document.getElementById('pf-equiv-cant').value    = p.equiv_cantidad ? parseFloat(p.equiv_cantidad).toFixed(2) : '';
+    document.getElementById('pf-equiv-cant').value    = p.equiv_cantidad ? parseFloat(p.equiv_cantidad).toFixed(NUM_FORMAT.decimales) : '';
     document.getElementById('pf-equiv-unidad').value  = p.equiv_unidad   || 'g';
     var wrap = document.getElementById('aj-pres-form-wrap');
     wrap.open = true;
