@@ -850,7 +850,7 @@ function abrirEditar(ins) {
         document.getElementById('aj-pres').value      = ins.presentacion || '';
         document.getElementById('aj-unidad').value    = ins.unidad_medida || 'unidad';
         document.getElementById('aj-cant-pres').value = ins.cantidad_presentacion ? parseFloat(ins.cantidad_presentacion).toFixed(NUM_FORMAT.decimales) : '';
-        document.getElementById('aj-precio-pres').value = ins.precio_presentacion || '';
+        document.getElementById('aj-precio-pres').value = ins.precio_presentacion ? parseFloat(ins.precio_presentacion).toFixed(0) : '';
         document.getElementById('aj-costo').value     = (parseFloat(ins.costo_actual) || 0).toFixed(NUM_FORMAT.decimales);
         document.getElementById('aj-notas').value     = ins.notas || '';
         // Cargar equivalencia física si existe
@@ -1116,7 +1116,7 @@ function editarPresentacion(id) {
     document.getElementById('pf-nombre').value        = p.nombre;
     document.getElementById('pf-cantidad-base').value = (parseFloat(p.cantidad_base) || 0).toFixed(NUM_FORMAT.decimales);
     document.getElementById('pf-unidad-compra').value = p.unidad_compra || '';
-    document.getElementById('pf-precio-ref').value    = p.precio_referencia || '';
+    document.getElementById('pf-precio-ref').value    = p.precio_referencia ? parseFloat(p.precio_referencia).toFixed(0) : '';
     document.getElementById('pf-predeterminada').checked = p.es_predeterminada == 1;
     document.getElementById('pf-equiv-cant').value    = p.equiv_cantidad ? parseFloat(p.equiv_cantidad).toFixed(NUM_FORMAT.decimales) : '';
     document.getElementById('pf-equiv-unidad').value  = p.equiv_unidad   || 'g';
