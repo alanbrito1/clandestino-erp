@@ -235,7 +235,7 @@ if ($tiene_037) {
 
     <div class="kpi-row">
         <div class="kpi">
-            <div class="kpi-n">$<?= number_format((float)$turno_hoy['fondo_inicial'], 0, ',', '.') ?></div>
+            <div class="kpi-n">$<?= fmt_moneda((float)$turno_hoy['fondo_inicial']) ?></div>
             <div class="kpi-l">Fondo inicial</div>
         </div>
         <?php
@@ -250,11 +250,11 @@ if ($tiene_037) {
         $total_caja = (float)$turno_hoy['fondo_inicial'] + $ef_hoy;
         ?>
         <div class="kpi">
-            <div class="kpi-n" style="color:var(--green)">$<?= number_format($ef_hoy, 0, ',', '.') ?></div>
+            <div class="kpi-n" style="color:var(--green)">$<?= fmt_moneda($ef_hoy) ?></div>
             <div class="kpi-l">Efectivo cobrado</div>
         </div>
         <div class="kpi">
-            <div class="kpi-n" style="color:var(--brand)">$<?= number_format($total_caja, 0, ',', '.') ?></div>
+            <div class="kpi-n" style="color:var(--brand)">$<?= fmt_moneda($total_caja) ?></div>
             <div class="kpi-l">Total en caja</div>
         </div>
     </div>
@@ -295,7 +295,7 @@ if ($tiene_037) {
             <div class="turno-label" style="color:var(--g5)">Turno cerrado</div>
             <div class="turno-meta">
                 Cerrado a las <?= date('H:i', strtotime($turno_hoy['fecha_cierre'])) ?>
-                · Fondo inicial: $<?= number_format((float)$turno_hoy['fondo_inicial'], 0, ',', '.') ?>
+                · Fondo inicial: $<?= fmt_moneda((float)$turno_hoy['fondo_inicial']) ?>
             </div>
         </div>
     </div>
@@ -362,7 +362,7 @@ if ($tiene_037) {
                     </a>
                 </td>
                 <td style="text-align:right;font-weight:700">
-                    $<?= number_format((float)$t['fondo_inicial'], 0, ',', '.') ?>
+                    $<?= fmt_moneda((float)$t['fondo_inicial']) ?>
                 </td>
                 <td style="color:var(--g5)">
                     <?= htmlspecialchars($t['nombre_apertura'] ?? '—') ?>
