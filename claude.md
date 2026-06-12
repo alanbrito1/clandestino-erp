@@ -130,6 +130,8 @@ configuracion_app      → valores de texto: tema, logos, tipografía
 proveedores            → insumos → recetas → productos
                          activos (proveedor_id FK)
                          compras (proveedor_id FK)
+                         insumos → insumo_presentaciones (catálogo de empaques de compra, migración 039)
+                         productos → producto_variantes (tamaños/variantes, migración 035)
 clientes               → ventas → venta_detalles   (módulo clientes: clientes/index.php)
                          pagos_fiado (abonos de deuda fiado)
 compras                → compra_detalles
@@ -140,6 +142,8 @@ costos_indirectos
 produccion_lotes
 combo_configs          → combo_insumos (migración 025)
 ajustes_stock          ← productos (sin FK en BD — ver nota migración 026)
+turnos_caja            → apertura/cierre de caja (migración 037)
+listas_sistema         → catálogos configurables (Admin → Catálogos, migración 029)
 logs_historial
 login_intentos
 ```
@@ -167,7 +171,7 @@ CREATE TABLE ajustes_stock (
 ```sql
 (clave VARCHAR(100) PK, valor TEXT, updated_by)
 ```
-Claves completas (post-migración 016c):
+Claves completas (post-migración 040):
 
 | Clave | Default | Descripción |
 |---|---|---|
@@ -185,6 +189,9 @@ Claves completas (post-migración 016c):
 | `font_size_small` | 11 | Labels, encabezados tabla (px) |
 | `color_text` | #111827 | Color texto principal |
 | `color_text_sec` | #6b7280 | Color texto secundario |
+| `num_decimales` | 2 | Decimales para cantidades (stock, presentaciones, equivalencias, costo/u) — migración 040 |
+| `num_sep_miles` | . | Separador de miles para todos los números — migración 040 |
+| `num_sep_decimal` | , | Separador decimal para todos los números — migración 040 |
 
 ### Tabla `permisos_modulos`
 ```sql
@@ -262,10 +269,10 @@ costo_total_empleador, pagado, fecha_pago_nomina
 > Fusión: atómica — transfiere ventas + pagos_fiado + saldo al principal, desactiva el secundario.
 
 ### Tabla `ventas`
-`id`, `fecha_venta`, `cliente_id`, `metodo_pago`, `total`, `estado`, `fecha_pago` (NULL=fiado sin cobrar), `es_combo` (derivado: 1 si algún ítem es combo), `tipo_sandwich`
+`id`, `fecha_venta`, `cliente_id`, `metodo_pago`, `total`, `estado`, `fecha_pago` (NULL=fiado sin cobrar), `es_combo` (derivado: 1 si algún ítem es combo), `tipo_sandwich`, `descuento_pct`/`descuento_valor` (**INMUTABLE**, snapshot del descuento aplicado — mig. 038; `total` = bruto − `descuento_valor`)
 
 ### Tabla `venta_detalles`
-`id`, `venta_id`, `producto_id`, `cantidad`, `precio_unitario`, `subtotal`, `from_stock` (1=del stock terminado, 0=de insumos), `es_combo` (0=solo, 1=vendido como combo), `combo_id` FK→combo_configs (NULL en ventas históricas)
+`id`, `venta_id`, `producto_id`, `cantidad`, `precio_unitario`, `subtotal`, `from_stock` (1=del stock terminado, 0=de insumos), `es_combo` (0=solo, 1=vendido como combo), `combo_id` FK→combo_configs (NULL en ventas históricas), `variante_id` FK→producto_variantes, `variante_etiqueta`, `factor_receta_snap` (**INMUTABLE** — tamaño/variante vendido, mig. 035; NULL en ventas previas), `nombre_snap`/`nombre2_snap` (**INMUTABLE** — nombre del producto al vender, mig. 034)
 
 ### Tabla `combo_configs`
 `id`, `producto_id` (UNIQUE FK→productos), `nombre` (ej. "Combo"), `precio_adicional`, `activo` (soft-delete), `created_by` FK→usuarios
@@ -585,6 +592,7 @@ Contiene: visión general, flujos de datos, todas las fórmulas matemáticas, do
 | Nómina y Costo Laboral (`nomina.php`) | nomina | Nómina [mes] + Resumen |
 | Costos del Negocio (`costos.php`) | costos | Resumen + Costos Registrados + Compras/Proveedor |
 | Compras & Proveedores (`compras.php`) | compras | Historial + Por Proveedor + Por Insumo |
+| Variación de Precios (`precios.php`) | reportes | Sin exportación — 6 tabs de solo lectura: Insumos, Productos, Nómina, Costos Fijos, Activos, Fiado/Abonos (ver §13 y §14) |
 
 Exportación: `?export=1` en la URL. Herramienta: `XlsxWriter.php` (ZipArchive, sin dependencias).
 
@@ -633,6 +641,7 @@ schema.sql                       → ⭐ INSTALACIÓN COMPLETA v4.25 (27 tablas,
 037_turnos_caja.sql                    → CREATE TABLE turnos_caja (id, fecha, fondo_inicial, notas_apertura, usuario_apertura, fecha_apertura, estado ENUM('abierto','cerrado'), fecha_cierre, usuario_cierre, notas_cierre)
 038_descuento_venta.sql                → ALTER TABLE ventas ADD COLUMN descuento_pct DECIMAL(5,2) DEFAULT 0, ADD COLUMN descuento_valor DECIMAL(12,2) DEFAULT 0
 039_insumo_presentaciones.sql          → CREATE TABLE insumo_presentaciones (catálogo de presentaciones de compra por insumo); ALTER TABLE compra_detalles ADD COLUMN presentacion_id INT DEFAULT NULL (FK lógica)
+040_config_formato_numerico.sql        → INSERT IGNORE en configuracion_app: num_decimales, num_sep_miles, num_sep_decimal (formato numérico configurable — decimales y separadores, Admin → Apariencia)
 
 ### Política de snapshots (principio de inmutabilidad extendido)
 Además de los precios, TODOS estos datos se guardan como snapshot al momento de la transacción:
@@ -810,7 +819,13 @@ Los modelos usan `SHOW COLUMNS` / `information_schema.COLUMNS` para detectar si 
 
 ---
 
-## 17. ESTADO DE MÓDULOS (2026-05-30)
+## 17. ESTADO DE MÓDULOS (2026-05-30, actualizado a v4.92 — 2026-06-12)
+
+> Dos mejoras transversales recientes afectan a (casi) todos los módulos de la tabla — ver sus
+> propias secciones "Estado vX.XX" para el detalle completo:
+> - **Catálogo de presentaciones de compra** (`insumo_presentaciones`, mig. 039) — v4.80-v4.86.
+> - **Formato numérico configurable** (decimales/separadores, `fmt_cantidad`/`fmt_moneda`,
+>   `formatMiles`/`formatDecimal`+`NUM_FORMAT`, Admin → Apariencia) — v4.87-v4.92.
 
 | Módulo | Estado | Notas |
 |---|---|---|
@@ -818,6 +833,23 @@ Los modelos usan `SHOW COLUMNS` / `information_schema.COLUMNS` para detectar si 
 | Clientes | ✅ | CRUD completo (nombre+apellido+empresa+teléfono); toggle activo; fusión; botón 👁 filtra historial; botón 📋 **estado de cuenta** (`clientes/estado_cuenta.php?id=X`) — extracto con cargos + abonos + saldo corriente + impresión |
 | Estado de cuenta | ✅ | `clientes/estado_cuenta.php` — historial cronológico de compras fiado + pagos con saldo corriente acumulado, filtro por período, modo impresión (window.print()), accesible desde Clientes y desde Fiado |
 | POS — Selector cliente | ✅ | Reemplazado `<select>` estático por **autocomplete buscable**: filtra por nombre/apellido/empresa en tiempo real, chip verde al seleccionar, navegación teclado (↑↓ Enter Esc), touch-friendly (44px items), crea cliente on-the-fly y lo selecciona automáticamente |
+| Dashboard | ✅ | Resumen del día + **panel de alertas**: insumos bajos, fiados pendientes, productos bajo mínimo |
+| Ventas / POS | ✅ | Fiado crea estado=pendiente_pago; historial con filtros; marcar pagado (transacción atómica); anular; selector solo/combo; fecha_venta; obsequio como método de pago; **selector de variante de tamaño** (mig.035); descuento % en el carrito (mig.038); **formato numérico configurable** en index/apertura/cierre/fiado/historial (v4.89) |
+| Inventario | ✅ | costo_actual trigger; modal editar/ajustar guarda presentación/costo **sin requerir cantidad de ajuste** (cantidad=0 omite llamada a ajustar_stock.php); **Conteo rápido** (`inventario/conteo.php`) — actualización masiva de stock sin editar insumo por insumo; **presentaciones catalogadas** (`insumo_presentaciones`, mig.039) como fuente primaria con sincronización a campos legacy (v4.83-v4.86); **formato numérico configurable** (v4.87) |
+| Compras | ✅ | Filtros por fecha/lugar/ítem/categoría; editar/duplicar/eliminar compras; **panel informativo de presentación** al seleccionar insumo: muestra tipo de empaque, unidad básica, cant/empaque, equivalencia física y hint dinámico "= X unidades total"; usa **insumo_presentaciones** (mig.039) cuando hay catálogo (v4.80, v4.84); **formato numérico configurable** (v4.92) |
+| Proveedores | ✅ | CRUD, toggle |
+| Productos | ✅ | Editar, Duplicar, calculadora bidireccional de receta, capacidad editable, configuración combo inline; botones Regalar 🎁 y Desechar 🗑 en stock; campo nombre2 (subtítulo visual); **conversión receta ↔ equivalencia física** al agregar ingrediente (v4.85); **formato numérico configurable** en index/análisis/consolidar/producción (v4.88) |
+| Producción | ✅ | Registro diario (fix móvil), preview insumos, anular lote, desechar stock terminado 🗑; responsive xs añadido; **Sugerencia de producción** con selector 7/14/30 días |
+| Nómina | ✅ | 4 contratos; pago correcto; aux proporcional; eliminar período funcional; **formato numérico configurable** en index/empleados/horas (v4.90) |
+| Activos | ✅ | Sortable, dep solo con fecha_inicio_uso, 30.41666 como divisor |
+| Costos | ✅ | Selector período, 8 KPIs consolidados |
+| Reportes | ✅ | 6 reportes: Ventas, Operativo, Nómina, Costos, Compras, **Variación de Precios** (nuevo); Operativo con Obsequios/Desechos; Ventas con tabla **Por Variante** (mig.035); **formato numérico configurable** en los 6 reportes (v4.92) |
+| Admin | ✅ | Usuarios, apariencia (2 logos + tipografía + theme_radius), backup BD + código ZIP, migraciones + updates de código, **Catálogos** (admin/listas.php — gestiona 6 listas configurables); sección **Formato de números** (decimales/separadores, mig.040) en Apariencia (v4.87) |
+| Ayuda | ✅ | Documentación actualizada v4.13: obsequio, desechar, reportes obsequios/desechos |
+| Compras (panel pres.) | ✅ | Panel informativo de solo lectura al seleccionar insumo: badge tipo empaque + unidad básica + cant/empaque + badge verde equivalencia física + hint dinámico total físico. Snapshot de presentación se guarda en `compra_detalles` (mig. 032 + 034). `calcPres` eliminado — lógica simplificada. |
+| Historial ventas | ✅ | Acepta `?cliente_id=X` para filtrar por cliente; banner verde con nombre del cliente y saldo pendiente; preserva filtro al cambiar fechas |
+| Reporte Precios | ✅ | **6 tabs**: Insumos (con columnas de empaque), Productos, Nómina (con tarifa/hora snap), Costos Fijos, **Activos** (historial logs_historial), **Fiado/Abonos** (saldo antes/después) |
+| Tests | ✅ | Suite de pruebas en `/tests/suite.php` (solo superadmin) — **29 grupos, ~175 pruebas** (G01-G27: esquema, migraciones 026-038, precios, stock, fiado, obsequios, combos, clientes, produccion, activos, nomina, costos, FK, catalogos, configuracion, seguridad, auditoria, eficiencia, usuario UX, inmutabilidad profunda, ENUMs→VARCHAR, snapshots 032-034, **G23: variantes 035**, **G24: ingrediente base 036**, **G25: conteo rápido**, **G26: turnos de caja 037**, **G27: descuentos 038**, **G28: abonos a fiado (snapshots 034)**, **G29: presentaciones de compra (mig.039)**) |
 
 ### Autocomplete de clientes en POS (ventas/index.php)
 - `CLIENTES_DATA`: array JSON serializado en PHP con todos los clientes (id, nombre, apellido, empresa, saldo)
@@ -827,23 +859,6 @@ Los modelos usan `SHOW COLUMNS` / `information_schema.COLUMNS` para detectar si 
 - `acReset()`: se llama después de confirmar una venta para limpiar la selección
 - Estado visual: input+dropdown (buscando) → chip verde (seleccionado)
 - Cierra al hacer clic fuera del componente (event listener en document)
-| Dashboard | ✅ | Resumen del día + **panel de alertas**: insumos bajos, fiados pendientes, productos bajo mínimo |
-| Ventas / POS | ✅ | Fiado crea estado=pendiente_pago; historial con filtros; marcar pagado (transacción atómica); anular; selector solo/combo; fecha_venta; obsequio como método de pago; **selector de variante de tamaño** (mig.035) |
-| Inventario | ✅ | costo_actual trigger; modal editar/ajustar guarda presentación/costo **sin requerir cantidad de ajuste** (cantidad=0 omite llamada a ajustar_stock.php); **Conteo rápido** (`inventario/conteo.php`) — actualización masiva de stock sin editar insumo por insumo |
-| Compras | ✅ | Filtros por fecha/lugar/ítem/categoría; editar/duplicar/eliminar compras; **panel informativo de presentación** al seleccionar insumo: muestra tipo de empaque, unidad básica, cant/empaque, equivalencia física y hint dinámico "= X unidades total" |
-| Proveedores | ✅ | CRUD, toggle |
-| Productos | ✅ | Editar, Duplicar, calculadora bidireccional de receta, capacidad editable, configuración combo inline; botones Regalar 🎁 y Desechar 🗑 en stock; campo nombre2 (subtítulo visual) |
-| Producción | ✅ | Registro diario (fix móvil), preview insumos, anular lote, desechar stock terminado 🗑; responsive xs añadido; **Sugerencia de producción** con selector 7/14/30 días |
-| Nómina | ✅ | 4 contratos; pago correcto; aux proporcional; eliminar período funcional |
-| Activos | ✅ | Sortable, dep solo con fecha_inicio_uso, 30.41666 como divisor |
-| Costos | ✅ | Selector período, 8 KPIs consolidados |
-| Reportes | ✅ | 6 reportes: Ventas, Operativo, Nómina, Costos, Compras, **Variación de Precios** (nuevo); Operativo con Obsequios/Desechos; Ventas con tabla **Por Variante** (mig.035) |
-| Admin | ✅ | Usuarios, apariencia (2 logos + tipografía + theme_radius), backup BD + código ZIP, migraciones + updates de código, **Catálogos** (admin/listas.php — gestiona 6 listas configurables) |
-| Ayuda | ✅ | Documentación actualizada v4.13: obsequio, desechar, reportes obsequios/desechos |
-| Compras (panel pres.) | ✅ | Panel informativo de solo lectura al seleccionar insumo: badge tipo empaque + unidad básica + cant/empaque + badge verde equivalencia física + hint dinámico total físico. Snapshot de presentación se guarda en `compra_detalles` (mig. 032 + 034). `calcPres` eliminado — lógica simplificada. |
-| Historial ventas | ✅ | Acepta `?cliente_id=X` para filtrar por cliente; banner verde con nombre del cliente y saldo pendiente; preserva filtro al cambiar fechas |
-| Reporte Precios | ✅ | **6 tabs**: Insumos (con columnas de empaque), Productos, Nómina (con tarifa/hora snap), Costos Fijos, **Activos** (historial logs_historial), **Fiado/Abonos** (saldo antes/después) |
-| Tests | ✅ | Suite de pruebas en `/tests/suite.php` (solo superadmin) — **27 grupos, ~158 pruebas** (G01-G27: esquema, migraciones 026-038, precios, stock, fiado, obsequios, combos, clientes, produccion, activos, nomina, costos, FK, catalogos, configuracion, seguridad, auditoria, eficiencia, usuario UX, inmutabilidad profunda, ENUMs→VARCHAR, snapshots 032-034, **G23: variantes 035**, **G24: ingrediente base 036**, **G25: conteo rápido**, **G26: turnos de caja 037**, **G27: descuentos 038**) |
 
 ---
 
@@ -854,6 +869,10 @@ Proveedores → insumos → recetas → productos (costo_calculado)
                                   productos → produccion_lotes → stock_disponible → ventas (from_stock=1)
                          insumos ← produccion_lotes (descuenta al producir)
                          insumos ← ventas on-demand (from_stock=0)
+                         insumos → insumo_presentaciones (catálogo de empaques, mig.039)
+                                 → inventario/compras.php (panel presentación, costo_actual al comprar)
+
+productos → producto_variantes (tamaños, mig.035) → ventas (selector de variante, factor_receta)
 
 activos.depreciacion → ActivoModel::costo_diario_total() → Productos (costo_deprec_u)
                      → resumen_ampliado().valor_en_libros (usa fecha_adquisicion)
@@ -867,6 +886,9 @@ empleados.tipo_costo → Costos KPIs (nómina directa/indirecta)
 configuracion_app → nav.php (inyecta CSS global a todas las páginas)
                   → login.php (logos, color brand)
                   → admin/apariencia.php (edición del tema)
+                  → nav.php → window.NUM_FORMAT (formato numérico, mig.040)
+                            → fmt_cantidad()/fmt_moneda() (PHP) y formatMiles()/formatDecimal() (JS)
+                              en todos los módulos (v4.87-v4.92)
 ```
 
 ---
