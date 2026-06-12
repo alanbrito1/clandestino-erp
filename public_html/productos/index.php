@@ -286,7 +286,7 @@ $stock_total     = array_sum(array_column($productos, 'stock_disponible'));
             </div>
             <div class="stat-l">Stock bajo</div>
         </div>
-        <div class="stat"><div class="stat-n">$<?= number_format($dep_diaria,2,',','.') ?></div><div class="stat-l">Dep. diaria</div></div>
+        <div class="stat"><div class="stat-n">$<?= fmt_cantidad($dep_diaria, 2) ?></div><div class="stat-l">Dep. diaria</div></div>
     </div>
 
     <!-- Banner de capacidad instalada — editable -->
@@ -318,10 +318,10 @@ $stock_total     = array_sum(array_column($productos, 'stock_disponible'));
     <div class="banner">
         <strong style="font-size:13px">Costos fijos prorrateados por unidad producida</strong>
         <div class="banner-grid">
-            <div><div class="bn-val">$<?= number_format($costo_fijo_u,0,',','.') ?></div><div class="bn-lbl">Arriendo/Servicios</div></div>
-            <div><div class="bn-val">$<?= number_format($costo_deprec_u,0,',','.') ?></div><div class="bn-lbl">Depreciación</div></div>
-            <div><div class="bn-val">$<?= number_format($costo_rh_u,0,',','.') ?></div><div class="bn-lbl">Recurso Humano</div></div>
-            <div><div class="bn-val">$<?= number_format($fijos_u,0,',','.') ?></div><div class="bn-lbl">Total fijos/u</div></div>
+            <div><div class="bn-val">$<?= fmt_moneda($costo_fijo_u) ?></div><div class="bn-lbl">Arriendo/Servicios</div></div>
+            <div><div class="bn-val">$<?= fmt_moneda($costo_deprec_u) ?></div><div class="bn-lbl">Depreciación</div></div>
+            <div><div class="bn-val">$<?= fmt_moneda($costo_rh_u) ?></div><div class="bn-lbl">Recurso Humano</div></div>
+            <div><div class="bn-val">$<?= fmt_moneda($fijos_u) ?></div><div class="bn-lbl">Total fijos/u</div></div>
         </div>
     </div>
 
@@ -368,10 +368,10 @@ $stock_total     = array_sum(array_column($productos, 'stock_disponible'));
                     </span>
                     <?php endif; ?>
                 </td>
-                <td class="r hide-m"><?= (float)$p['precio_venta'] > 0 ? '$'.number_format($p['precio_venta'],0,',','.') : '<em style="color:var(--g5)">—</em>' ?></td>
-                <td class="r hide-m">$<?= number_format($p['costo_ing'],0,',','.') ?></td>
-                <td class="r hide-m">$<?= number_format($fijos_u,0,',','.') ?></td>
-                <td class="r"><strong>$<?= number_format($p['costo_total'],0,',','.') ?></strong></td>
+                <td class="r hide-m"><?= (float)$p['precio_venta'] > 0 ? '$'.fmt_moneda($p['precio_venta']) : '<em style="color:var(--g5)">—</em>' ?></td>
+                <td class="r hide-m">$<?= fmt_moneda($p['costo_ing']) ?></td>
+                <td class="r hide-m">$<?= fmt_moneda($fijos_u) ?></td>
+                <td class="r"><strong>$<?= fmt_moneda($p['costo_total']) ?></strong></td>
                 <td class="r">
                     <?php if ((float)$p['precio_venta'] > 0): ?>
                     <span class="<?= $mc ?>"><?= $mg ?>%</span>
@@ -595,8 +595,8 @@ function renderReceta(id, ings, precio, rinde, combo, variantes) {
             ? '<span style="background:#d1fae5;color:#065f46;padding:1px 6px;border-radius:10px;font-size:10px;font-weight:600;margin-left:3px" title="Cantidad fija — no escala con variante de tamaño">🔒base</span>'
             : '';
         const cantLabel = rinde > 1
-            ? `${(+i.cantidad_requerida).toFixed(2)} ${esc(i.unidad_medida)} <span style="color:#9ca3af;font-size:10px">(tanda)</span>`
-            : `${(+i.cantidad_requerida).toFixed(2)} ${esc(i.unidad_medida)}`;
+            ? `${(+i.cantidad_requerida).toFixed(NUM_FORMAT.decimales)} ${esc(i.unidad_medida)} <span style="color:#9ca3af;font-size:10px">(tanda)</span>`
+            : `${(+i.cantidad_requerida).toFixed(NUM_FORMAT.decimales)} ${esc(i.unidad_medida)}`;
         tblRows += `<tr>
             <td>${esc(i.nombre)}${crit}${base}</td>
             <td>${cantLabel}</td>
@@ -616,7 +616,7 @@ function renderReceta(id, ings, precio, rinde, combo, variantes) {
     const addForm = puedEdt ? `
         <div class="add-row">
             <select id="si-${id}" onchange="onSelectInsumoReceta(${id})">${optIns}</select>
-            <input type="number" id="ci-${id}" placeholder="Cantidad" step="0.001" min="0.001" style="width:110px" oninput="convertirCantidadReceta(${id})">
+            <input type="number" id="ci-${id}" placeholder="Cantidad" step="any" min="0.001" style="width:110px" oninput="convertirCantidadReceta(${id})">
             <span id="cu-label-${id}" style="display:none;font-size:12px;color:var(--g5)">en:</span>
             <select id="cu-${id}" style="display:none" onchange="convertirCantidadReceta(${id})"></select>
             <span id="cu-hint-${id}" style="display:none;font-size:11px;color:var(--g5);align-self:center"></span>
@@ -682,7 +682,7 @@ function renderReceta(id, ings, precio, rinde, combo, variantes) {
                     <div id="calc-ings-${id}" style="font-size:12px;color:var(--g2)"></div>
                     <div style="margin-top:10px;padding-top:10px;border-top:1px solid #dbeafe;display:flex;flex-wrap:wrap;align-items:center;gap:4px">
                         <label style="font-size:12px;color:var(--g5)">Si tengo</label>
-                        <input type="number" id="calc-qty-${id}" placeholder="Cantidad" min="0" step="0.001"
+                        <input type="number" id="calc-qty-${id}" placeholder="Cantidad" min="0" step="any"
                                style="width:80px;padding:4px 6px;border:1px solid var(--g8);border-radius:6px;font-size:13px"
                                oninput="calcPorInsumo(${id},${rinde})">
                         <select id="calc-ing-${id}"
@@ -738,7 +738,7 @@ function convertirCantidadReceta(prodId) {
     const equivCant = parseFloat(opt.dataset.equivCant) || 0;
     const cantidad  = parseFloat(document.getElementById('ci-' + prodId).value) || 0;
     if (equivCant <= 0 || cantidad <= 0) { hint.style.display = 'none'; return; }
-    hint.textContent = `= ${formatDecimal(cantidad / equivCant, 2)} ${opt.dataset.u}`;
+    hint.textContent = `= ${formatDecimal(cantidad / equivCant)} ${opt.dataset.u}`;
     hint.style.display = '';
 }
 
@@ -827,7 +827,7 @@ function buildComboSection(prodId, precioProd, combo) {
             <div class="combo-ins-row" id="combo-ir-${prodId}-${ci.insumo_id}">
                 <span style="flex:1">${esc(ci.insumo_nombre)}</span>
                 <span style="color:var(--g5);font-size:11px;margin-right:4px">
-                    <input type="number" value="${ci.cantidad}" min="0.001" step="0.001"
+                    <input type="number" value="${ci.cantidad}" min="0.001" step="any"
                            id="combo-qty-${prodId}-${ci.insumo_id}"
                            style="width:70px;padding:3px 6px;border:1px solid var(--g8);border-radius:6px;font-size:12px">
                     ${esc(ci.unidad_medida)}
@@ -885,7 +885,7 @@ function buildComboSection(prodId, precioProd, combo) {
             <div>
                 <label>Cantidad</label>
                 <input type="number" id="combo-add-qty-${prodId}"
-                       placeholder="1" min="0.001" step="0.001"
+                       placeholder="1" min="0.001" step="any"
                        style="width:80px" value="1">
             </div>
             <button class="btn-sm btn-grn" style="margin-top:16px"
@@ -1109,7 +1109,7 @@ function agregarComboIns(prodId) {
     div.innerHTML = `
         <span style="flex:1">${esc(nombre)}</span>
         <span style="color:var(--g5);font-size:11px;margin-right:4px">
-            <input type="number" value="${cantidad}" min="0.001" step="0.001"
+            <input type="number" value="${cantidad}" min="0.001" step="any"
                    id="combo-qty-${prodId}-${insumoId}"
                    style="width:70px;padding:3px 6px;border:1px solid var(--g8);border-radius:6px;font-size:12px">
             ${esc(unidad)}
@@ -1288,7 +1288,7 @@ function calcIngredientes(prodId, rinde) {
         const unidad = celdas[1]?.textContent?.replace(/[\d.,]+/,'').replace('(tanda)','').trim();
         html += `<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #dbeafe">
             <span>${nombre}</span>
-            <strong style="color:#1d4ed8">${total.toFixed(2)} ${unidad}</strong>
+            <strong style="color:#1d4ed8">${formatDecimal(total)} ${unidad}</strong>
         </div>`;
     });
     const el = document.getElementById('calc-ings-' + prodId);
