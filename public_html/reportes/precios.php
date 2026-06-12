@@ -666,7 +666,7 @@ foreach ($nomina_hist as $emp) {
                     <?= ($var_total > 0 ? '↑' : ($var_total < 0 ? '↓' : '—')) ?> <?= abs($var_total) ?>% total
                 </span>
                 <?php endif; ?>
-                <span style="font-size:14px;font-weight:800">$<?= number_format($ultimo,2,',','.') ?></span>
+                <span style="font-size:14px;font-weight:800">$<?= fmt_cantidad($ultimo, 2) ?></span>
                 <span style="color:var(--g5)">▾</span>
             </div>
         </div>
@@ -702,17 +702,17 @@ foreach ($nomina_hist as $emp) {
                             <?= htmlspecialchars($r['presentacion'] ?? '—') ?>
                         </td>
                         <td class="r" style="font-size:12px">
-                            <?= $r['cantidad_presentacion'] ? number_format($r['cantidad_presentacion'],2,',','.') : '—' ?>
+                            <?= $r['cantidad_presentacion'] ? fmt_cantidad($r['cantidad_presentacion'], 2) : '—' ?>
                         </td>
                         <td class="r" style="font-size:12px">
-                            <?= $r['cant_presentaciones'] ? number_format($r['cant_presentaciones'],2,',','.') : '—' ?>
+                            <?= $r['cant_presentaciones'] ? fmt_cantidad($r['cant_presentaciones'], 2) : '—' ?>
                         </td>
                         <td class="r" style="font-size:12px">
-                            <?= $r['precio_presentacion'] ? '$' . number_format($r['precio_presentacion'],0,',','.') : '—' ?>
+                            <?= $r['precio_presentacion'] ? '$' . fmt_moneda($r['precio_presentacion']) : '—' ?>
                         </td>
                         <?php endif; ?>
-                        <td class="r"><strong>$<?= number_format($r['precio'],2,',','.') ?></strong></td>
-                        <td class="r"><?= number_format($r['cantidad'],2,',','.') ?> <?= htmlspecialchars($ins['unidad']) ?></td>
+                        <td class="r"><strong>$<?= fmt_cantidad($r['precio'], 2) ?></strong></td>
+                        <td class="r"><?= fmt_cantidad($r['cantidad'], 2) ?> <?= htmlspecialchars($ins['unidad']) ?></td>
                         <td><span class="badge <?= $vc ?>"><?= $vt ?></span></td>
                     </tr>
                     <?php endforeach; ?>
@@ -763,7 +763,7 @@ foreach ($nomina_hist as $emp) {
                     ?>
                     <tr>
                         <td><?= $r['fecha'] ?></td>
-                        <td class="r"><strong>$<?= number_format($r['precio'],0,',','.') ?></strong></td>
+                        <td class="r"><strong>$<?= fmt_moneda($r['precio']) ?></strong></td>
                         <td><span class="badge <?= $vc ?>"><?= $vt ?></span></td>
                     </tr>
                     <?php endforeach; ?>
@@ -802,7 +802,7 @@ foreach ($nomina_hist as $emp) {
                     ?>
                     <tr>
                         <td><?= $r['fecha'] ?></td>
-                        <td class="r"><strong>$<?= number_format($r['costo'],0,',','.') ?></strong></td>
+                        <td class="r"><strong>$<?= fmt_moneda($r['costo']) ?></strong></td>
                         <td class="r"><?= $r['cantidad'] ?></td>
                         <td><span class="badge <?= $vc ?>"><?= $vt ?></span></td>
                     </tr>
@@ -830,7 +830,7 @@ foreach ($nomina_hist as $emp) {
             <div class="kpi-l">Cambios de salario</div>
         </div>
         <div class="kpi">
-            <div class="kpi-n">$<?= number_format(array_sum(array_map(fn($e) => (float)end($e['registros'])['costo_total'], $nomina_hist)),0,',','.') ?></div>
+            <div class="kpi-n">$<?= fmt_moneda(array_sum(array_map(fn($e) => (float)end($e['registros'])['costo_total'], $nomina_hist))) ?></div>
             <div class="kpi-l">Costo laboral último período</div>
         </div>
     </div>
@@ -877,17 +877,17 @@ foreach ($nomina_hist as $emp) {
                         <td style="font-size:12px;color:var(--g5)"><?= htmlspecialchars($r['tipo_liq'] ?? '—') ?></td>
                         <?php if ($tiene033_rep): ?>
                         <td class="r" style="font-size:12px">
-                            <?= $r['valor_hora_snap'] ? '$'.number_format($r['valor_hora_snap'],2,',','.') : '—' ?>
+                            <?= $r['valor_hora_snap'] ? '$'.fmt_cantidad($r['valor_hora_snap'], 2) : '—' ?>
                         </td>
                         <td class="r" style="font-size:12px">
-                            <?= $r['horas'] ? number_format($r['horas'],1,',','.') . ' h' : '—' ?>
+                            <?= $r['horas'] ? fmt_cantidad($r['horas'], 1) . ' h' : '—' ?>
                         </td>
                         <td class="r" style="font-size:12px">
-                            <?= $r['valor_proj_snap'] ? '$'.number_format($r['valor_proj_snap'],0,',','.') : '—' ?>
+                            <?= $r['valor_proj_snap'] ? '$'.fmt_moneda($r['valor_proj_snap']) : '—' ?>
                         </td>
                         <?php endif; ?>
-                        <td class="r"><strong>$<?= number_format($r['salario_base'],0,',','.') ?></strong></td>
-                        <td class="r">$<?= number_format($r['costo_total'],0,',','.') ?></td>
+                        <td class="r"><strong>$<?= fmt_moneda($r['salario_base']) ?></strong></td>
+                        <td class="r">$<?= fmt_moneda($r['costo_total']) ?></td>
                         <td><span class="badge <?= $vc ?>"><?= $vt ?></span></td>
                     </tr>
                     <?php endforeach; ?>
@@ -940,7 +940,7 @@ foreach ($nomina_hist as $emp) {
                     <td><strong><?= htmlspecialchars($r['nombre']) ?></strong></td>
                     <td><?= htmlspecialchars($r['categoria'] ?? '—') ?></td>
                     <td><?= htmlspecialchars($r['clasificacion']) ?> / <?= htmlspecialchars($r['tipo']) ?></td>
-                    <td class="r"><strong>$<?= number_format((float)$r['valor_mensual'],0,',','.') ?></strong></td>
+                    <td class="r"><strong>$<?= fmt_moneda((float)$r['valor_mensual']) ?></strong></td>
                     <td><?= $r['fecha_inicio'] ?></td>
                     <td><?= $r['fecha_fin'] ?? '<span style="color:var(--green)">Vigente</span>' ?></td>
                     <td><?= $est ?></td>
@@ -990,14 +990,14 @@ foreach ($nomina_hist as $emp) {
                     <td class="r" style="color:var(--red)">
                         <?php if (in_array($cambio['campo'],['costo_inicial','vida_util_meses'])): ?>
                         <?= $cambio['campo'] === 'costo_inicial'
-                            ? '$' . number_format((float)$cambio['valor_anterior'],0,',','.')
+                            ? '$' . fmt_moneda((float)$cambio['valor_anterior'])
                             : htmlspecialchars($cambio['valor_anterior'] ?? '—') . ' meses' ?>
                         <?php else: ?><?= htmlspecialchars($cambio['valor_anterior'] ?? '—') ?><?php endif; ?>
                     </td>
                     <td class="r" style="color:var(--green)">
                         <?php if (in_array($cambio['campo'],['costo_inicial','vida_util_meses'])): ?>
                         <?= $cambio['campo'] === 'costo_inicial'
-                            ? '$' . number_format((float)$cambio['valor_nuevo'],0,',','.')
+                            ? '$' . fmt_moneda((float)$cambio['valor_nuevo'])
                             : htmlspecialchars($cambio['valor_nuevo'] ?? '—') . ' meses' ?>
                         <?php else: ?><?= htmlspecialchars($cambio['valor_nuevo'] ?? '—') ?><?php endif; ?>
                     </td>
@@ -1042,7 +1042,7 @@ foreach ($nomina_hist as $emp) {
                 <div class="ins-meta"><?= count($cli['abonos']) ?> abono<?= count($cli['abonos'])>1?'s':'' ?></div>
             </div>
             <div>
-                <strong>Total abonado: $<?= number_format(array_sum(array_column($cli['abonos'],'monto')),0,',','.') ?></strong>
+                <strong>Total abonado: $<?= fmt_moneda(array_sum(array_column($cli['abonos'],'monto'))) ?></strong>
                 <span style="color:var(--g5);margin-left:8px">▾</span>
             </div>
         </div>
@@ -1063,14 +1063,14 @@ foreach ($nomina_hist as $emp) {
                     <?php foreach ($cli['abonos'] as $ab): ?>
                     <tr>
                         <td><?= date('d/m/Y H:i', strtotime($ab['created_at'])) ?></td>
-                        <td class="r"><strong>$<?= number_format((float)$ab['monto'],0,',','.') ?></strong></td>
+                        <td class="r"><strong>$<?= fmt_moneda((float)$ab['monto']) ?></strong></td>
                         <td style="font-size:12px;text-transform:capitalize"><?= htmlspecialchars($ab['metodo_pago']) ?></td>
                         <?php if ($tiene034p_rep): ?>
                         <td class="r" style="color:var(--red);font-size:12px">
-                            <?= $ab['saldo_anterior'] !== null ? '$'.number_format((float)$ab['saldo_anterior'],0,',','.') : '—' ?>
+                            <?= $ab['saldo_anterior'] !== null ? '$'.fmt_moneda((float)$ab['saldo_anterior']) : '—' ?>
                         </td>
                         <td class="r" style="color:var(--green);font-size:12px">
-                            <?= $ab['saldo_posterior'] !== null ? '$'.number_format((float)$ab['saldo_posterior'],0,',','.') : '—' ?>
+                            <?= $ab['saldo_posterior'] !== null ? '$'.fmt_moneda((float)$ab['saldo_posterior']) : '—' ?>
                         </td>
                         <?php endif; ?>
                     </tr>
