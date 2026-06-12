@@ -791,7 +791,7 @@ function actualizarPreviewFusion() {
     const ventas  = opt.dataset.ventas  || 0;
     const saldo   = parseFloat(opt.dataset.saldo || 0);
     const saldoFmt = saldo > 0
-        ? '$' + saldo.toLocaleString('es-CO', {maximumFractionDigits:0})
+        ? '$' + formatMiles(saldo)
         : '—';
 
     document.getElementById('fu-prev-nombre').textContent = nombre;
@@ -862,7 +862,7 @@ function abrirAbono(id, nombre, saldo) {
     document.getElementById('ab-monto').max   = saldo;
     document.getElementById('ab-notas').value = '';
     document.getElementById('ab-cliente-info').textContent =
-        nombre + ' — Deuda: $' + saldo.toLocaleString('es-CO', {maximumFractionDigits: 0});
+        nombre + ' — Deuda: $' + formatMiles(saldo);
     document.getElementById('ab-saldo-preview').style.display = 'none';
     const btn = document.getElementById('ab-btn');
     btn.disabled    = false;
@@ -877,7 +877,7 @@ function actualizarSaldoPreview() {
     if (monto > 0) {
         const nuevo = Math.max(0, _abSaldoActual - monto);
         document.getElementById('ab-saldo-nuevo').textContent =
-            '$' + nuevo.toLocaleString('es-CO', {maximumFractionDigits: 0});
+            '$' + formatMiles(nuevo);
         preview.style.display = 'block';
     } else {
         preview.style.display = 'none';
@@ -908,7 +908,7 @@ async function guardarAbono() {
         const data = await resp.json();
         if (data.success) {
             cerrarModal('modal-ab');
-            const fmt = monto.toLocaleString('es-CO', {maximumFractionDigits: 0});
+            const fmt = formatMiles(monto);
             toast('Abono de $' + fmt + ' registrado ✓', 'ok');
             setTimeout(() => location.reload(), 1200);
         } else {
