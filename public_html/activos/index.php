@@ -326,15 +326,15 @@ $VIDA_ESTADO = [
             <div class="stat-l">Activos activos</div>
         </div>
         <div class="stat">
-            <div class="stat-n">$<?= number_format($inv_total, 0, ',', '.') ?></div>
+            <div class="stat-n">$<?= fmt_moneda($inv_total) ?></div>
             <div class="stat-l">Inversión total</div>
         </div>
         <div class="stat">
-            <div class="stat-n">$<?= number_format($val_libros, 0, ',', '.') ?></div>
+            <div class="stat-n">$<?= fmt_moneda($val_libros) ?></div>
             <div class="stat-l">Valor en libros</div>
         </div>
         <div class="stat">
-            <div class="stat-n" style="color:var(--brand)">$<?= number_format($dep_dia, 2, ',', '.') ?></div>
+            <div class="stat-n" style="color:var(--brand)">$<?= fmt_cantidad($dep_dia, 2) ?></div>
             <div class="stat-l">Dep. diaria</div>
         </div>
         <?php if ($v5): ?>
@@ -353,9 +353,9 @@ $VIDA_ESTADO = [
     <div class="dep-banner">
         <div><strong style="font-size:13px">Costo operativo por depreciación</strong><br>
         <span style="font-size:11px;color:#9ca3af">Impacta el costo de cada producto</span></div>
-        <div class="dep-item"><div class="dep-val">$<?= number_format($dep_dia,2,',','.') ?></div><div class="dep-lbl">/ día</div></div>
-        <div class="dep-item"><div class="dep-val">$<?= number_format($dep_dia*30.41666,0,',','.') ?></div><div class="dep-lbl">/ mes</div></div>
-        <div class="dep-item"><div class="dep-val">$<?= number_format($dep_dia*365,0,',','.') ?></div><div class="dep-lbl">/ año</div></div>
+        <div class="dep-item"><div class="dep-val">$<?= fmt_cantidad($dep_dia, 2) ?></div><div class="dep-lbl">/ día</div></div>
+        <div class="dep-item"><div class="dep-val">$<?= fmt_moneda($dep_dia*30.41666) ?></div><div class="dep-lbl">/ mes</div></div>
+        <div class="dep-item"><div class="dep-val">$<?= fmt_moneda($dep_dia*365) ?></div><div class="dep-lbl">/ año</div></div>
     </div>
 
     <!-- Controles -->
@@ -509,10 +509,10 @@ $VIDA_ESTADO = [
                     <td style="font-family:monospace;font-size:11px"><?= htmlspecialchars($a['serial'] ?? '—') ?></td>
                     <td style="text-align:center"><?= (int)($a['numero_unidades'] ?? 1) ?></td>
                     <td style="text-align:right">
-                        <?= !empty($a['precio_unitario']) ? '$'.number_format($a['precio_unitario'],0,',','.') : '—' ?>
+                        <?= !empty($a['precio_unitario']) ? '$'.fmt_moneda($a['precio_unitario']) : '—' ?>
                     </td>
                     <?php endif; ?>
-                    <td style="text-align:right;font-weight:700">$<?= number_format($a['costo_inicial'],0,',','.') ?></td>
+                    <td style="text-align:right;font-weight:700">$<?= fmt_moneda($a['costo_inicial']) ?></td>
                     <?php
                     // Activo depreciado = ya cumplió su vida útil → dep/día = $0
                     $depDiaActivo = ($est === 'depreciado' || $est === 'en_espera')
@@ -520,7 +520,7 @@ $VIDA_ESTADO = [
                         : (float)($a['depreciacion_diaria'] ?? 0);
                     ?>
                     <td style="text-align:right;color:<?= $depDiaActivo > 0 ? 'var(--brand)' : 'var(--g5)' ?>">
-                        <?= $depDiaActivo > 0 ? '$'.number_format($depDiaActivo,2,',','.') : '—' ?>
+                        <?= $depDiaActivo > 0 ? '$'.fmt_cantidad($depDiaActivo, 2) : '—' ?>
                     </td>
                     <td>
                         <div class="vida-wrap">
@@ -544,8 +544,8 @@ $VIDA_ESTADO = [
                 <?php if (!empty($activos)): ?>
                 <tr style="background:var(--g9);font-weight:800">
                     <td <?= $v5 ? 'colspan="6"' : 'colspan="1"' ?>>TOTALES (solo activos en depreciación)</td>
-                    <td style="text-align:right">$<?= number_format($inv_total,0,',','.') ?></td>
-                    <td style="text-align:right;color:var(--brand)">$<?= number_format($dep_dia,2,',','.') ?>/día</td>
+                    <td style="text-align:right">$<?= fmt_moneda($inv_total) ?></td>
+                    <td style="text-align:right;color:var(--brand)">$<?= fmt_cantidad($dep_dia, 2) ?>/día</td>
                     <td colspan="2"></td><!-- Vida útil + Estado -->
                 </tr>
                 <?php endif; ?>
