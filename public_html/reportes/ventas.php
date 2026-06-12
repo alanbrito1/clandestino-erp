@@ -213,7 +213,7 @@ if (isset($_GET['export'])) {
     // ── Hoja 2: Rentabilidad ────────────────────────────────────────────────
     $w->setSheet('Rentabilidad');
     $w->addRow(['ClanDestino ERP — Rentabilidad por Producto'], true);
-    $w->addRow(["Costo fijo/u: $" . number_format($costo_fijo_u, 2, ',', '.') . "  |  Generado: " . date('d/m/Y H:i')]);
+    $w->addRow(["Costo fijo/u: $" . fmt_cantidad($costo_fijo_u, 2) . "  |  Generado: " . date('d/m/Y H:i')]);
     $w->addEmptyRow();
     $w->addRow(['Producto', 'Nombre complementario', 'Tamaño', 'Precio Venta', 'Costo Ing.', 'Costo Fijo', 'Costo Total', 'Margen $', 'Margen %'], true);
     foreach ($rentabilidad as $p) {
@@ -429,10 +429,10 @@ $estado_c = ['completada'=>'b-ok','anulada'=>'b-ano','pendiente_pago'=>'b-pend']
     <!-- Stats -->
     <div class="stats">
         <div class="stat"><div class="stat-n"><?= $stats['total'] ?></div><div class="stat-l">Ventas</div></div>
-        <div class="stat"><div class="stat-n" style="color:var(--brand)">$<?= number_format($stats['pesos'],0,',','.') ?></div><div class="stat-l">Total ingresos</div></div>
-        <div class="stat"><div class="stat-n">$<?= number_format($stats['efectivo'],0,',','.') ?></div><div class="stat-l">Efectivo</div></div>
-        <div class="stat"><div class="stat-n">$<?= number_format($stats['digital'],0,',','.') ?></div><div class="stat-l">Digital</div></div>
-        <div class="stat"><div class="stat-n" style="color:var(--yellow)">$<?= number_format($stats['fiado'],0,',','.') ?></div><div class="stat-l">Fiado</div></div>
+        <div class="stat"><div class="stat-n" style="color:var(--brand)">$<?= fmt_moneda($stats['pesos']) ?></div><div class="stat-l">Total ingresos</div></div>
+        <div class="stat"><div class="stat-n">$<?= fmt_moneda($stats['efectivo']) ?></div><div class="stat-l">Efectivo</div></div>
+        <div class="stat"><div class="stat-n">$<?= fmt_moneda($stats['digital']) ?></div><div class="stat-l">Digital</div></div>
+        <div class="stat"><div class="stat-n" style="color:var(--yellow)">$<?= fmt_moneda($stats['fiado']) ?></div><div class="stat-l">Fiado</div></div>
     </div>
     <?php if ($stats['obsequio_n'] > 0): ?>
     <div style="background:#fdf4ff;border:1px solid #fbcfe8;border-radius:12px;padding:12px 16px;
@@ -440,7 +440,7 @@ $estado_c = ['completada'=>'b-ok','anulada'=>'b-ano','pendiente_pago'=>'b-pend']
         <span style="font-size:18px">🎁</span>
         <span><strong><?= $stats['obsequio_n'] ?> obsequio<?= $stats['obsequio_n']>1?'s':'' ?></strong>
         registrado<?= $stats['obsequio_n']>1?'s':'' ?> en este período
-        — valor ref: <strong>$<?= number_format($stats['obsequio_val'],0,',','.') ?></strong>
+        — valor ref: <strong>$<?= fmt_moneda($stats['obsequio_val']) ?></strong>
         <span style="color:var(--g5)">(no incluido en total de ingresos)</span></span>
     </div>
     <?php endif; ?>
@@ -450,7 +450,7 @@ $estado_c = ['completada'=>'b-ok','anulada'=>'b-ano','pendiente_pago'=>'b-pend']
         <span style="font-size:18px">🏷</span>
         <span><strong><?= $n_descuentos_periodo ?> venta<?= $n_descuentos_periodo>1?'s':'' ?> con descuento</strong>
         en este período — total descontado:
-        <strong style="color:#92400e">−$<?= number_format($total_descuentos_periodo,0,',','.') ?></strong>
+        <strong style="color:#92400e">−$<?= fmt_moneda($total_descuentos_periodo) ?></strong>
         <span style="color:var(--g5)">(incluido en el Excel → hoja "Descuentos")</span></span>
     </div>
     <?php endif; ?>
@@ -460,7 +460,7 @@ $estado_c = ['completada'=>'b-ok','anulada'=>'b-ano','pendiente_pago'=>'b-pend']
         <span style="font-size:18px">💰</span>
         <span><strong><?= $n_abonos_periodo ?> abono<?= $n_abonos_periodo>1?'s':'' ?> a fiado</strong>
         recibido<?= $n_abonos_periodo>1?'s':'' ?> en este período — total recaudado:
-        <strong style="color:#065f46">$<?= number_format($total_abonos_periodo,0,',','.') ?></strong>
+        <strong style="color:#065f46">$<?= fmt_moneda($total_abonos_periodo) ?></strong>
         <span style="color:var(--g5)">(incluido en el Excel → hoja "Abonos a Fiado")</span></span>
     </div>
     <?php endif; ?>
@@ -489,9 +489,9 @@ $estado_c = ['completada'=>'b-ok','anulada'=>'b-ano','pendiente_pago'=>'b-pend']
                     <td class="hide-m"><?= $v['num_items'] ?></td>
                     <td class="hide-m"><?= htmlspecialchars($metodo_label[$v['metodo_pago']] ?? $v['metodo_pago']) ?></td>
                     <td class="r">
-                        <strong>$<?= number_format($v['total'],0,',','.') ?></strong>
+                        <strong>$<?= fmt_moneda($v['total']) ?></strong>
                         <?php if (isset($descuentos_map[(int)$v['id']])): ?>
-                        <br><span class="badge" style="background:#fef3c7;color:#92400e;font-size:10px">−<?= number_format($descuentos_map[(int)$v['id']]['pct'],0) ?>% dto</span>
+                        <br><span class="badge" style="background:#fef3c7;color:#92400e;font-size:10px">−<?= fmt_cantidad($descuentos_map[(int)$v['id']]['pct'], 0) ?>% dto</span>
                         <?php endif; ?>
                     </td>
                     <td><span class="badge <?= $estado_c[$v['estado']] ?? 'b-ok' ?>"><?= htmlspecialchars($v['estado']) ?></span></td>
@@ -506,7 +506,7 @@ $estado_c = ['completada'=>'b-ok','anulada'=>'b-ano','pendiente_pago'=>'b-pend']
 
     <!-- Rentabilidad por producto -->
     <div class="card">
-        <div class="card-title">Rentabilidad por Producto <small style="font-weight:400; color:var(--g5)">(costo fijo $<?= number_format($costo_fijo_u,2,',','.') ?>/u)</small></div>
+        <div class="card-title">Rentabilidad por Producto <small style="font-weight:400; color:var(--g5)">(costo fijo $<?= fmt_cantidad($costo_fijo_u, 2) ?>/u)</small></div>
         <table>
             <thead>
                 <tr>
@@ -524,9 +524,9 @@ $estado_c = ['completada'=>'b-ok','anulada'=>'b-ano','pendiente_pago'=>'b-pend']
                 ?>
                 <tr>
                     <td><?= htmlspecialchars($p['nombre']) ?> <small style="color:var(--g5)"><?= htmlspecialchars($p['tamano']) ?></small></td>
-                    <td class="r hide-m">$<?= number_format($p['precio_venta'],0,',','.') ?></td>
-                    <td class="r hide-m">$<?= number_format($p['costo_total_u'],0,',','.') ?></td>
-                    <td class="r"><strong>$<?= number_format($p['margen_bruto'],0,',','.') ?></strong></td>
+                    <td class="r hide-m">$<?= fmt_moneda($p['precio_venta']) ?></td>
+                    <td class="r hide-m">$<?= fmt_moneda($p['costo_total_u']) ?></td>
+                    <td class="r"><strong>$<?= fmt_moneda($p['margen_bruto']) ?></strong></td>
                     <td class="r"><span class="<?= $mc ?>"><?= $p['margen_pct'] ?>%</span></td>
                 </tr>
                 <?php endforeach; ?>
@@ -553,7 +553,7 @@ $estado_c = ['completada'=>'b-ok','anulada'=>'b-ano','pendiente_pago'=>'b-pend']
                     <td><?= htmlspecialchars($row['producto']) ?></td>
                     <td><span class="badge" style="background:#dbeafe;color:#1e40af"><?= htmlspecialchars($row['variante']) ?></span></td>
                     <td class="r"><?= (int)$row['total_unidades'] ?></td>
-                    <td class="r"><strong>$<?= number_format($row['total_venta'],0,',','.') ?></strong></td>
+                    <td class="r"><strong>$<?= fmt_moneda($row['total_venta']) ?></strong></td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
