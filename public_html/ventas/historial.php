@@ -333,7 +333,7 @@ foreach ($ventas as $v) {
             <strong>Filtrando por cliente:</strong>
             <?= htmlspecialchars($cliente_filtrado['nombre'] . (isset($cliente_filtrado['apellido']) && $cliente_filtrado['apellido'] ? ' ' . $cliente_filtrado['apellido'] : '')) ?>
             <?php if ($cliente_filtrado['saldo_fiado'] > 0): ?>
-            — Fiado pendiente: <strong>$<?= number_format($cliente_filtrado['saldo_fiado'], 0, ',', '.') ?></strong>
+            — Fiado pendiente: <strong>$<?= fmt_moneda($cliente_filtrado['saldo_fiado']) ?></strong>
             <?php endif; ?>
         </span>
         <a href="<?= APP_BASE ?>/ventas/historial.php?desde=<?= $fecha_desde ?>&hasta=<?= $fecha_hasta ?>"
@@ -375,19 +375,19 @@ foreach ($ventas as $v) {
     <!-- KPIs -->
     <div class="kpi-row">
         <div class="kpi"><div class="kpi-val brand"><?= $kpi['n'] ?></div><div class="kpi-lbl">Ventas</div></div>
-        <div class="kpi"><div class="kpi-val">$<?= number_format($kpi['total'],0,',','.') ?></div><div class="kpi-lbl">Total recaudado</div></div>
-        <div class="kpi"><div class="kpi-val green">$<?= number_format($kpi['efectivo'],0,',','.') ?></div><div class="kpi-lbl">Efectivo</div></div>
-        <div class="kpi"><div class="kpi-val" style="color:#5b21b6">$<?= number_format($kpi['digital'],0,',','.') ?></div><div class="kpi-lbl">Digital</div></div>
-        <div class="kpi"><div class="kpi-val warn">$<?= number_format($kpi['fiado'],0,',','.') ?></div><div class="kpi-lbl">Fiado</div></div>
+        <div class="kpi"><div class="kpi-val">$<?= fmt_moneda($kpi['total']) ?></div><div class="kpi-lbl">Total recaudado</div></div>
+        <div class="kpi"><div class="kpi-val green">$<?= fmt_moneda($kpi['efectivo']) ?></div><div class="kpi-lbl">Efectivo</div></div>
+        <div class="kpi"><div class="kpi-val" style="color:#5b21b6">$<?= fmt_moneda($kpi['digital']) ?></div><div class="kpi-lbl">Digital</div></div>
+        <div class="kpi"><div class="kpi-val warn">$<?= fmt_moneda($kpi['fiado']) ?></div><div class="kpi-lbl">Fiado</div></div>
         <?php if ($kpi['pendiente'] > 0): ?>
         <div class="kpi" style="border-color:#fca5a5;background:#fff8f7">
-            <div class="kpi-val red">$<?= number_format($kpi['pendiente'],0,',','.') ?></div>
+            <div class="kpi-val red">$<?= fmt_moneda($kpi['pendiente']) ?></div>
             <div class="kpi-lbl">Sin cobrar</div>
         </div>
         <?php endif; ?>
         <?php if ($kpi['obsequio_n'] > 0): ?>
         <div class="kpi" style="border-color:#fbcfe8;background:#fdf4ff">
-            <div class="kpi-val" style="color:#9d174d"><?= $kpi['obsequio_n'] ?> — $<?= number_format($kpi['obsequio_val'],0,',','.') ?></div>
+            <div class="kpi-val" style="color:#9d174d"><?= $kpi['obsequio_n'] ?> — $<?= fmt_moneda($kpi['obsequio_val']) ?></div>
             <div class="kpi-lbl">🎁 Obsequiados</div>
         </div>
         <?php endif; ?>
@@ -443,9 +443,9 @@ foreach ($ventas as $v) {
                 </td>
                 <td><span class="badge badge-<?= htmlspecialchars($v['metodo_pago']) ?>"><?= htmlspecialchars(ucfirst($v['metodo_pago'])) ?></span></td>
                 <td class="r">
-                    <strong>$<?= number_format((float)$v['total'],0,',','.') ?></strong>
+                    <strong>$<?= fmt_moneda((float)$v['total']) ?></strong>
                     <?php if ((float)($v['descuento_pct'] ?? 0) > 0): ?>
-                    <br><span class="badge" style="background:#fef3c7;color:#92400e;font-size:10px">−<?= number_format((float)$v['descuento_pct'],0) ?>% dto</span>
+                    <br><span class="badge" style="background:#fef3c7;color:#92400e;font-size:10px">−<?= fmt_cantidad((float)$v['descuento_pct'], 0) ?>% dto</span>
                     <?php endif; ?>
                 </td>
                 <td>
