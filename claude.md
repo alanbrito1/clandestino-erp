@@ -1,4 +1,4 @@
-# ClanDestino ERP v4.90 — Memoria de Sesión
+# ClanDestino ERP v4.91 — Memoria de Sesión
 # Última sesión: 2026-06-12 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
@@ -2659,3 +2659,65 @@ empleados, horas — 3 commits separados; parametros.php sin cambios, fuera de a
 categorización: "horas" y "valor/hora" a 2 decimales tratados como "cantidad"
 (`fmt_cantidad($x,2)`). `toLocaleString('es-CO')` de empleados.php/horas.php queda fuera de
 alcance (patrón compartido, candidato a v4.91). Pendiente prueba manual en navegador.*
+
+---
+
+## Estado v4.91 (2026-06-12)
+
+### Migración `toLocaleString('es-CO')` → `NUM_FORMAT` (formatMiles/formatDecimal)
+
+Cierra el candidato pendiente desde v4.89/v4.90: se reemplazaron los **25 sitios** restantes
+que usaban `Number.prototype.toLocaleString('es-CO', ...)` (separadores fijos es-CO,
+independientes de la configuración) por `formatMiles(x)` (montos en pesos, 0 decimales) o
+`formatDecimal(x, N)` (cantidades, N decimales preservados), ambos definidos en `nav.php`
+(v4.87) y ya disponibles globalmente en toda página que incluye el layout. Confirmado tras el
+cambio: `grep -r "toLocaleString('es-CO'" public_html/` → 0 resultados.
+
+Regla aplicada (análoga a la regla f de v4.88 para PHP):
+- `Math.round(x).toLocaleString('es-CO')` / `x.toLocaleString('es-CO', {maximumFractionDigits:0})`
+  → `formatMiles(x)` (montos en pesos).
+- `x.toLocaleString('es-CO', {maximumFractionDigits:N})` /
+  `{minimumFractionDigits:N, maximumFractionDigits:N}` → `formatDecimal(x, N)` (cantidades,
+  preserva N decimales). Nota: `toLocaleString` con solo `maximumFractionDigits` recorta ceros
+  finales (ej. "5" en vez de "5,00"); `formatDecimal(x,N)` siempre muestra N decimales fijos —
+  mismo criterio que `fmt_cantidad()` en PHP (consistencia con los valores ya renderizados en
+  servidor en la misma página).
+
+### Archivos modificados (9 commits)
+
+| Archivo | Commit | Cambio |
+|---|---|---|
+| `ventas/index.php` | `d7d7930` | Deuda de cliente (autocomplete + chip) → `formatMiles()` (2 sitios) |
+| `ventas/fiado.php` | `4fc5026` | Preview de saldo y toast de abono → `formatMiles()` (2 sitios) |
+| `inventario/compras.php` | `ca6479a` | Precio de referencia → `formatMiles()`; hints de cantidad total y precio/u → `formatDecimal()` (8 sitios) |
+| `costos/index.php` | `024b2d2` | Hint de equivalente mensual → `formatMiles()` (1 sitio) |
+| `productos/produccion.php` | `cfb9a5d` | Preview de descuento/restante de ingredientes (4 decimales) → `formatDecimal(x,4)` (2 sitios) |
+| `nomina/horas.php` | `1df5d83` | Pago estimado con recargo → `formatMiles()` (1 sitio) |
+| `nomina/empleados.php` | `6abacaa` | Hint valor/hora (manual y automático) → `formatMiles()`/`formatDecimal(x,2)` (3 sitios) |
+| `clientes/index.php` | `43a6995` | Saldo en fusión, modal de abono y toast → `formatMiles()` (4 sitios) |
+| `activos/index.php` | `74b736c` | Total calculado (precio_unitario × número_unidades) → `formatMiles()` (2 sitios) |
+| `app/config/app.php` | (este commit) | APP_VERSION → 4.91 |
+
+### Verificación
+
+`php -l` sin errores en los 9 archivos (9 bloques, 9 commits separados, push tras cada uno).
+**Pendiente prueba manual en navegador** (acumulada con v4.83-v4.90, sin acceso a
+navegador/BD desde este entorno): con config por defecto (2/`.`/`,`) confirmar que todos los
+hints/previews tocados se ven igual que antes; con config alternativa (3 decimales,
+separadores en-US) confirmar que los hints de cantidad muestran 3 decimales y los montos en
+pesos muestran los nuevos separadores.
+
+### v4.92+ (futuro)
+
+Con v4.87-v4.91 completos, la infraestructura de formato numérico configurable
+(`fmt_cantidad()`/`fmt_moneda()`/`NUM_FORMAT`/`formatDecimal()`/`formatMiles()`) cubre todos
+los módulos con `number_format`/`toFixed`/`toLocaleString('es-CO')` detectados (productos,
+ventas, nómina, inventario, costos, clientes, activos). Sin candidatos pendientes de este
+patrón. Próxima sesión: definir nuevo objetivo (revisar módulos restantes — compras/reportes —
+por si quedan casos sueltos, o abordar las pruebas manuales acumuladas v4.83-v4.91, o nueva
+funcionalidad).
+
+*Última actualización: 2026-06-12 | v4.91 — migración completa de `toLocaleString('es-CO')` a
+`formatMiles()`/`formatDecimal()` (NUM_FORMAT) en 9 archivos / 25 sitios, 9 commits separados.
+Cierra el patrón v4.87-v4.91 de formato numérico configurable. Pendiente prueba manual en
+navegador (acumulada v4.83-v4.91).*

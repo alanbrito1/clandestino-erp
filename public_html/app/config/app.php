@@ -6,7 +6,7 @@
  */
 
 define('APP_NAME',    'ClanDestino ERP');
-define('APP_VERSION', '4.90'); // 2026-06-12: v4.90 formato numérico configurable aplicado a módulo Nómina (index/empleados/horas)
+define('APP_VERSION', '4.91'); // 2026-06-12: v4.91 migracion toLocaleString('es-CO') a NUM_FORMAT (formatMiles/formatDecimal) en 9 archivos
 define('APP_ENV',     'production'); // cambiar a 'development' para depurar
 
 // Ruta absoluta a public_html/ (raíz web del proyecto)
