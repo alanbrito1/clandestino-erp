@@ -930,13 +930,13 @@ $nav_activo = 'ventas';
 <div class="resumen-bar">
     <span>Ventas hoy: <strong><?= $resumen['total_ventas'] ?></strong></span>
     <span class="resumen-sep">|</span>
-    <span>Total: <strong>$<?= number_format($resumen['total_pesos'], 0, ',', '.') ?></strong></span>
+    <span>Total: <strong>$<?= fmt_moneda($resumen['total_pesos']) ?></strong></span>
     <span class="resumen-sep">|</span>
-    <span>Efectivo: <strong>$<?= number_format($resumen['efectivo'], 0, ',', '.') ?></strong></span>
+    <span>Efectivo: <strong>$<?= fmt_moneda($resumen['efectivo']) ?></strong></span>
     <span class="resumen-sep">|</span>
-    <span>Digital: <strong>$<?= number_format($resumen['nequi'] + $resumen['daviplata'] + $resumen['bancolombia'], 0, ',', '.') ?></strong></span>
+    <span>Digital: <strong>$<?= fmt_moneda($resumen['nequi'] + $resumen['daviplata'] + $resumen['bancolombia']) ?></strong></span>
     <span class="resumen-sep">|</span>
-    <span>Fiado: <strong>$<?= number_format($resumen['fiado'], 0, ',', '.') ?></strong></span>
+    <span>Fiado: <strong>$<?= fmt_moneda($resumen['fiado']) ?></strong></span>
     <?php if ((float)($resumen['obsequio'] ?? 0) > 0): ?>
     <span class="resumen-sep">|</span>
     <span>🎁 Obsequios: <strong><?= $resumen['obsequio_n'] ?></strong></span>
@@ -1011,9 +1011,9 @@ $nav_activo = 'ventas';
             <?php endif; ?>
             <?php if ($tieneVariantes && $precioDesde !== null): ?>
             <span class="prod-desde">Desde</span>
-            <div class="prod-precio">$<?= number_format($precioDesde, 0, ',', '.') ?></div>
+            <div class="prod-precio">$<?= fmt_moneda($precioDesde) ?></div>
             <?php else: ?>
-            <div class="prod-precio">$<?= number_format($precio, 0, ',', '.') ?></div>
+            <div class="prod-precio">$<?= fmt_moneda($precio) ?></div>
             <?php endif; ?>
             <span class="prod-capacidad <?= $cap_class ?>" id="cap-<?= $p['id'] ?>">
                 <?= $cap_txt ?>
