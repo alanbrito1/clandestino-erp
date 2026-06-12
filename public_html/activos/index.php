@@ -783,7 +783,7 @@ function calcTotal(p) {
     var tot = document.getElementById(p+'-total');
     var lbl = document.getElementById(p+'-calc');
     if (!tot) return;
-    if (pu > 0) { var t = pu*nu; tot.value = t; if (lbl) lbl.textContent = '= $'+Math.round(t).toLocaleString('es-CO'); }
+    if (pu > 0) { var t = pu*nu; tot.value = t; if (lbl) lbl.textContent = '= $'+formatMiles(t); }
 }
 function abrirModal(id) { var el=document.getElementById(id); if(el) el.classList.add('on'); }
 function cerrar(id)     { var el=document.getElementById(id); if(el) el.classList.remove('on'); }
@@ -821,7 +821,7 @@ function abrirEditar(a) {
     }
     if (parseFloat(a.precio_unitario) > 0) {
         var t = parseFloat(a.precio_unitario) * (parseInt(a.numero_unidades)||1);
-        var lbl = s('e-calc'); if(lbl) lbl.textContent = '= $'+Math.round(t).toLocaleString('es-CO');
+        var lbl = s('e-calc'); if(lbl) lbl.textContent = '= $'+formatMiles(t);
     }
     abrirModal('modal-editar');
 }
