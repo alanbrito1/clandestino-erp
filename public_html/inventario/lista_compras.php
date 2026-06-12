@@ -135,7 +135,7 @@ $fecha_generada = date('d/m/Y H:i');
     <div class="total-banner">
         <div>
             <div class="total-label">Inversión estimada</div>
-            <div class="total-val">$<?= number_format($total_estimado, 0, ',', '.') ?></div>
+            <div class="total-val">$<?= fmt_moneda($total_estimado) ?></div>
         </div>
         <div style="text-align:right">
             <div class="total-label">Proveedores</div>
@@ -150,7 +150,7 @@ $fecha_generada = date('d/m/Y H:i');
     <div class="proveedor-card">
         <div class="proveedor-hdr">
             <div class="proveedor-nombre">🏪 <?= htmlspecialchars($prov_nombre) ?></div>
-            <div class="proveedor-total">Subtotal estimado: $<?= number_format($total_prov, 0, ',', '.') ?></div>
+            <div class="proveedor-total">Subtotal estimado: $<?= fmt_moneda($total_prov) ?></div>
         </div>
         <table>
             <thead>
@@ -176,15 +176,15 @@ $fecha_generada = date('d/m/Y H:i');
                         <span class="badge <?= $badgeC ?>"><?= $estado ?></span>
                     </td>
                     <td>
-                        <?= number_format($item['stock_actual'], 2, ',', '.') ?>
+                        <?= fmt_cantidad($item['stock_actual']) ?>
                         <small style="color:var(--g5)"><?= htmlspecialchars($item['unidad_medida']) ?></small>
                     </td>
                     <td class="num">
-                        <?= number_format(max(0, $item['cantidad_sugerida']), 2, ',', '.') ?>
+                        <?= fmt_cantidad(max(0, $item['cantidad_sugerida'])) ?>
                         <small style="color:var(--g5); font-weight:400"><?= htmlspecialchars($item['unidad_medida']) ?></small>
                     </td>
                     <td class="num">
-                        $<?= number_format($item['costo_estimado'], 0, ',', '.') ?>
+                        $<?= fmt_moneda($item['costo_estimado']) ?>
                     </td>
                 </tr>
                 <?php endforeach; ?>
