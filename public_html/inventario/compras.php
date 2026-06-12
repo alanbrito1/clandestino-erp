@@ -497,7 +497,7 @@ $insumos_js = json_encode(array_map(fn($i) => [
                 <div style="margin-top:6px;padding-left:8px;border-left:3px solid var(--g8)">
                     <?php foreach ($cv['lineas'] as $lin): ?>
                     <div style="font-size:12px;color:var(--g5);display:flex;justify-content:space-between">
-                        <span><?= htmlspecialchars($lin['insumo']) ?> (<?= $lin['cantidad'] ?> <?= htmlspecialchars($lin['unidad_medida']) ?>)</span>
+                        <span><?= htmlspecialchars($lin['insumo']) ?> (<?= fmt_cantidad((float)$lin['cantidad']) ?> <?= htmlspecialchars($lin['unidad_medida']) ?>)</span>
                         <span>$<?= fmt_moneda($lin['subtotal']) ?></span>
                     </div>
                     <?php endforeach; ?>

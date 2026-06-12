@@ -499,6 +499,7 @@ async function generarNomina(mes, anio) {
     fd.append('csrf_token', document.getElementById('csrf-token').value);
     fd.append('mes',  mes);
     fd.append('anio', anio);
+    fd.append('accion', 'generar');
 
     try {
         const resp = await fetch('api/generar.php', { method: 'POST', body: fd });
