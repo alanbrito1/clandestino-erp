@@ -191,11 +191,11 @@ $msg_err = $_GET['err'] ?? '';
             <div class="stat-l">Empleados liquidados</div>
         </div>
         <div class="stat-card">
-            <div class="stat-n">$<?= number_format($resumen['total_salarios'] ?? 0, 0, ',', '.') ?></div>
+            <div class="stat-n">$<?= fmt_moneda($resumen['total_salarios'] ?? 0) ?></div>
             <div class="stat-l">Total salarios</div>
         </div>
         <div class="stat-card" style="grid-column: span 1">
-            <div class="stat-n" style="color:var(--brand)">$<?= number_format($resumen['costo_total'] ?? 0, 0, ',', '.') ?></div>
+            <div class="stat-n" style="color:var(--brand)">$<?= fmt_moneda($resumen['costo_total'] ?? 0) ?></div>
             <div class="stat-l">Costo real ClanDestino</div>
         </div>
     </div>
@@ -320,25 +320,25 @@ $msg_err = $_GET['err'] ?? '';
                         </span>
                     </td>
                     <td class="r hide-m">
-                        $<?= number_format($pago_base, 0, ',', '.') ?>
+                        $<?= fmt_moneda($pago_base) ?>
                         <br><small style="color:var(--g5)"><?= $lbl_pago ?></small>
                     </td>
                     <td class="r hide-m">
                         <?php if ($tipo === 'por_servicio'): ?>
                         <span style="color:var(--g5)">—</span>
                         <?php else: ?>
-                        $<?= number_format($liq['total_cargas'], 0, ',', '.') ?>
+                        $<?= fmt_moneda($liq['total_cargas']) ?>
                         <?php endif; ?>
                     </td>
                     <td class="r hide-m">
                         <?php if ($tipo === 'por_servicio'): ?>
                         <span style="color:var(--g5)">—</span>
                         <?php else: ?>
-                        $<?= number_format($liq['total_provisiones'], 0, ',', '.') ?>
+                        $<?= fmt_moneda($liq['total_provisiones']) ?>
                         <?php endif; ?>
                     </td>
                     <td class="r" style="font-weight:800; color:var(--brand)">
-                        $<?= number_format($liq['costo_total_empleador'], 0, ',', '.') ?>
+                        $<?= fmt_moneda($liq['costo_total_empleador']) ?>
                     </td>
                     <td>
                         <?php if ($esPagado): ?>
@@ -388,12 +388,12 @@ $msg_err = $_GET['err'] ?? '';
                                 foreach ($items_cargas as $lbl => $val): ?>
                                 <div class="drow">
                                     <span><?= $lbl ?></span>
-                                    <span>$<?= number_format($val, 0, ',', '.') ?></span>
+                                    <span>$<?= fmt_moneda($val) ?></span>
                                 </div>
                                 <?php endforeach; ?>
                                 <div class="drow subtotal">
                                     <span>Subtotal Cargas</span>
-                                    <span>$<?= number_format($liq['total_cargas'], 0, ',', '.') ?></span>
+                                    <span>$<?= fmt_moneda($liq['total_cargas']) ?></span>
                                 </div>
                             </div>
                             <!-- Columna Provisiones -->
@@ -409,12 +409,12 @@ $msg_err = $_GET['err'] ?? '';
                                 foreach ($items_prov as $lbl => $val): ?>
                                 <div class="drow">
                                     <span><?= $lbl ?></span>
-                                    <span>$<?= number_format($val, 0, ',', '.') ?></span>
+                                    <span>$<?= fmt_moneda($val) ?></span>
                                 </div>
                                 <?php endforeach; ?>
                                 <div class="drow subtotal">
                                     <span>Subtotal Provisiones</span>
-                                    <span>$<?= number_format($liq['total_provisiones'], 0, ',', '.') ?></span>
+                                    <span>$<?= fmt_moneda($liq['total_provisiones']) ?></span>
                                 </div>
                             </div>
                         </div>
@@ -423,24 +423,24 @@ $msg_err = $_GET['err'] ?? '';
                             <!-- Pago base con etiqueta según tipo de contrato -->
                             <div class="drow" style="font-size:12px; color:var(--g5)">
                                 <span><?= htmlspecialchars($lbl_pago) ?></span>
-                                <span>$<?= number_format($pago_base, 0, ',', '.') ?></span>
+                                <span>$<?= fmt_moneda($pago_base) ?></span>
                             </div>
                             <?php if ((float)$liq['aux_transporte'] > 0): ?>
                             <div class="drow" style="font-size:12px; color:var(--g5)">
                                 <span>Auxilio Transporte</span>
-                                <span>$<?= number_format($liq['aux_transporte'], 0, ',', '.') ?></span>
+                                <span>$<?= fmt_moneda($liq['aux_transporte']) ?></span>
                             </div>
                             <?php endif; ?>
                             <?php if ((float)$liq['total_cargas'] > 0): ?>
                             <div class="drow" style="font-size:12px; color:var(--g5)">
                                 <span>+ Cargas empleador</span>
-                                <span>$<?= number_format($liq['total_cargas'], 0, ',', '.') ?></span>
+                                <span>$<?= fmt_moneda($liq['total_cargas']) ?></span>
                             </div>
                             <?php endif; ?>
                             <?php if ((float)$liq['total_provisiones'] > 0): ?>
                             <div class="drow" style="font-size:12px; color:var(--g5)">
                                 <span>+ Provisiones</span>
-                                <span>$<?= number_format($liq['total_provisiones'], 0, ',', '.') ?></span>
+                                <span>$<?= fmt_moneda($liq['total_provisiones']) ?></span>
                             </div>
                             <?php endif; ?>
                             <?php if ($tipo === 'por_servicio'): ?>
@@ -450,7 +450,7 @@ $msg_err = $_GET['err'] ?? '';
                             <?php endif; ?>
                             <div class="drow total-final">
                                 <span>COSTO TOTAL EMPLEADOR</span>
-                                <span>$<?= number_format($liq['costo_total_empleador'], 0, ',', '.') ?></span>
+                                <span>$<?= fmt_moneda($liq['costo_total_empleador']) ?></span>
                             </div>
                         </div>
                     </td>
@@ -460,11 +460,11 @@ $msg_err = $_GET['err'] ?? '';
                 <?php if (!empty($liquidaciones)): ?>
                 <tr style="background:var(--g9)">
                     <td><strong>TOTAL <?= count($liquidaciones) ?> EMPLEADOS</strong></td>
-                    <td class="r hide-m"><strong>$<?= number_format($resumen['total_salarios'] ?? 0, 0, ',', '.') ?></strong></td>
-                    <td class="r hide-m"><strong>$<?= number_format($resumen['total_cargas'] ?? 0, 0, ',', '.') ?></strong></td>
-                    <td class="r hide-m"><strong>$<?= number_format($resumen['total_provisiones'] ?? 0, 0, ',', '.') ?></strong></td>
+                    <td class="r hide-m"><strong>$<?= fmt_moneda($resumen['total_salarios'] ?? 0) ?></strong></td>
+                    <td class="r hide-m"><strong>$<?= fmt_moneda($resumen['total_cargas'] ?? 0) ?></strong></td>
+                    <td class="r hide-m"><strong>$<?= fmt_moneda($resumen['total_provisiones'] ?? 0) ?></strong></td>
                     <td class="r" style="font-weight:800; font-size:16px; color:var(--brand)">
-                        $<?= number_format($resumen['costo_total'] ?? 0, 0, ',', '.') ?>
+                        $<?= fmt_moneda($resumen['costo_total'] ?? 0) ?>
                     </td>
                     <td></td>
                 </tr>
