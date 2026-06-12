@@ -163,7 +163,7 @@ if (isset($_GET['export'])) {
     // Hoja 2: Activos
     $w->setSheet('Activos');
     $w->addRow(['ClanDestino ERP — Activos Fijos'], true);
-    $w->addRow(['Generado: ' . date('d/m/Y H:i') . '  |  Depreciación diaria total: $' . number_format($dep_dia, 2)]);
+    $w->addRow(['Generado: ' . date('d/m/Y H:i') . '  |  Depreciación diaria total: $' . fmt_cantidad($dep_dia, 2)]);
     $w->addEmptyRow();
     $w->addRow(['Activo', 'Descripción', 'Costo Inicial', 'Fecha Adq.', 'Vida Útil (m)', 'Dep. Mensual', 'Dep. Diaria', 'Meses Rest.', 'Estado Vida'], true);
 
@@ -388,10 +388,10 @@ $agotados = count(array_filter($insumos, fn($i) => $i['estado'] === 'agotado'));
 
     <!-- Stats -->
     <div class="stats">
-        <div class="stat"><div class="stat-n">$<?= number_format($valor_inventario,0,',','.') ?></div><div class="stat-l">Valor Inventario</div></div>
+        <div class="stat"><div class="stat-n">$<?= fmt_moneda($valor_inventario) ?></div><div class="stat-l">Valor Inventario</div></div>
         <div class="stat"><div class="stat-n" style="color:var(--yellow)"><?= $bajos ?></div><div class="stat-l">Insumos Bajos</div></div>
         <div class="stat"><div class="stat-n" style="color:var(--brand)"><?= $agotados ?></div><div class="stat-l">Agotados</div></div>
-        <div class="stat"><div class="stat-n" style="color:var(--brand)">$<?= number_format($dep_dia,2,',','.') ?></div><div class="stat-l">Dep. Diaria</div></div>
+        <div class="stat"><div class="stat-n" style="color:var(--brand)">$<?= fmt_cantidad($dep_dia, 2) ?></div><div class="stat-l">Dep. Diaria</div></div>
     </div>
 
     <!-- Inventario -->
@@ -412,16 +412,16 @@ $agotados = count(array_filter($insumos, fn($i) => $i['estado'] === 'agotado'));
                 ?>
                 <tr>
                     <td><?= htmlspecialchars($i['nombre']) ?></td>
-                    <td class="r"><?= number_format($i['stock_actual'],2,',','.') ?> <small style="color:var(--g5)"><?= htmlspecialchars($i['unidad_medida']) ?></small></td>
-                    <td class="r hide-m"><?= number_format($i['stock_seguridad'],2,',','.') ?></td>
-                    <td class="r hide-m">$<?= number_format($i['costo_actual'],0,',','.') ?></td>
-                    <td class="r hide-m">$<?= number_format((float)$i['stock_actual']*(float)$i['costo_actual'],0,',','.') ?></td>
+                    <td class="r"><?= fmt_cantidad($i['stock_actual'], 2) ?> <small style="color:var(--g5)"><?= htmlspecialchars($i['unidad_medida']) ?></small></td>
+                    <td class="r hide-m"><?= fmt_cantidad($i['stock_seguridad'], 2) ?></td>
+                    <td class="r hide-m">$<?= fmt_moneda($i['costo_actual']) ?></td>
+                    <td class="r hide-m">$<?= fmt_moneda((float)$i['stock_actual']*(float)$i['costo_actual']) ?></td>
                     <td><span class="badge <?= $bc ?>"><?= $i['estado'] ?></span></td>
                 </tr>
                 <?php endforeach; ?>
                 <tr style="background:var(--g9); font-weight:800">
                     <td colspan="4">VALOR TOTAL INVENTARIO</td>
-                    <td class="r hide-m">$<?= number_format($valor_inventario,0,',','.') ?></td>
+                    <td class="r hide-m">$<?= fmt_moneda($valor_inventario) ?></td>
                     <td></td>
                 </tr>
             </tbody>
@@ -447,16 +447,16 @@ $agotados = count(array_filter($insumos, fn($i) => $i['estado'] === 'agotado'));
                 ?>
                 <tr>
                     <td><?= htmlspecialchars($a['nombre']) ?></td>
-                    <td class="r hide-m">$<?= number_format($a['costo_inicial'],0,',','.') ?></td>
-                    <td class="r hide-m">$<?= number_format($a['depreciacion_mensual'],0,',','.') ?></td>
-                    <td class="r">$<?= number_format($a['depreciacion_diaria'],2,',','.') ?></td>
+                    <td class="r hide-m">$<?= fmt_moneda($a['costo_inicial']) ?></td>
+                    <td class="r hide-m">$<?= fmt_moneda($a['depreciacion_mensual']) ?></td>
+                    <td class="r">$<?= fmt_cantidad($a['depreciacion_diaria'], 2) ?></td>
                     <td class="r hide-m"><?= $a['meses_restantes'] ?> m</td>
                     <td><span class="badge <?= $bc ?>"><?= $a['estado_vida'] ?></span></td>
                 </tr>
                 <?php endforeach; ?>
                 <tr style="background:var(--g9); font-weight:800">
                     <td colspan="3">TOTAL DEPRECIACIÓN DIARIA</td>
-                    <td class="r">$<?= number_format($dep_dia,2,',','.') ?></td>
+                    <td class="r">$<?= fmt_cantidad($dep_dia, 2) ?></td>
                     <td colspan="2"></td>
                 </tr>
             </tbody>
@@ -494,14 +494,14 @@ $agotados = count(array_filter($insumos, fn($i) => $i['estado'] === 'agotado'));
                 <td><?= htmlspecialchars($ob['cliente']) ?></td>
                 <td class="hide-m" style="font-size:12px;color:var(--g2)"><?= htmlspecialchars($ob['productos'] ?? '—') ?></td>
                 <td class="r"><?= (int)$ob['total_unidades'] ?></td>
-                <td class="r">$<?= number_format((float)$ob['total'],0,',','.') ?></td>
+                <td class="r">$<?= fmt_moneda((float)$ob['total']) ?></td>
                 <td class="hide-m" style="font-size:12px"><?= htmlspecialchars($ob['cajero'] ?? '') ?></td>
             </tr>
             <?php endforeach; ?>
             <tr style="background:var(--g9);font-weight:800">
                 <td colspan="3">TOTAL OBSEQUIOS POS</td>
                 <td class="r"><?= $obs_total_u ?></td>
-                <td class="r">$<?= number_format($obs_total_v,0,',','.') ?></td>
+                <td class="r">$<?= fmt_moneda($obs_total_v) ?></td>
                 <td class="hide-m"></td>
             </tr>
             </tbody>
@@ -580,9 +580,9 @@ $agotados = count(array_filter($insumos, fn($i) => $i['estado'] === 'agotado'));
                     </a>
                 </td>
                 <td class="hide-m" style="font-size:12px"><?= htmlspecialchars($tc['usuario_apertura'] ?? '—') ?></td>
-                <td class="r">$<?= number_format($fondo, 0, ',', '.') ?></td>
-                <td class="r" style="color:var(--green);font-weight:700">$<?= number_format($efec, 0, ',', '.') ?></td>
-                <td class="r" style="font-weight:800">$<?= number_format($total, 0, ',', '.') ?></td>
+                <td class="r">$<?= fmt_moneda($fondo) ?></td>
+                <td class="r" style="color:var(--green);font-weight:700">$<?= fmt_moneda($efec) ?></td>
+                <td class="r" style="font-weight:800">$<?= fmt_moneda($total) ?></td>
                 <td style="text-align:center">
                     <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;
                                  <?= $tc['estado']==='abierto'
@@ -598,9 +598,9 @@ $agotados = count(array_filter($insumos, fn($i) => $i['estado'] === 'agotado'));
             <?php endforeach; ?>
             <tr style="background:var(--g9);font-weight:800">
                 <td colspan="2">TOTAL</td>
-                <td class="r">$<?= number_format($tc_fondo, 0, ',', '.') ?></td>
-                <td class="r" style="color:var(--green)">$<?= number_format($tc_efec, 0, ',', '.') ?></td>
-                <td class="r">$<?= number_format($tc_fondo + $tc_efec, 0, ',', '.') ?></td>
+                <td class="r">$<?= fmt_moneda($tc_fondo) ?></td>
+                <td class="r" style="color:var(--green)">$<?= fmt_moneda($tc_efec) ?></td>
+                <td class="r">$<?= fmt_moneda($tc_fondo + $tc_efec) ?></td>
                 <td colspan="2"></td>
             </tr>
             </tbody>
