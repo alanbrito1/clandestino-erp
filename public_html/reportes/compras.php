@@ -228,8 +228,8 @@ if (($_GET['export'] ?? '') === '1') {
     <!-- KPIs -->
     <div class="kpi-row">
         <div class="kpi"><div class="kpi-val brand"><?= $n_compras ?></div><div class="kpi-lbl">Compras</div></div>
-        <div class="kpi"><div class="kpi-val">$<?= number_format($total_periodo,0,',','.') ?></div><div class="kpi-lbl">Total gastado</div></div>
-        <div class="kpi"><div class="kpi-val green">$<?= number_format($promedio,0,',','.') ?></div><div class="kpi-lbl">Promedio por compra</div></div>
+        <div class="kpi"><div class="kpi-val">$<?= fmt_moneda($total_periodo) ?></div><div class="kpi-lbl">Total gastado</div></div>
+        <div class="kpi"><div class="kpi-val green">$<?= fmt_moneda($promedio) ?></div><div class="kpi-lbl">Promedio por compra</div></div>
         <div class="kpi"><div class="kpi-val"><?= count($por_proveedor) ?></div><div class="kpi-lbl">Proveedores</div></div>
     </div>
 
@@ -248,12 +248,12 @@ if (($_GET['export'] ?? '') === '1') {
             <tr>
                 <td><?= htmlspecialchars($r['proveedor']) ?></td>
                 <td class="r"><?= (int)$r['n'] ?></td>
-                <td class="r"><strong>$<?= number_format((float)$r['total'],0,',','.') ?></strong></td>
+                <td class="r"><strong>$<?= fmt_moneda((float)$r['total']) ?></strong></td>
                 <td class="r" style="color:var(--g5)"><?= $pct ?>%</td>
             </tr>
             <?php endforeach; ?>
             </tbody>
-            <tfoot><tr class="total-row"><td>TOTAL</td><td class="r"><?= $n_compras ?></td><td class="r">$<?= number_format($total_periodo,0,',','.') ?></td><td class="r">100%</td></tr></tfoot>
+            <tfoot><tr class="total-row"><td>TOTAL</td><td class="r"><?= $n_compras ?></td><td class="r">$<?= fmt_moneda($total_periodo) ?></td><td class="r">100%</td></tr></tfoot>
         </table>
         <?php endif; ?>
     </div>
@@ -269,9 +269,9 @@ if (($_GET['export'] ?? '') === '1') {
             <tr>
                 <td><strong><?= htmlspecialchars($r['nombre']) ?></strong></td>
                 <td style="color:var(--g5)"><?= htmlspecialchars($r['unidad_medida']) ?></td>
-                <td class="r"><?= number_format((float)$r['total_cantidad'],2,',','.') ?></td>
-                <td class="r">$<?= number_format((float)$r['precio_promedio'],0,',','.') ?></td>
-                <td class="r"><strong>$<?= number_format((float)$r['total_pesos'],0,',','.') ?></strong></td>
+                <td class="r"><?= fmt_cantidad((float)$r['total_cantidad'], 2) ?></td>
+                <td class="r">$<?= fmt_moneda((float)$r['precio_promedio']) ?></td>
+                <td class="r"><strong>$<?= fmt_moneda((float)$r['total_pesos']) ?></strong></td>
             </tr>
             <?php endforeach; ?>
             </tbody>
@@ -295,11 +295,11 @@ if (($_GET['export'] ?? '') === '1') {
                 <td style="font-size:12px;color:var(--g5);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
                     <?= htmlspecialchars($c['insumos_lista'] ?? '—') ?>
                 </td>
-                <td class="r"><strong>$<?= number_format((float)$c['total'],0,',','.') ?></strong></td>
+                <td class="r"><strong>$<?= fmt_moneda((float)$c['total']) ?></strong></td>
             </tr>
             <?php endforeach; ?>
             </tbody>
-            <tfoot><tr class="total-row"><td colspan="3">TOTAL</td><td class="r">$<?= number_format($total_periodo,0,',','.') ?></td></tr></tfoot>
+            <tfoot><tr class="total-row"><td colspan="3">TOTAL</td><td class="r">$<?= fmt_moneda($total_periodo) ?></td></tr></tfoot>
         </table>
         <?php endif; ?>
     </div>
