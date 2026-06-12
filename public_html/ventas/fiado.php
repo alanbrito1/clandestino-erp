@@ -129,7 +129,7 @@ $total_fiado = array_sum(array_column($clientes_fiado, 'saldo_fiado'));
 
     <!-- Resumen total fiado -->
     <div class="card">
-        <div class="stat-total">$<?= number_format($total_fiado, 0, ',', '.') ?></div>
+        <div class="stat-total">$<?= fmt_moneda($total_fiado) ?></div>
         <p class="stat-sub">deuda total pendiente · <?= count($clientes_fiado) ?> cliente<?= count($clientes_fiado) != 1 ? 's' : '' ?></p>
     </div>
 
@@ -156,7 +156,7 @@ $total_fiado = array_sum(array_column($clientes_fiado, 'saldo_fiado'));
                         <?php endif; ?>
                     </div>
                     <div style="text-align:right">
-                        <div class="cliente-saldo">$<?= number_format($c['saldo_fiado'], 0, ',', '.') ?></div>
+                        <div class="cliente-saldo">$<?= fmt_moneda($c['saldo_fiado']) ?></div>
                         <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:4px">
                             <button class="btn-open" onclick="toggleAbono(<?= $c['id'] ?>)"><?= IC_CASH ?> Abonar</button>
                             <!-- Estado de cuenta: ver historial completo de cargos y abonos -->
@@ -167,7 +167,7 @@ $total_fiado = array_sum(array_column($clientes_fiado, 'saldo_fiado'));
                             <?php if (!empty($c['telefono'])):
                                 $tel_f  = preg_replace('/[^0-9]/', '', $c['telefono']);
                                 $tel_wf = (strlen($tel_f) === 10 && str_starts_with($tel_f, '3')) ? '57'.$tel_f : $tel_f;
-                                $sf_f   = number_format((float)$c['saldo_fiado'], 0, ',', '.');
+                                $sf_f   = fmt_moneda((float)$c['saldo_fiado']);
                                 $msg_wf = rawurlencode("Hola {$c['nombre']}, te recordamos que tienes un saldo pendiente de \${$sf_f} en " . APP_NAME . ". ¿Cuándo podemos acordar el pago? ¡Gracias! 🙏");
                             ?>
                             <a href="https://wa.me/<?= $tel_wf ?>?text=<?= $msg_wf ?>" target="_blank" rel="noopener noreferrer"
@@ -205,7 +205,7 @@ $total_fiado = array_sum(array_column($clientes_fiado, 'saldo_fiado'));
                         </div>
                     </div>
                     <p class="ab-preview" id="preview-<?= $c['id'] ?>" style="font-size:12px;color:var(--g5);margin-bottom:8px">
-                        Saldo actual: $<?= number_format($c['saldo_fiado'], 0, ',', '.') ?>
+                        Saldo actual: $<?= fmt_moneda($c['saldo_fiado']) ?>
                     </p>
                     <div style="display:flex; gap:8px;">
                         <button type="button" class="btn-abonar" onclick="confirmarAbonoFiado(<?= $c['id'] ?>)">Confirmar Abono</button>
