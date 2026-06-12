@@ -269,7 +269,7 @@ function actualizarSaldoFiadoPreview(id) {
     const saldo   = parseFloat(form.dataset.saldo) || 0;
     const monto   = parseFloat(form.querySelector('.ab-monto').value) || 0;
     const preview = document.getElementById('preview-' + id);
-    const fmt     = n => '$' + n.toLocaleString('es-CO', {maximumFractionDigits: 0});
+    const fmt     = n => '$' + formatMiles(n);
     if (monto > 0) {
         const nuevo = Math.max(0, saldo - monto);
         preview.textContent = 'Saldo actual: ' + fmt(saldo) + '  →  Nuevo saldo: ' + fmt(nuevo);
@@ -302,7 +302,7 @@ async function confirmarAbonoFiado(id) {
         const resp = await fetch('<?= APP_BASE ?>/clientes/api/registrar_abono.php', { method: 'POST', body: fd });
         const data = await resp.json();
         if (data.success) {
-            const fmt = monto.toLocaleString('es-CO', {maximumFractionDigits: 0});
+            const fmt = formatMiles(monto);
             toast('Abono de $' + fmt + ' registrado ✓', 'ok');
             setTimeout(() => location.reload(), 1200);
         } else {
