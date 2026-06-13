@@ -921,11 +921,11 @@ function actualizarLabelCantidadAjuste() {
     if (!label || !input) return;
     if (tipo === 'total') {
         label.textContent = 'Nuevo stock total';
-        input.placeholder = 'Ej: 12.50';
+        input.placeholder = 'Ej: ' + (12.5).toFixed(NUM_FORMAT.decimales);
         input.min = '0';
     } else {
         label.textContent = 'Cantidad a ajustar';
-        input.placeholder = '0.00';
+        input.placeholder = (0).toFixed(NUM_FORMAT.decimales);
         input.min = '0.01';
     }
 }
