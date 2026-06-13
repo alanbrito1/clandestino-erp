@@ -39,6 +39,7 @@ $v = [
     'num_decimales'    => (int)($cfg['num_decimales']   ?? 2),
     'num_sep_miles'    => $cfg['num_sep_miles']   ?? '.',
     'num_sep_decimal'  => $cfg['num_sep_decimal'] ?? ',',
+    'num_sep_millones' => $cfg['num_sep_millones'] ?? '.',
 ];
 
 // Opciones de fuente (sin CDN — solo fuentes del sistema para garantizar disponibilidad)
@@ -391,6 +392,16 @@ $FUENTES = [
                 </select>
             </div>
             <div class="fg">
+                <label>Separador de millones</label>
+                <select id="ap-num-sep-millones">
+                    <option value="." <?= $v['num_sep_millones'] === '.' ? 'selected' : '' ?>>Punto (1.234.567)</option>
+                    <option value="," <?= $v['num_sep_millones'] === ',' ? 'selected' : '' ?>>Coma (1,234,567)</option>
+                    <option value=" " <?= $v['num_sep_millones'] === ' ' ? 'selected' : '' ?>>Espacio (1 234 567)</option>
+                    <option value="'" <?= $v['num_sep_millones'] === "'" ? 'selected' : '' ?>>Apóstrofe (1'234'567)</option>
+                </select>
+                <span class="hint">Solo se nota en números de 7+ cifras (millones). Si es igual al separador de miles, el formato es uniforme (ej. 1.234.567). Si es distinto, el grupo de miles se separa aparte (ej. con apóstrofe: 1'234.567).</span>
+            </div>
+            <div class="fg">
                 <label>Separador decimal</label>
                 <select id="ap-num-sep-decimal">
                     <option value="," <?= $v['num_sep_decimal'] === ',' ? 'selected' : '' ?>>Coma (0,50)</option>
@@ -554,6 +565,7 @@ async function guardarApariencia(){
     fd.append('color_text_sec',   document.getElementById('ap-color-sec-txt').value.trim());
     fd.append('num_decimales',    document.getElementById('ap-num-decimales').value);
     fd.append('num_sep_miles',    document.getElementById('ap-num-sep-miles').value);
+    fd.append('num_sep_millones', document.getElementById('ap-num-sep-millones').value);
     fd.append('num_sep_decimal',  document.getElementById('ap-num-sep-decimal').value);
     fd.append('logo_quitar',       document.getElementById('logo-quitar').value);
     fd.append('logo_login_quitar', document.getElementById('logo-login-quitar').value);

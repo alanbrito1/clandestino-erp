@@ -133,6 +133,8 @@ try {
     $numSepMiles   = in_array($_POST['num_sep_miles']   ?? '.', $sepMilesOk, true) ? $_POST['num_sep_miles']   : '.';
     $numSepDecimal = in_array($_POST['num_sep_decimal'] ?? ',', $sepDecOk, true)   ? $_POST['num_sep_decimal'] : ',';
     if ($numSepMiles === $numSepDecimal) { $numSepMiles = '.'; $numSepDecimal = ','; }
+    $numSepMillones = in_array($_POST['num_sep_millones'] ?? '.', $sepMilesOk, true) ? $_POST['num_sep_millones'] : '.';
+    if ($numSepMillones === $numSepDecimal) { $numSepMillones = $numSepMiles; }
 
     // ── Guardar en configuracion_app ─────────────────────────────────────────
     $pares = [
@@ -150,6 +152,7 @@ try {
         'color_text_sec'    => $color_text_sec,
         'num_decimales'     => (string)$numDecimales,
         'num_sep_miles'     => $numSepMiles,
+        'num_sep_millones'  => $numSepMillones,
         'num_sep_decimal'   => $numSepDecimal,
     ];
     if ($logo_url       !== null) $pares['logo_url']       = $logo_url;

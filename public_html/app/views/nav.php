@@ -29,10 +29,11 @@ $_theme = [
     // Colores de texto
     'color_text'   => '#111827',
     'color_text_sec'=> '#6b7280',
-    // Formato numérico (migración 040)
+    // Formato numérico (migraciones 040 y 041)
     'num_decimales'   => '2',
     'num_sep_miles'   => '.',
     'num_sep_decimal' => ',',
+    'num_sep_millones'=> '.',
 ];
 try {
     $_trows = db()->query(
@@ -41,7 +42,7 @@ try {
                          'logo_url','logo_url_login','nombre_negocio',
                          'font_heading','font_size_title','font_size_subtitle',
                          'font_size_body','font_size_small','color_text','color_text_sec',
-                         'num_decimales','num_sep_miles','num_sep_decimal')"
+                         'num_decimales','num_sep_miles','num_sep_decimal','num_sep_millones')"
     )->fetchAll(PDO::FETCH_KEY_PAIR);
 
     // Colores: validar hex #RRGGBB antes de inyectar en CSS (previene CSS injection)
@@ -65,7 +66,7 @@ try {
     // Nombre del negocio
     if (!empty($_trows['nombre_negocio'])) $_theme['negocio'] = $_trows['nombre_negocio'];
 
-    // Formato numérico (migración 040): validar antes de inyectar a JS
+    // Formato numérico (migraciones 040 y 041): validar antes de inyectar a JS
     if (isset($_trows['num_decimales']) && $_trows['num_decimales'] !== '')
         $_theme['num_decimales'] = (string)max(0, min(4, (int)$_trows['num_decimales']));
     $_sepMilesOk = ['.', ',', ' ', "'"];
@@ -78,6 +79,10 @@ try {
         $_theme['num_sep_miles']   = '.';
         $_theme['num_sep_decimal'] = ',';
     }
+    if (in_array($_trows['num_sep_millones'] ?? '', $_sepMilesOk, true))
+        $_theme['num_sep_millones'] = $_trows['num_sep_millones'];
+    if ($_theme['num_sep_millones'] === $_theme['num_sep_decimal'])
+        $_theme['num_sep_millones'] = $_theme['num_sep_miles'];
 
     // Logo: validar que la ruta sea relativa y empiece por uploads/ (previene javascript: y path traversal)
     // isset() en lugar de !empty() para distinguir "sin configurar" de "vacío deliberado (quitar logo)"
@@ -1108,13 +1113,19 @@ window.addEventListener('resize', function() {
     if (window.innerWidth >= 641) closeNavMobile();
 });
 
-/* ── Formato numérico configurable (Admin > Apariencia, migración 040) ───
+/* ── Formato numérico configurable (Admin > Apariencia, migraciones 040/041) ─
    formatMiles(1234.5)      -> "1.235"        (entero, redondeado)
    formatDecimal(1234.5)    -> "1.234,50"     (decimales = NUM_FORMAT.decimales)
-   formatDecimal(1234.5, 3) -> "1.234,500"    (decimales explícitos)          */
+   formatDecimal(1234.5, 3) -> "1.234,500"    (decimales explícitos)
+
+   Separador de millones (sepMillones): si es igual a sepMiles, el formato es
+   uniforme (ej. "1.234.567"). Si es distinto, solo el grupo junto al decimal
+   usa sepMiles y los grupos a la izquierda usan sepMillones
+   (ej. miles="." y millones="'": formatMiles(1234567) -> "1'234.567")        */
 window.NUM_FORMAT = {
     decimales: <?= (int)$_theme['num_decimales'] ?>,
     sepMiles: <?= json_encode($_theme['num_sep_miles']) ?>,
+    sepMillones: <?= json_encode($_theme['num_sep_millones']) ?>,
     sepDecimal: <?= json_encode($_theme['num_sep_decimal']) ?>
 };
 function formatDecimal(n, dec) {
@@ -1123,9 +1134,20 @@ function formatDecimal(n, dec) {
     var fixed = n.toFixed(dec);
     var neg = fixed.charAt(0) === '-';
     if (neg) fixed = fixed.slice(1);
-    var parts = fixed.split('.');
-    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, NUM_FORMAT.sepMiles);
-    var out = parts[0] + (dec > 0 ? NUM_FORMAT.sepDecimal + parts[1] : '');
+    var parts  = fixed.split('.');
+    var entero = parts[0];
+    var grupos = [];
+    while (entero.length > 3) {
+        grupos.unshift(entero.slice(-3));
+        entero = entero.slice(0, -3);
+    }
+    grupos.unshift(entero);
+    var out    = grupos[0];
+    var ultimo = grupos.length - 1;
+    for (var i = 1; i <= ultimo; i++) {
+        out += (i === ultimo ? NUM_FORMAT.sepMiles : NUM_FORMAT.sepMillones) + grupos[i];
+    }
+    if (dec > 0) out += NUM_FORMAT.sepDecimal + parts[1];
     return neg ? '-' + out : out;
 }
 function formatMiles(n) {
