@@ -41,6 +41,10 @@
  *                                y de nomina/index.php (generarNomina envía accion=generar)
  *   G31  Manejo de errores   — cada api/*.php envuelve su lógica en try/catch;
  *                              los catch (Exception) genéricos registran con error_log()
+ *   G32  Formato numérico    — auditoría de proyecto completo (v4.94): ningún .php
+ *                              usa number_format(..., N, '<sep>', '<sep>') hardcodeado;
+ *                              todos los montos/cantidades usan fmt_moneda()/fmt_cantidad()
+ *                              para respetar la configuración de Admin -> Apariencia
  *
  * EJECUTAR: /tests/suite.php (navegador, sesión activa como superadmin)
  */
@@ -448,7 +452,7 @@ $total_obsequios = (int)scalar($pdo,
 $valor_obsequios = (float)scalar($pdo,
     "SELECT IFNULL(SUM(total),0) FROM ventas WHERE metodo_pago='obsequio' AND estado='completada'");
 // Esta prueba siempre pasa; es informativa sobre el volumen de obsequios
-t($G, "Conteo de obsequios registrados: {$total_obsequios} ventas / \$" . number_format($valor_obsequios,0,',','.') . " valor ref.",
+t($G, "Conteo de obsequios registrados: {$total_obsequios} ventas / \$" . fmt_moneda($valor_obsequios) . " valor ref.",
     true, '');
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -1694,6 +1698,45 @@ t($G, "Catch genericos (Exception) registran el error con error_log()",
     empty($catch_mudo) ? '' : "catch (Exception) sin error_log(): " . implode(', ', $catch_mudo),
     !empty($catch_mudo)); // WARN: fallo silencioso, no necesariamente expone datos
 
+// ════════════════════════════════════════════════════════════════════════════════
+//  G32 — FORMATO NUMÉRICO CONFIGURABLE (v4.94)
+//  Auditoría de proyecto completo: ningún .php debe construir montos/cantidades
+//  con number_format(..., N, '<sep>', '<sep>') usando separadores literales
+//  hardcodeados — eso ignora la configuración de Admin -> Apariencia (decimales/
+//  separador de miles/separador decimal). Deben usar fmt_moneda()/fmt_cantidad()
+//  de FormatoHelper.php, que leen config_numeros().
+// ════════════════════════════════════════════════════════════════════════════════
+
+$G = 'G32 Formato numerico';
+
+t($G, "FormatoHelper.php define fmt_moneda() y fmt_cantidad()",
+    function_exists('fmt_moneda') && function_exists('fmt_cantidad'),
+    "Las funciones globales fmt_moneda()/fmt_cantidad() deben estar disponibles via auth_check.php.");
+
+$archivos_numericos = array_merge(
+    glob(BASE_PATH . '/*.php')       ?: [],
+    glob(BASE_PATH . '/*/*.php')     ?: [],
+    glob(BASE_PATH . '/*/*/*.php')   ?: [],
+    glob(BASE_PATH . '/*/*/*/*.php') ?: []
+);
+
+// Detecta number_format(<arg1>, N, '<sep>', '<sep>') donde los 2 separadores son
+// literales de un solo caracter ('.' o ',') — la firma exacta del bug v4.94:
+// visualmente igual a la config por defecto (./,) pero ignora cambios del admin.
+$rxSepFijos = '/number_format\((?:[^()]|\([^()]*\))*,\s*\d+\s*,\s*\'[,.]\'\s*,\s*\'[,.]\'\s*\)/';
+
+$con_separadores_fijos = [];
+foreach ($archivos_numericos as $archivo) {
+    $src = file_get_contents($archivo);
+    if ($src !== false && preg_match($rxSepFijos, $src)) {
+        $con_separadores_fijos[] = str_replace('\\', '/', str_replace(BASE_PATH . DIRECTORY_SEPARATOR, '', $archivo));
+    }
+}
+
+t($G, "Ningun .php usa number_format(valor, N, separador, separador) hardcodeado",
+    empty($con_separadores_fijos),
+    empty($con_separadores_fijos) ? '' : "Usan separadores fijos en vez de fmt_moneda()/fmt_cantidad(): " . implode(', ', $con_separadores_fijos));
+
 // ── Tiempo total de ejecución ─────────────────────────────────────────────────
 $tiempo        = round(microtime(true) - $_SERVER['REQUEST_TIME_FLOAT'], 3);
 $total_pruebas = $pass + $fail + $warn;
@@ -1752,7 +1795,7 @@ $total_pruebas = $pass + $fail + $warn;
     Ejecutado: <?= date('d/m/Y H:i:s') ?> |
     <?= $tiempo ?>s |
     <?= $total_pruebas ?> pruebas |
-    31 grupos
+    32 grupos
 </p>
 
 <!-- Resumen global -->
