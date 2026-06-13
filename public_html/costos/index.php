@@ -507,22 +507,22 @@ $CAT_COLOR = [
         <div class="kpi-group-lbl">Costos — <?= $meses_nombres[$mes] ?> <?= $anio ?></div>
         <div class="kpi-row">
             <div class="kpi">
-                <div class="kpi-val brand">$<?= number_format($total_mensual, 0, ',', '.') ?></div>
+                <div class="kpi-val brand">$<?= fmt_moneda($total_mensual) ?></div>
                 <div class="kpi-lbl">Total costos</div>
                 <div class="kpi-sub"><?= $n_activos ?> activo<?= $n_activos !== 1 ? 's' : '' ?>, <?= $n_pausados ?> pausado<?= $n_pausados !== 1 ? 's' : '' ?></div>
             </div>
             <div class="kpi">
-                <div class="kpi-val yellow">$<?= number_format($total_directo, 0, ',', '.') ?></div>
+                <div class="kpi-val yellow">$<?= fmt_moneda($total_directo) ?></div>
                 <div class="kpi-lbl">Costos directos</div>
                 <div class="kpi-sub">Trazables a producción</div>
             </div>
             <div class="kpi">
-                <div class="kpi-val blue">$<?= number_format($total_indirecto, 0, ',', '.') ?></div>
+                <div class="kpi-val blue">$<?= fmt_moneda($total_indirecto) ?></div>
                 <div class="kpi-lbl">Costos indirectos</div>
                 <div class="kpi-sub">Generales del negocio</div>
             </div>
             <div class="kpi">
-                <div class="kpi-val teal">$<?= number_format($compras_mes, 0, ',', '.') ?></div>
+                <div class="kpi-val teal">$<?= fmt_moneda($compras_mes) ?></div>
                 <div class="kpi-lbl">Compras</div>
                 <div class="kpi-sub">Módulo Compras</div>
             </div>
@@ -534,22 +534,22 @@ $CAT_COLOR = [
         <div class="kpi-group-lbl">Activos y nómina — <?= $meses_nombres[$mes] ?> <?= $anio ?></div>
         <div class="kpi-row">
             <div class="kpi">
-                <div class="kpi-val purple">$<?= number_format($dep_activos_mensual, 0, ',', '.') ?></div>
+                <div class="kpi-val purple">$<?= fmt_moneda($dep_activos_mensual) ?></div>
                 <div class="kpi-lbl">Depreciación activos</div>
                 <div class="kpi-sub">Módulo Activos</div>
             </div>
             <div class="kpi">
-                <div class="kpi-val yellow">$<?= number_format($nomina_directa, 0, ',', '.') ?></div>
+                <div class="kpi-val yellow">$<?= fmt_moneda($nomina_directa) ?></div>
                 <div class="kpi-lbl">Nómina directa</div>
                 <div class="kpi-sub">Empleados que producen</div>
             </div>
             <div class="kpi">
-                <div class="kpi-val blue">$<?= number_format($nomina_indirecta, 0, ',', '.') ?></div>
+                <div class="kpi-val blue">$<?= fmt_moneda($nomina_indirecta) ?></div>
                 <div class="kpi-lbl">Nómina indirecta</div>
                 <div class="kpi-sub">Admin / soporte</div>
             </div>
             <div class="kpi highlight">
-                <div class="kpi-val total">$<?= number_format($gran_total, 0, ',', '.') ?></div>
+                <div class="kpi-val total">$<?= fmt_moneda($gran_total) ?></div>
                 <div class="kpi-lbl">Gran total del período</div>
                 <div class="kpi-sub">Costos + compras + activos + nómina</div>
             </div>
@@ -634,11 +634,11 @@ $CAT_COLOR = [
                     </td>
                     <td>
                         <span style="color:var(--g5);font-size:11px"><?= $frecLbl ?></span><br>
-                        <span class="amt">$<?= number_format((float)$c['valor'], 0, ',', '.') ?></span>
+                        <span class="amt">$<?= fmt_moneda($c['valor']) ?></span>
                     </td>
                     <td>
                         <span class="amt amt-men">
-                            $<?= number_format((float)$c['valor_mensual'], 0, ',', '.') ?>
+                            $<?= fmt_moneda($c['valor_mensual']) ?>
                         </span>
                     </td>
                     <td>
