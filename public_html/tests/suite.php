@@ -45,6 +45,10 @@
  *                              usa number_format(..., N, '<sep>', '<sep>') hardcodeado;
  *                              todos los montos/cantidades usan fmt_moneda()/fmt_cantidad()
  *                              para respetar la configuración de Admin -> Apariencia
+ *   G33  Separador millones  — fmt_agrupar() (migración 041): config_numeros() expone
+ *                              sep_millones; formato uniforme y con separadores
+ *                              distintos (miles/millones), 4 grupos, negativos y
+ *                              valores sin agrupación
  *
  * EJECUTAR: /tests/suite.php (navegador, sesión activa como superadmin)
  */
@@ -1737,6 +1741,43 @@ t($G, "Ningun .php usa number_format(valor, N, separador, separador) hardcodeado
     empty($con_separadores_fijos),
     empty($con_separadores_fijos) ? '' : "Usan separadores fijos en vez de fmt_moneda()/fmt_cantidad(): " . implode(', ', $con_separadores_fijos));
 
+// ════════════════════════════════════════════════════════════════════════════════
+//  G33 — SEPARADOR DE MILLONES INDEPENDIENTE (v4.95)
+//  fmt_agrupar() (FormatoHelper.php, migración 041) permite que el grupo de
+//  millones (y superiores) use un separador distinto al de miles (el grupo más
+//  cercano al decimal). Si ambos separadores son iguales, el resultado es el
+//  formato uniforme tradicional (comportamiento por defecto, sin cambios).
+// ════════════════════════════════════════════════════════════════════════════════
+
+$G = 'G33 Separador millones';
+
+$cfgNum = config_numeros();
+t($G, "config_numeros() incluye la clave 'sep_millones'",
+    isset($cfgNum['sep_millones']) && $cfgNum['sep_millones'] !== '',
+    "config_numeros() debe devolver 'sep_millones' con un valor no vacio (migracion 041).");
+
+$cfgUniforme = ['sep_miles' => '.', 'sep_millones' => '.', 'sep_decimal' => ','];
+t($G, "fmt_agrupar() formato uniforme (sep_miles = sep_millones)",
+    fmt_agrupar(1234567, 0, $cfgUniforme) === '1.234.567',
+    "Esperado '1.234.567', obtenido '" . fmt_agrupar(1234567, 0, $cfgUniforme) . "'.");
+
+$cfgDistinto = ['sep_miles' => '.', 'sep_millones' => "'", 'sep_decimal' => ','];
+t($G, "fmt_agrupar() separadores distintos (miles='.' / millones=\"'\")",
+    fmt_agrupar(1234567.89, 2, $cfgDistinto) === "1'234.567,89",
+    "Esperado \"1'234.567,89\", obtenido '" . fmt_agrupar(1234567.89, 2, $cfgDistinto) . "'.");
+
+t($G, "fmt_agrupar() con 4 grupos (miles de millones)",
+    fmt_agrupar(1234567890, 0, $cfgDistinto) === "1'234'567.890",
+    "Esperado \"1'234'567.890\", obtenido '" . fmt_agrupar(1234567890, 0, $cfgDistinto) . "'.");
+
+t($G, "fmt_agrupar() respeta el signo negativo",
+    fmt_agrupar(-1234567, 0, $cfgDistinto) === "-1'234.567",
+    "Esperado \"-1'234.567\", obtenido '" . fmt_agrupar(-1234567, 0, $cfgDistinto) . "'.");
+
+t($G, "fmt_agrupar() sin agrupacion (< 1000)",
+    fmt_agrupar(45, 2, $cfgDistinto) === '45,00',
+    "Esperado '45,00', obtenido '" . fmt_agrupar(45, 2, $cfgDistinto) . "'.");
+
 // ── Tiempo total de ejecución ─────────────────────────────────────────────────
 $tiempo        = round(microtime(true) - $_SERVER['REQUEST_TIME_FLOAT'], 3);
 $total_pruebas = $pass + $fail + $warn;
@@ -1795,7 +1836,7 @@ $total_pruebas = $pass + $fail + $warn;
     Ejecutado: <?= date('d/m/Y H:i:s') ?> |
     <?= $tiempo ?>s |
     <?= $total_pruebas ?> pruebas |
-    32 grupos
+    33 grupos
 </p>
 
 <!-- Resumen global -->
