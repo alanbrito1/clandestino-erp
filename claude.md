@@ -1,4 +1,4 @@
-# ClanDestino ERP v4.92 — Memoria de Sesión
+# ClanDestino ERP v4.94 — Memoria de Sesión
 # Última sesión: 2026-06-12 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
@@ -2973,3 +2973,90 @@ separadores en-US, verificar, revertir; luego presentaciones/equivalencias — v
 (G16/G18 extendidos + G30/G31 nuevos: auditoría de permisos/CSRF, índices FK, regresión de los
 2 bugs de v4.92, manejo de errores); CLAUDE.md §20 nuevo (mapa de módulos: objetivos, casos de
 uso, matriz de roles/permisos, interdependencias). `APP_VERSION` → 4.93.*
+
+---
+
+## Estado v4.94 (2026-06-12)
+
+### 1. Auditoría de proyecto completo — formato numérico configurable (9 archivos, ~69 sitios, 7 commits)
+
+v4.87-v4.92 migraron los módulos "grandes" (productos, ventas, nómina, inventario, costos,
+clientes, activos, compras, reportes) al patrón `fmt_cantidad()`/`fmt_moneda()`. Al revisar el
+proyecto completo con `grep -rn "number_format"` quedaron 9 archivos/~69 sitios sueltos —
+mayormente mensajes de error de modelos, módulos secundarios (admin, dashboard) y vistas que se
+habían tocado por última vez antes de v4.87. Migrados en 7 commits:
+
+1. `a026bce` fix(clientes): `ClienteModel.php` (3 sitios: deuda pendiente, abono vs saldo, saldo
+   transferido) + `clientes/api/fusionar.php` (1 sitio) — mensajes de error/resultado del modelo
+   ahora usan `fmt_moneda()`.
+2. `49978a1` fix(inventario): `inventario/index.php` (2 sitios) — "PRECIO POR PRESENTACIÓN ($)"
+   y `precio_referencia` en el modal Ajustar, antes sin `parseFloat().toFixed(0)`.
+3. `7027afd` fix(clientes): `clientes/estado_cuenta.php` (11 sitios: saldo actual, totales
+   cargos/abonos, saldo pre-período, movimientos, saldo corriente) + `clientes/index.php`
+   (5 sitios: KPIs, badges deuda fiado, recordatorio WhatsApp) → `fmt_moneda()`.
+4. `e75f057` fix(activos): `activos/index.php` (11 sitios: inversión total, valor en libros,
+   precio unitario, costo inicial, depreciación/mes y /año → `fmt_moneda()`; depreciación
+   diaria `dep_dia`/`depDiaActivo` → `fmt_cantidad($x,2)`, siguiendo la convención
+   "costo/u"/"dep_dia"/"valor/hora" ya usada en otros módulos).
+5. `0403ffe` fix(admin): `admin/backup.php` (4 sitios: registros totales/por tabla →
+   `fmt_cantidad($x,0)`, tamaño en KB → `fmt_cantidad($x,2)`).
+6. `11d88fd` fix(costos): `costos/index.php` (10 sitios: KPIs total/directos/indirectos,
+   compras, depreciación, nómina directa/indirecta, gran total, valor y valor mensual por
+   costo) → `fmt_moneda()`.
+7. `8473d70` fix(dashboard): `dashboard.php` (22 sitios: ventas hoy, fondo de turno, fiado,
+   costos del mes, meta diaria, ventas 7 días, comparativo mensual, top clientes/reactivar/
+   aniversario, productos más vendidos, rendimiento cajeros/ticket promedio, horas pico,
+   productos rentables, fiados pendientes → `fmt_moneda()`; cantidades de stock en alertas de
+   insumos bajos → `fmt_cantidad()`).
+
+### 2. Excepciones documentadas — 5 usos de `number_format` fuera del patrón
+
+Tras la migración, una nueva auditoría con G32 (ver §3) confirma que solo quedan 5 llamadas a
+`number_format` en todo el proyecto, todas legítimamente fuera de alcance:
+
+1. `clientes/index.php:364` — `onclick="abrirAbono(..., <?= number_format($saldo,2,'.','') ?>)"`:
+   literal numérico de JS dentro de un atributo `onclick`, requiere `.` decimal y separador de
+   miles vacío para ser JS válido — no es un formato de presentación.
+2. `dashboard.php:1115` — `number_format($margen_pct, 1)`: porcentaje/ratio (llamada de 2
+   argumentos, sin separadores), igual que "MARGEN %" en `productos/index.php` (§15, v4.93).
+3. `inventario/conteo.php:178` — `placeholder` de `<input type="number">`: el navegador exige
+   `.` como decimal en placeholders (documentado desde v4.87).
+4. `nomina/horas.php:355` — `×<?= number_format($mult, 2) ?>`: multiplicador/factor (2
+   argumentos), fuera de alcance por la "regla b" de v4.90.
+5. `productos/consolidar.php:397` — `value` de `<input type="number">` para precio de variante:
+   el navegador exige `.` decimal en `value` (documentado en v4.88).
+
+Ninguno de los 5 coincide con el patrón `number_format(valor, N, '<sep>', '<sep>')` que detecta
+G32 (todos usan separadores vacíos, son llamadas de 2 argumentos, o ambos).
+
+### 3. `tests/suite.php` — de 31 a 32 grupos (G01-G32)
+
+- **G32 Formato numérico** (nuevo): auditoría estática de proyecto completo — recorre todos los
+  `.php` (hasta 4 niveles bajo `BASE_PATH`) buscando `number_format(..., N, '<sep>', '<sep>')`
+  con separadores literales `.`/`,` hardcodeados, que ignorarían la configuración de Admin →
+  Apariencia (decimales/separadores de migración 040). El test pasa si la lista está vacía —
+  verificado: 96 archivos escaneados, 0 coincidencias.
+- También confirma que `fmt_moneda()`/`fmt_cantidad()` (de `FormatoHelper.php`) están
+  disponibles globalmente vía `auth_check.php`.
+- Línea ~451 (diagnóstico de obsequios): `number_format($valor_obsequios,0,',','.')` →
+  `fmt_moneda($valor_obsequios)`, para que el propio test no dispare G32.
+- Docblock y meta HTML actualizados ("31 grupos" → "32 grupos"). `php -l` sin errores.
+
+### Cambios de versión
+
+- `app/config/app.php`: `APP_VERSION` → `4.94`.
+
+### Pendiente
+
+Sin tareas de desarrollo pendientes de este bloque. El patrón de formato numérico configurable
+(v4.87-v4.94) queda completo y con guarda de regresión (G32). Próxima sesión: reanudar Bloque
+A2-A4/B1-B5 de pruebas manuales acumuladas v4.83-v4.92 (cambiar Admin → Apariencia a 3 decimales
++ separadores en-US, verificar, revertir; luego presentaciones/equivalencias — ver
+`C:\Users\alan_\.claude\plans\curried-napping-hollerith.md`).
+
+*Última actualización: 2026-06-12 | v4.94 — auditoría de proyecto completo: 9 archivos / ~69
+sitios migrados a `fmt_moneda()`/`fmt_cantidad()` (ClienteModel, clientes/api/fusionar,
+inventario/index, clientes/estado_cuenta, clientes/index, activos/index, admin/backup,
+costos/index, dashboard) en 7 commits; 5 excepciones documentadas (literales JS, porcentajes/
+ratios, atributos de `<input type="number">`, multiplicadores); `tests/suite.php` G32 nuevo
+(32 grupos) audita `number_format` hardcodeado en todo el proyecto. `APP_VERSION` → 4.94.*

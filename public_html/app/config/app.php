@@ -6,7 +6,7 @@
  */
 
 define('APP_NAME',    'ClanDestino ERP');
-define('APP_VERSION', '4.93'); // 2026-06-12: v4.93 suite.php G16/G18 ampliados + G30/G31 nuevos (auditoria permisos/CSRF, indices FK, regresion bugs, manejo errores); CLAUDE.md SS20 mapa de modulos/roles/interdependencias
+define('APP_VERSION', '4.94'); // 2026-06-12: v4.94 migracion fmt_moneda()/fmt_cantidad() en 8 archivos (~58 sitios: clientes, activos, admin, costos, dashboard); suite.php G32 (32 grupos) audita number_format hardcodeado
 define('APP_ENV',     'production'); // cambiar a 'development' para depurar
 
 // Ruta absoluta a public_html/ (raíz web del proyecto)
