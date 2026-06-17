@@ -290,7 +290,7 @@ async function guardar() {
     try {
         const res = await fetch(API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
             body: JSON.stringify({ csrf_token: CSRF_TOKEN, conteos })
         });
         const json = await res.json();

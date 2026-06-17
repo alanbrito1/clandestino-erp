@@ -181,15 +181,19 @@ function csrf_token(): string
 }
 
 /**
- * Verifica el token CSRF enviado en $_POST['csrf_token'].
- * hash_equals() previene timing attacks en la comparación.
+ * Verifica el token CSRF enviado en $_POST['csrf_token'] o, para endpoints
+ * JSON (fetch con Content-Type: application/json, que no llenan $_POST), en
+ * el header X-CSRF-Token. hash_equals() previene timing attacks.
  */
 function csrf_verificar(): bool
 {
-    $enviado  = $_POST['csrf_token']   ?? '';
+    $enviado = $_POST['csrf_token'] ?? '';
+    if ($enviado === '') {
+        $enviado = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+    }
     $esperado = $_SESSION['csrf_token'] ?? '';
 
-    return !empty($esperado) && hash_equals($esperado, $enviado);
+    return !empty($esperado) && is_string($enviado) && hash_equals($esperado, $enviado);
 }
 
 // ---------------------------------------------------------------------------
