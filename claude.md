@@ -1,5 +1,5 @@
-# ClanDestino ERP v4.95 — Memoria de Sesión
-# Última sesión: 2026-06-13 | Próxima sesión: continuar desde este punto
+# ClanDestino ERP v4.96 — Memoria de Sesión
+# Última sesión: 2026-06-19 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
 
@@ -3220,3 +3220,89 @@ conserva decimales; a55c7ed). Los 2 fixes del campo "Costo por unidad" verificad
 producción (2026-06-13); auditoría proactiva confirmó que compras (`calcLinea`/`calcDesdePres`,
 precisión a 4 decimales) y `precio_referencia` (peso entero consistente) no tienen el bug.
 `APP_VERSION` → 4.95.*
+
+---
+
+## Estado v4.96 (2026-06-19)
+
+### 1. Fix — Conteo Rápido fallaba con "Token de seguridad inválido" (CSRF en endpoint JSON)
+
+`inventario/api/conteo_guardar.php` es el único endpoint que envía el cuerpo como **JSON**
+(`fetch` con `Content-Type: application/json`), por lo que `$_POST` queda vacío y
+`csrf_verificar()` —que solo leía `$_POST['csrf_token']`— nunca encontraba el token. Bug
+latente desde v4.44.
+
+- `app/helpers/AuthHelper.php`: `csrf_verificar()` ahora acepta el token también por header
+  `X-CSRF-Token` (patrón estándar para APIs JSON, retrocompatible con los callers `FormData`;
+  más seguro: un header custom dispara preflight CORS). Guard `is_string()` para evitar
+  `TypeError` de `hash_equals` con arrays.
+- `inventario/conteo.php`: el `fetch` envía el header `X-CSRF-Token`.
+- Commit: `311a34f`.
+
+### 2. Fix — editar venta: "Unknown column 'r.es_base'" (SQLSTATE 42S22)
+
+Al guardar la edición de una venta (desde Ventas o Clientes), la query de **re-descuento de
+stock** (`ventas/api/editar_venta.php`, paso 4) usaba `FROM recetas` (sin alias) pero inyectaba
+`$colEsBaseEv = ', r.es_base'` (pensado para la query de restauración que sí hace `JOIN recetas
+r`). Con la migración 036 aplicada (producción la tiene), el SELECT referenciaba `r.es_base`
+sobre una tabla sin alias `r` → crash. Como `es_base` no se usa al re-descontar (la re-edición
+no soporta variante → factor 1.0), se quitó la inyección de esa query. Commit: `927f53b`.
+
+### 3. Método de cobro de fiados — migración 042
+
+Al cobrar una venta a fiado faltaba registrar **con qué** método se cobró (`metodo_pago` se
+queda en `'fiado'` para preservar el origen). Decisión de diseño (confirmada con el usuario,
+Opción A frente a usar abonos o integrar ambos): columna a nivel venta.
+
+- **Migración 042** (`ventas.metodo_cobro` ENUM efectivo/nequi/daviplata/bancolombia, NULL si
+  no aplica o aún sin cobrar) + `schema.sql`.
+- `ventas/api/editar_venta.php`: detecta la columna (retrocompatible vía INFORMATION_SCHEMA),
+  lee/valida `metodo_cobro` (solo fiado **con** `fecha_pago`) y lo guarda condicionalmente en
+  el UPDATE.
+- `ventas/historial.php`: nuevo selector **"Método de cobro"** junto a "Fecha de cobro" (visible
+  solo cuando Método de pago = Fiado, vía `onMetodoChange()`); carga, envío y limpieza; el
+  listado muestra "Cobrado dd/mm · Método". `metodo_pago` permanece en `fiado`; no toca
+  `saldo_fiado`/abonos (mecanismo a nivel cliente, complementario).
+- Flujo correcto: para marcar un fiado como pagado **NO** se cambia el método a Nequi (eso
+  oculta los campos de cobro); se deja en Fiado y se llenan Fecha + Método de cobro.
+- Commit: `672b645`.
+
+### 4. Reporte de Ventas — filtro por forma de pago + discriminación de cobros de fiado
+
+`reportes/ventas.php`:
+- Filtro **"Forma de pago"** (todos/efectivo/nequi/daviplata/bancolombia/fiado/obsequio) que
+  aplica al detalle, KPIs de cabecera y export Excel.
+- Nueva tabla **"Ingresos por Forma de Pago"** (sobre todo el período, sin verse afectada por
+  el filtro) que **discrimina** por método: *ventas directas* (`metodo_pago`, por fecha de
+  venta) vs *cobro de fiados* (`metodo_cobro`, por fecha de cobro) → permite saber exactamente
+  el origen del dinero recibido. Independiente de los abonos (hoja "Abonos a Fiado").
+- El detalle y la hoja Excel "Ventas" muestran el "Método Cobro" de cada fiado cobrado.
+  Retrocompatible: sin mig 042, la columna queda vacía y el desglose lo indica.
+- Commit: `0c20ada`.
+
+### 5. Ayuda
+
+`ayuda/index.php`: nueva subsección "Cobro de un fiado — método de cobro (v4.96)" en Ventas
+(flujo correcto + diferencia con abonos) y documentación del filtro/discriminación en Reportes.
+Commit: `a028a1b`.
+
+### Cambios de versión
+
+- `app/config/app.php`: `APP_VERSION` → `4.96`.
+- Migración nueva: **042** (`ventas.metodo_cobro`). Ejecutar en producción.
+
+### Pendiente
+
+- **Correr la migración 042** en producción (cPanel → phpMyAdmin) para activar el método de
+  cobro; hasta entonces el código es retrocompatible (campo oculto / columna vacía, sin errores).
+- Verificación del usuario (en curso): Conteo Rápido, editar venta (cambiar método sin error),
+  método de cobro de fiados (editar fiado → Fecha + Método → "Cobrado … · Método"), y el reporte
+  de Ventas (filtro + tabla discriminada).
+- Sigue pausado el Bloque A2-A4/B1-B5 de pruebas manuales acumuladas v4.83-v4.92.
+
+*Última actualización: 2026-06-19 | v4.96 — método de cobro de fiados (migración 042
+`ventas.metodo_cobro`): selector en el modal de editar venta (`historial.php`) + guardado en
+`editar_venta.php`; reporte de Ventas con filtro por forma de pago y tabla que discrimina
+ventas directas vs cobro de fiados (`reportes/ventas.php`); ayuda actualizada. Fixes: Conteo
+Rápido CSRF en endpoint JSON (`csrf_verificar()` acepta header `X-CSRF-Token`, 311a34f) y
+editar venta `Unknown column 'r.es_base'` (927f53b). `APP_VERSION` → 4.96.*

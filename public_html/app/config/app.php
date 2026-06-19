@@ -6,7 +6,7 @@
  */
 
 define('APP_NAME',    'ClanDestino ERP');
-define('APP_VERSION', '4.95'); // 2026-06-12: v4.95 separador de millones independiente (migracion 041): fmt_agrupar() en FormatoHelper.php + formatDecimal() en nav.php; nuevo selector en Admin > Apariencia; suite.php G33 (33 grupos) prueba fmt_agrupar()
+define('APP_VERSION', '4.96'); // 2026-06-19: v4.96 metodo de cobro de fiados (migracion 042 ventas.metodo_cobro) + reporte de ventas por forma de pago con discriminacion ventas directas vs cobro de fiados; fixes: Conteo Rapido CSRF (header X-CSRF-Token) y editar venta (Unknown column r.es_base)
 define('APP_ENV',     'production'); // cambiar a 'development' para depurar
 
 // Ruta absoluta a public_html/ (raíz web del proyecto)
