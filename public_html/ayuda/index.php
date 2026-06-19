@@ -721,6 +721,16 @@ Para cada ítem en el carrito con <span class="var">es_combo = 1</span>:
                 <li><strong>Anular:</strong> Solo admin_total. Revierte el stock (from_stock=1 → restaura stock_disponible; from_stock=0 → restaura insumos). Si tenía combo, restaura también los insumos extra. Si era fiado, reduce el saldo del cliente.</li>
             </ul>
 
+            <div class="sub-title">Cobro de un fiado — método de cobro (v4.96)</div>
+            <p>Cuando un cliente paga una venta que quedó a <strong>fiado</strong>, ábrela con <strong>Editar</strong> y <strong>deja el Método de pago en "Fiado"</strong> (eso preserva que la venta nació a crédito). Aparecerán dos campos:</p>
+            <ul>
+                <li><strong>Fecha de cobro (fiado):</strong> cuándo se recibió el pago. Puede ser retroactiva. Al guardarla, la venta pasa de <code>pendiente_pago</code> a <strong>completada</strong> y sale del KPI "Sin cobrar".</li>
+                <li><strong>Método de cobro:</strong> con qué pagó el cliente (efectivo, nequi, daviplata o bancolombia). Se guarda en <code>ventas.metodo_cobro</code> (migración 042), aparte de <code>metodo_pago</code> que sigue siendo "fiado".</li>
+            </ul>
+            <div class="warn"><strong>No cambies el Método de pago a Nequi/Efectivo para "marcar pagado".</strong> Si lo haces, el sistema considera que la venta nunca fue a fiado y se ocultan los campos de cobro. Lo correcto es dejar "Fiado" + llenar Fecha y Método de cobro.</div>
+            <div class="tip">En el historial, una venta fiada ya cobrada muestra "Cobrado dd/mm · <em>Método</em>". El reporte de Ventas separa, por forma de pago, las <strong>ventas directas</strong> de los <strong>cobros de fiado</strong>, para saber exactamente cuánto efectivo/digital provino de cada origen.</div>
+            <div class="tip"><strong>Diferencia con los Abonos:</strong> el "Método de cobro" marca <em>una venta</em> completa como saldada. Los <strong>abonos</strong> (Clientes → Fiado) registran pagos parciales contra el <code>saldo_fiado</code> total del cliente. Son mecanismos complementarios.</div>
+
             <div class="int-list">
                 <span class="int-badge">Usa →</span>
                 <span class="int-badge arrow">Inventario (insumos)</span>
@@ -1431,7 +1441,7 @@ BIGINT UNSIGNED en MySQL modo estricto cuando vida_util_meses es TINYINT.</span>
             <div class="sub-title">Reportes disponibles</div>
             <table class="data-table">
                 <tr><th>Reporte</th><th>Hojas Excel</th><th>Filtros</th><th>Permiso</th></tr>
-                <tr><td>Ventas & Rentabilidad</td><td>Ventas + Rentabilidad</td><td>Fecha desde/hasta</td><td>ventas</td></tr>
+                <tr><td>Ventas & Rentabilidad</td><td>Ventas + Rentabilidad</td><td>Fecha desde/hasta · Forma de pago</td><td>ventas</td></tr>
                 <tr><td>Inventario, Producción & Activos</td><td>Inventario + Stock Terminado + Producción + Activos</td><td>Mes / Año</td><td>inventario</td></tr>
                 <tr><td>Nómina y Costo Laboral</td><td>Nómina [mes] + Resumen</td><td>Mes / Año</td><td>nomina</td></tr>
                 <tr><td>Costos del Negocio</td><td>Resumen + Costos Registrados + Compras/Proveedor</td><td>Mes / Año</td><td>costos</td></tr>
@@ -1453,6 +1463,19 @@ BIGINT UNSIGNED en MySQL modo estricto cuando vida_util_meses es TINYINT.</span>
                     <tr><td>Excel: fila de totales por método</td><td>Obsequio separado con nota "(no es ingreso)"</td></tr>
                 </tbody>
             </table>
+
+            <div class="sub-title">Reporte Ventas — forma de pago y cobro de fiados (v4.96)</div>
+            <p>El reporte de Ventas incluye un filtro <strong>Forma de pago</strong> (Todas / Efectivo / Nequi / Daviplata / Bancolombia / Fiado / Obsequio). Al elegir una, el detalle, los KPIs de cabecera y el Excel se generan solo para ese método.</p>
+            <p>Además, una tabla <strong>"Ingresos por Forma de Pago"</strong> (sobre todo el período, sin verse afectada por el filtro) <strong>discrimina</strong> el dinero recibido en dos columnas:</p>
+            <table class="data-table">
+                <thead><tr><th>Columna</th><th>Qué cuenta</th></tr></thead>
+                <tbody>
+                    <tr><td>Ventas directas</td><td>Ventas pagadas en el acto con esa forma (<code>metodo_pago</code>), por fecha de venta.</td></tr>
+                    <tr><td>Cobro de fiados</td><td>Ventas fiadas saldadas en el período (<code>metodo_cobro</code>, migración 042), por fecha de cobro.</td></tr>
+                    <tr><td>Total recibido</td><td>Suma de ambas — cuánto entró realmente por cada forma de pago.</td></tr>
+                </tbody>
+            </table>
+            <div class="tip">Así sabes, por ejemplo, cuánto del Nequi recibido fue venta directa y cuánto fue el cobro de un fiado anterior. El detalle y la hoja Excel "Ventas" muestran, en cada fila fiada cobrada, el "Método Cobro". Esta discriminación es independiente de los <strong>abonos</strong> (cobros parciales por cliente, hoja "Abonos a Fiado").</div>
 
             <div class="sub-title">Reporte Operativo — Obsequios y Desechos</div>
             <p>La sección final del Reporte Operativo (y su hoja Excel) consolida dos fuentes de datos:</p>
