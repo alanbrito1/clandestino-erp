@@ -3317,7 +3317,8 @@ presente en `schema.sql`. Commit: `076486c`.
 - Todo v4.96 **verificado en producción** (2026-06-19): Conteo Rápido, editar venta, método de
   cobro de fiados (tras correr la mig 042 y el fix de fecha) y el reporte de Ventas (filtro +
   discriminación).
-- Sigue pausado el Bloque A2-A4/B1-B5 de pruebas manuales acumuladas v4.83-v4.92.
+- Bloque A2-A4/B1-B5 de pruebas manuales acumuladas v4.83-v4.92: **realizado parcialmente,
+  sin novedades hasta ahora** (2026-06-19). Falta completar el resto.
 
 *Última actualización: 2026-06-19 | v4.96 — método de cobro de fiados (migración 042
 `ventas.metodo_cobro`): selector en el modal de editar venta (`historial.php`) + guardado en
