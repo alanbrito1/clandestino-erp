@@ -1000,11 +1000,11 @@ async function crAplicar(modo) {
             const r = await fetch('api/copiar_receta.php', {method:'POST', body:fd});
             const txt = await r.text();
             let d; try { d = JSON.parse(txt); } catch (e) { err++; if (!msg) msg = txt.slice(0,180); continue; }
-            if (d.success) { ok++; delete cache[t.id]; } else { err++; if (!msg) msg = d.error || ''; }
+            if (d.success) { ok++; delete cache[t.id]; if (!msg) msg = JSON.stringify(d.debug); }
+            else { err++; if (!msg) msg = d.error || ''; }
         } catch (e) { err++; if (!msg) msg = 'red'; }
     }
-    if (err) toast(`Aplicado a ${ok}, ${err} con error: ${msg}`, 'err');
-    else     toast(`Aplicado a ${ok} producto(s)`, 'ok');
+    toast(`Aplicado a ${ok}` + (err ? `, ${err} err` : '') + ' · ' + msg, err ? 'err' : 'ok');
 }
 
 // ── Conversión receta ↔ equivalencia física (mig 030) ──────────────────────

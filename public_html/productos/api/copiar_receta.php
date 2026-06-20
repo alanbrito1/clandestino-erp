@@ -125,10 +125,12 @@ try {
         "SELECT insumo_id, cantidad_requerida, es_insumo_critico{$colBaseSel}
          FROM recetas WHERE producto_id = ?"
     );
+    $fuentesRows = 0;
     foreach ($fuentes as $f) {
         $stmtFuente->execute([$f['id']]);
         $factor = $f['factor'] / 100.0;
         foreach ($stmtFuente->fetchAll() as $r) {
+            $fuentesRows++;
             $cant = round((float)$r['cantidad_requerida'] * $factor, 4);
             if ($cant <= 0) continue;
             $mergeRow($map, (int)$r['insumo_id'], $cant,
@@ -196,7 +198,8 @@ try {
     $pdo->commit();
 
     echo json_encode(['success' => true, 'ingredientes' => $n, 'modo' => $modo,
-        'debug' => ['modo' => $modo, 'destino_rows' => $destinoRows, 'fuentes' => count($fuentes),
+        'debug' => ['modo' => $modo, 'destino_rows' => $destinoRows,
+                    'fuentes' => array_column($fuentes, 'id'), 'fuentes_rows' => $fuentesRows,
                     'map' => array_map(fn($v) => round($v['cant'], 4), $map)]]);
 
 } catch (\Throwable $e) {
