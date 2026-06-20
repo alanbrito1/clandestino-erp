@@ -139,6 +139,14 @@ $nav_activo = 'ventas';
         }
         .resumen-bar strong { color: var(--dark); }
         .resumen-sep { color: var(--g8); }
+        /* Móvil vertical: la barra de resumen ENVUELVE en varias líneas en vez de
+           scrollear horizontalmente; se ocultan los separadores "|". */
+        @media (max-width: 479px) {
+            .resumen-bar { flex-wrap: wrap; white-space: normal; overflow-x: visible;
+                           gap: 4px 14px; padding: 8px 12px; }
+            .resumen-sep { display: none; }
+            .resumen-bar > a { margin-left: auto; }
+        }
 
         /* ---- CONTENIDO PRINCIPAL ---- */
         .main { padding: 12px 12px 0; max-width: 900px; margin: 0 auto; }
