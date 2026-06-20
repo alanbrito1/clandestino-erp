@@ -205,9 +205,9 @@ $total_ventas   = array_sum(array_column($clientes, 'total_ventas'));
            RESPONSIVE
            ════════════════════════════════════════════════════════════════ */
 
-        /* xs: < 480px — móvil vertical: la tabla se convierte en TARJETAS apiladas
-           (sin scroll horizontal). Cada fila = una tarjeta: nombre arriba, campos
-           etiquetados, y los botones de acción en su propia fila abajo. */
+        /* xs: < 480px — móvil vertical. La tabla se convierte en TARJETAS vía las
+           clases .rcards / .rcards-wrap (definidas en nav.php, sección 17). Aquí
+           solo van los ajustes propios de esta página. */
         @media (max-width:479px) {
             .main    { padding:12px 10px 50px; }
             .kpis    { grid-template-columns:1fr 1fr; gap:8px; }
@@ -218,42 +218,6 @@ $total_ventas   = array_sum(array_column($clientes, 'total_ventas'));
             /* Modales en full-width, esquinas redondeadas arriba */
             .modal   { max-width:100% !important; border-radius:20px 20px 0 0 !important; }
             .fg-row  { grid-template-columns:1fr; }  /* columnas del form en vertical */
-
-            /* El contenedor deja de scrollear; las tarjetas son los <tr> */
-            .tbl-card { overflow:visible; background:transparent; box-shadow:none; border-radius:0; }
-            #tbl-clientes { min-width:0; }
-            #tbl-clientes thead { display:none; }
-            #tbl-clientes, #tbl-clientes tbody { display:block; width:100%; }
-            #tbl-clientes tr {
-                display:block; background:var(--white);
-                border:1px solid var(--g8); border-radius:12px;
-                padding:10px 12px; margin-bottom:10px;
-                box-shadow:0 1px 3px rgba(0,0,0,.05);
-            }
-            #tbl-clientes tr.inactivo { opacity:.6; }
-            /* Re-mostrar columnas que antes se ocultaban */
-            #tbl-clientes .hide-xs, #tbl-clientes .hide-sm { display:flex !important; }
-            /* Cada celda: etiqueta a la izquierda, valor a la derecha */
-            #tbl-clientes td {
-                display:flex; justify-content:space-between; align-items:center; gap:12px;
-                padding:5px 0; border:none; text-align:right; font-size:13px;
-            }
-            #tbl-clientes td[data-label]::before {
-                content:attr(data-label);
-                font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.3px;
-                color:var(--g5); text-align:left; flex:0 0 auto;
-            }
-            /* Nombre + badge: ancho completo, destacado, sin etiqueta */
-            #tbl-clientes td:first-child {
-                display:block; text-align:left;
-                border-bottom:1px solid var(--g9); padding-bottom:8px; margin-bottom:4px;
-            }
-            /* Acciones: fila propia abajo, botones envueltos */
-            #tbl-clientes td.acc-cell {
-                display:flex; flex-wrap:wrap; justify-content:flex-start; gap:8px;
-                white-space:normal !important;
-                border-top:1px solid var(--g9); padding-top:10px; margin-top:6px;
-            }
         }
 
         /* 360px: teléfonos Android pequeños */
@@ -330,8 +294,8 @@ $total_ventas   = array_sum(array_column($clientes, 'total_ventas'));
     </div>
 
     <!-- Tabla de clientes -->
-    <div class="tbl-card">
-        <table id="tbl-clientes">
+    <div class="tbl-card rcards-wrap">
+        <table id="tbl-clientes" class="rcards">
             <thead>
                 <tr>
                     <th>Cliente</th>

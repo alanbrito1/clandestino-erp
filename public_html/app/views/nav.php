@@ -1096,6 +1096,55 @@ button svg, a svg { vertical-align: middle; pointer-events: none; }
     .ic { width: 38px !important; height: 38px !important; }
     .ic svg { width: 18px !important; height: 18px !important; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   17. TABLAS → TARJETAS EN MÓVIL VERTICAL (reutilizable en todos los módulos)
+   Marca la tabla con class="rcards" y su contenedor con class="rcards-wrap".
+   En cada <td> agrega data-label="Etiqueta"; la primera celda (nombre) va sin
+   etiqueta y a todo el ancho; la celda de acciones lleva class="acc-cell".
+   <480px: cada fila se vuelve una tarjeta (nombre arriba, campos etiquetados,
+   botones de acción abajo) — sin scroll horizontal. ≥480px no cambia nada.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 479px) {
+    /* El contenedor deja de scrollear; las tarjetas son los <tr> */
+    .rcards-wrap { overflow: visible !important; background: transparent !important;
+                   box-shadow: none !important; border-radius: 0 !important; }
+    .rcards { min-width: 0 !important; }
+    .rcards thead { display: none; }
+    .rcards, .rcards tbody { display: block; width: 100%; }
+    .rcards tr {
+        display: block; background: var(--white, #fff);
+        border: 1px solid var(--g8, #d1d5db); border-radius: 12px;
+        padding: 10px 12px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    }
+    .rcards tr.inactivo, .rcards tr.anulada, .rcards tr.is-inactivo { opacity: .6; }
+    /* Re-mostrar columnas que se ocultaban con scroll */
+    .rcards .hide-xs, .rcards .hide-sm { display: flex !important; }
+    /* Cada celda: etiqueta a la izquierda, valor a la derecha */
+    .rcards td {
+        display: flex; justify-content: space-between; align-items: center; gap: 12px;
+        padding: 5px 0; border: none !important; text-align: right; font-size: 13px;
+    }
+    .rcards td:empty { display: none; }
+    .rcards td[data-label]::before {
+        content: attr(data-label);
+        font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
+        color: var(--g5, #6b7280); text-align: left; flex: 0 0 auto;
+    }
+    /* Primera celda (nombre/título): ancho completo, destacada, sin etiqueta */
+    .rcards td:first-child {
+        display: block; text-align: left;
+        border-bottom: 1px solid var(--g9, #f3f4f6) !important;
+        padding-bottom: 8px; margin-bottom: 4px;
+    }
+    /* Acciones: fila propia abajo, botones envueltos */
+    .rcards td.acc-cell {
+        display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 8px;
+        white-space: normal !important;
+        border-top: 1px solid var(--g9, #f3f4f6) !important;
+        padding-top: 10px; margin-top: 6px;
+    }
+}
 </style>
 
 <script>
