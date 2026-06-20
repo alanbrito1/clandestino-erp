@@ -262,7 +262,7 @@ if (!isset($TIPOS_LISTA[$tipo_sel])) $tipo_sel = array_key_first($TIPOS_LISTA);
     </div>
 
     <!-- Tabla de ítems del catálogo seleccionado -->
-    <div class="tbl-card">
+    <div class="tbl-card rcards-wrap">
         <?php $items = $todos[$tipo_sel] ?? []; ?>
         <?php if (empty($items)): ?>
         <div style="padding:30px;text-align:center;color:var(--g5);font-size:13px">
@@ -270,7 +270,7 @@ if (!isset($TIPOS_LISTA[$tipo_sel])) $tipo_sel = array_key_first($TIPOS_LISTA);
             Agrega la primera con el botón de arriba.
         </div>
         <?php else: ?>
-        <table>
+        <table class="rcards">
             <thead>
                 <tr>
                     <th>Valor (BD)</th>
@@ -289,8 +289,8 @@ if (!isset($TIPOS_LISTA[$tipo_sel])) $tipo_sel = array_key_first($TIPOS_LISTA);
                         <?= htmlspecialchars($item['valor']) ?>
                     </code>
                 </td>
-                <td><strong><?= htmlspecialchars($item['etiqueta']) ?></strong></td>
-                <td class="r">
+                <td data-label="Etiqueta"><strong><?= htmlspecialchars($item['etiqueta']) ?></strong></td>
+                <td class="r" data-label="Orden">
                     <!-- Input inline de orden — se guarda al perder el foco -->
                     <input type="number" class="orden-input"
                            value="<?= (int)$item['orden'] ?>"
@@ -298,12 +298,12 @@ if (!isset($TIPOS_LISTA[$tipo_sel])) $tipo_sel = array_key_first($TIPOS_LISTA);
                            onchange="guardarOrden(<?= $item['id'] ?>, this.value)"
                            title="Posición en el dropdown">
                 </td>
-                <td>
+                <td data-label="Estado">
                     <span class="badge <?= (int)$item['activo'] ? 'b-ok' : 'b-inac' ?>">
                         <?= (int)$item['activo'] ? 'Activo' : 'Inactivo' ?>
                     </span>
                 </td>
-                <td style="white-space:nowrap">
+                <td class="acc-cell" style="white-space:nowrap">
                     <!-- Editar -->
                     <button class="ic-btn" title="Editar"
                             onclick="abrirEditar(<?= htmlspecialchars(json_encode([

@@ -215,9 +215,9 @@ $TIPOS_HORA = [
 
     <!-- Resumen por empleado -->
     <?php if (!$emp_sel): ?>
-    <div class="card">
+    <div class="card rcards-wrap">
         <div class="card-title">Horas del período — <?= $meses[$mes] ?> <?= $anio ?></div>
-        <table>
+        <table class="rcards">
             <thead><tr>
                 <th>Empleado</th><th>Valor/hora</th>
                 <th style="text-align:center">Días</th>
@@ -238,18 +238,18 @@ $TIPOS_HORA = [
                     <br><small style="color:var(--g5)"><?= htmlspecialchars($e['cargo']) ?></small>
                     <?php endif; ?>
                 </td>
-                <td>$<?= fmt_moneda($e['valor_hora']) ?>/h
+                <td data-label="Valor/hora">$<?= fmt_moneda($e['valor_hora']) ?>/h
                     <br><small style="color:var(--g5)"><?= fmt_cantidad($horas_mes_std, 2) ?>h/mes (jornada legal)</small>
                 </td>
-                <td style="text-align:center"><?= $e['dias_trabajados'] ?></td>
-                <td style="text-align:right">
+                <td data-label="Días" style="text-align:center"><?= $e['dias_trabajados'] ?></td>
+                <td data-label="Horas" style="text-align:right">
                     <strong><?= fmt_cantidad((float)$e['horas_total'], 2) ?>h</strong>
                     <?php if ($tieneRecargos): ?>
                     <br><small style="color:#7c3aed" title="Horas ajustadas por recargos"><?= fmt_cantidad((float)$e['horas_ponderadas'], 2) ?>h ponderadas</small>
                     <?php endif; ?>
                 </td>
-                <td style="text-align:right;font-weight:700;color:var(--brand)">$<?= fmt_moneda($pago) ?></td>
-                <td>
+                <td data-label="Pago estimado" style="text-align:right;font-weight:700;color:var(--brand)">$<?= fmt_moneda($pago) ?></td>
+                <td class="acc-cell">
                     <a href="?mes=<?= $mes ?>&anio=<?= $anio ?>&emp=<?= $e['id'] ?>"
                        class="btn-sel">Registrar horas</a>
                 </td>
