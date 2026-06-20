@@ -104,6 +104,7 @@ try {
     }
 
     $map = [];
+    $destinoRows = 0;
 
     // Modo "sumar": partir de la receta actual del destino
     if ($modo === 'sumar') {
@@ -113,6 +114,7 @@ try {
         );
         $cur->execute([$producto_id]);
         foreach ($cur->fetchAll() as $r) {
+            $destinoRows++;
             $mergeRow($map, (int)$r['insumo_id'], (float)$r['cantidad_requerida'],
                       (int)$r['es_insumo_critico'], (int)$r['es_base']);
         }
@@ -193,7 +195,9 @@ try {
 
     $pdo->commit();
 
-    echo json_encode(['success' => true, 'ingredientes' => $n, 'modo' => $modo]);
+    echo json_encode(['success' => true, 'ingredientes' => $n, 'modo' => $modo,
+        'debug' => ['modo' => $modo, 'destino_rows' => $destinoRows, 'fuentes' => count($fuentes),
+                    'map' => array_map(fn($v) => round($v['cant'], 4), $map)]]);
 
 } catch (\Throwable $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();

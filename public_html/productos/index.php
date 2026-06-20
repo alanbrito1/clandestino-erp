@@ -872,7 +872,7 @@ async function aplicarCopia(prodId, modo) {
         let d; try { d = JSON.parse(txt); } catch (e) { toast('Respuesta inválida del servidor: ' + txt.slice(0,180), 'err'); return; }
         if (d.success) {
             delete cache[prodId];
-            toast((modo === 'sumar' ? 'Sumado' : 'Receta construida') + ': ' + d.ingredientes + ' ingrediente(s)', 'ok');
+            toast('OK ' + d.ingredientes + ' ing · ' + JSON.stringify(d.debug), 'ok');
             refrescarReceta(prodId);
         } else toast(d.error || 'Error', 'err');
     } catch (e) { toast('Error de red al copiar receta', 'err'); }
