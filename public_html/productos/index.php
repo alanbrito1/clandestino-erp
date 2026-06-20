@@ -331,6 +331,21 @@ $stock_total     = array_sum(array_column($productos, 'stock_disponible'));
         </div>
     </div>
 
+    <?php if (permiso_tiene('productos','editar_existentes')): ?>
+    <style>
+        .tab-btn{padding:8px 16px;border:1px solid var(--g8);background:var(--white);border-radius:10px 10px 0 0;font-size:13px;font-weight:700;cursor:pointer;color:var(--g5)}
+        .tab-btn.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+        .cr-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--g5);display:block;margin-bottom:3px}
+        .cr-inp{padding:8px 10px;border:1px solid var(--g8);border-radius:8px;font-size:13px;width:100%}
+        .cr-row{display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
+    </style>
+    <div style="display:flex;gap:4px;margin-bottom:0">
+        <button class="tab-btn on" id="tabb-catalogo" onclick="mostrarTabProd('catalogo')">Catálogo</button>
+        <button class="tab-btn" id="tabb-constructor" onclick="mostrarTabProd('constructor')">🧪 Constructor de recetas</button>
+    </div>
+    <?php endif; ?>
+
+    <div id="tab-catalogo">
     <div class="card rcards-wrap">
         <div class="card-title">
             Catálogo de Productos
@@ -425,6 +440,53 @@ $stock_total     = array_sum(array_column($productos, 'stock_disponible'));
             </tbody>
         </table>
     </div>
+    </div><!-- /tab-catalogo -->
+
+    <?php if (permiso_tiene('productos','editar_existentes')): ?>
+    <!-- ══ TAB: CONSTRUCTOR DE RECETAS ══════════════════════════════════════ -->
+    <div id="tab-constructor" style="display:none">
+        <div class="card">
+            <div class="card-title">🧪 Constructor de recetas</div>
+            <div style="padding:14px 18px">
+                <p style="font-size:12px;color:var(--g5);margin-bottom:14px">
+                    Elige un producto, indica cuántas unidades <strong>salen</strong> (rinde) y arma su lista de
+                    ingredientes. Al guardar se <strong>reemplaza</strong> la receta de ese producto.
+                </p>
+                <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
+                    <div style="flex:1;min-width:220px">
+                        <label class="cr-lbl">Producto</label>
+                        <select id="cr-prod" class="cr-inp" onchange="crCargarProducto()"></select>
+                    </div>
+                    <div>
+                        <label class="cr-lbl">¿Cuántos salen? (rinde)</label>
+                        <input type="number" id="cr-rinde" class="cr-inp" min="1" step="1" value="1" style="width:130px">
+                    </div>
+                </div>
+
+                <label class="cr-lbl">Ingredientes</label>
+                <div id="cr-ings" style="margin-bottom:8px"></div>
+                <button class="btn-sm" onclick="crAddIng()">+ Agregar ingrediente</button>
+                <div style="margin-top:14px">
+                    <button class="btn-sm btn-grn" style="padding:9px 18px" onclick="crGuardar()">💾 Guardar receta del producto</button>
+                </div>
+
+                <div style="margin-top:20px;border-top:1px solid var(--g9);padding-top:14px">
+                    <p style="font-size:13px;font-weight:800;margin-bottom:3px">Aplicar esta receta a otros productos</p>
+                    <p style="font-size:12px;color:var(--g5);margin-bottom:10px">
+                        Toma la receta del producto de arriba y la lleva a otros, cada uno a su <strong>porcentaje</strong>
+                        (ej. al L 60%). Los insumos repetidos se suman.
+                    </p>
+                    <div id="cr-targets" style="margin-bottom:8px"></div>
+                    <button class="btn-sm" onclick="crAddTarget()">+ Agregar producto destino</button>
+                    <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
+                        <button class="btn-sm btn-grn" onclick="crAplicar('reemplazar')">Reemplazar en destinos</button>
+                        <button class="btn-sm" style="background:#dbeafe;color:#1d4ed8" onclick="crAplicar('sumar')">Sumar en destinos</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
 </main>
 
 <!-- Modal EDITAR producto -->
@@ -552,9 +614,9 @@ const INSUMOS = <?= json_encode(array_map(
 
 const FIJOS_U = <?= json_encode(['fijo'=>$costo_fijo_u,'deprec'=>$costo_deprec_u,'rh'=>$costo_rh_u,'total'=>$fijos_u]) ?>;
 
-// Productos activos (para copiar/combinar recetas desde otro producto)
+// Productos activos (para copiar/combinar recetas y el Constructor de recetas)
 const PRODUCTOS_RECETA = <?= json_encode(array_values(array_map(
-    fn($p) => ['id'=>(int)$p['id'],'nombre'=>$p['nombre'],'tamano'=>$p['tamano'] ?? '','nombre2'=>$p['nombre2'] ?? ''],
+    fn($p) => ['id'=>(int)$p['id'],'nombre'=>$p['nombre'],'tamano'=>$p['tamano'] ?? '','nombre2'=>$p['nombre2'] ?? '','rinde'=>(int)($p['unidades_por_receta'] ?? 1)],
     array_filter($productos, fn($p) => (int)($p['activo'] ?? 0) === 1)
 )), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) ?>;
 
@@ -811,6 +873,133 @@ async function aplicarCopia(prodId, modo) {
         toast((modo === 'sumar' ? 'Sumado' : 'Receta construida') + ': ' + d.ingredientes + ' ingrediente(s)', 'ok');
         refrescarReceta(prodId);
     } else toast(d.error || 'Error', 'err');
+}
+
+// ══ CONSTRUCTOR DE RECETAS (tab) ════════════════════════════════════════════
+let crInit = false;
+function mostrarTabProd(name) {
+    const cat = document.getElementById('tab-catalogo');
+    const con = document.getElementById('tab-constructor');
+    const bc  = document.getElementById('tabb-catalogo');
+    const bk  = document.getElementById('tabb-constructor');
+    if (name === 'constructor') {
+        cat.style.display = 'none'; con.style.display = '';
+        bc.classList.remove('on'); bk.classList.add('on');
+        if (!crInit) { crInitConstructor(); crInit = true; }
+    } else {
+        cat.style.display = ''; con.style.display = 'none';
+        bk.classList.remove('on'); bc.classList.add('on');
+    }
+}
+function crProdOptions(excludeId) {
+    return PRODUCTOS_RECETA.filter(p => p.id !== excludeId).map(p => {
+        const t  = p.tamano && p.tamano !== 'unico' ? ' ' + p.tamano : '';
+        const n2 = p.nombre2 ? ' — ' + p.nombre2 : '';
+        return `<option value="${p.id}">${esc(p.nombre + t + n2)}</option>`;
+    }).join('');
+}
+function crInsumoOptions(selId) {
+    return INSUMOS.map(i => `<option value="${i.id}"${i.id==selId?' selected':''}>${esc(i.nombre)} (${esc(i.unidad)})</option>`).join('');
+}
+function crIngRow(insumoId, cant, crit, base) {
+    insumoId = insumoId || (INSUMOS[0] ? INSUMOS[0].id : 0);
+    return `<div class="cr-row cr-ing-row">
+        <select class="cr-inp cr-ing-sel" style="flex:1;min-width:150px">${crInsumoOptions(insumoId)}</select>
+        <input type="number" class="cr-inp cr-ing-cant" value="${cant!=null?cant:''}" step="any" min="0.0001" placeholder="Cantidad" style="width:110px">
+        <label style="font-size:11px;color:var(--g5);display:flex;align-items:center;gap:3px"><input type="checkbox" class="cr-ing-crit"${crit?' checked':''}> Crít.</label>
+        <label style="font-size:11px;color:var(--g5);display:flex;align-items:center;gap:3px" title="Base: cantidad fija, no escala con variante"><input type="checkbox" class="cr-ing-base"${base?' checked':''}> 🔒</label>
+        <button class="btn-sm btn-red" onclick="this.closest('.cr-ing-row').remove()">✕</button>
+    </div>`;
+}
+function crAddIng(insumoId, cant, crit, base) {
+    document.getElementById('cr-ings').insertAdjacentHTML('beforeend', crIngRow(insumoId, cant, crit, base));
+}
+function crInitConstructor() {
+    document.getElementById('cr-prod').innerHTML = crProdOptions(0);
+    crCargarProducto();
+    if (!document.querySelectorAll('#cr-targets .cr-tg-row').length) crAddTarget();
+}
+async function crCargarProducto() {
+    const id   = parseInt(document.getElementById('cr-prod').value);
+    const prod = PRODUCTOS_RECETA.find(p => p.id === id);
+    document.getElementById('cr-rinde').value = prod ? prod.rinde : 1;
+    const cont = document.getElementById('cr-ings');
+    cont.innerHTML = '';
+    try {
+        const r = await fetch('api/ingredientes.php?producto_id=' + id);
+        const ings = await r.json();
+        if (Array.isArray(ings) && ings.length)
+            ings.forEach(i => crAddIng(i.insumo_id, +i.cantidad_requerida, i.es_insumo_critico==1?1:0, i.es_base==1?1:0));
+        else crAddIng();
+    } catch (e) { crAddIng(); }
+    // Excluir el producto fuente de los selectores de destino
+    document.querySelectorAll('#cr-targets .cr-tg-sel').forEach(s => {
+        const cur = s.value; s.innerHTML = crProdOptions(id); if (cur) s.value = cur;
+    });
+}
+async function crGuardar() {
+    const prodId = parseInt(document.getElementById('cr-prod').value);
+    const rinde  = parseInt(document.getElementById('cr-rinde').value) || 1;
+    const ings = [];
+    document.querySelectorAll('#cr-ings .cr-ing-row').forEach(row => {
+        const insumo_id = parseInt(row.querySelector('.cr-ing-sel').value);
+        const cantidad  = parseFloat(row.querySelector('.cr-ing-cant').value);
+        if (insumo_id && cantidad > 0) ings.push({
+            insumo_id, cantidad,
+            es_critico: row.querySelector('.cr-ing-crit').checked ? 1 : 0,
+            es_base:    row.querySelector('.cr-ing-base').checked ? 1 : 0,
+        });
+    });
+    if (!ings.length) { toast('Agrega al menos un ingrediente con cantidad', 'err'); return; }
+    const fd = new FormData();
+    fd.append('csrf_token', csrf());
+    fd.append('producto_id', prodId);
+    fd.append('rinde', rinde);
+    fd.append('ingredientes', JSON.stringify(ings));
+    const r = await fetch('api/guardar_receta_completa.php', {method:'POST', body:fd});
+    const d = await r.json();
+    if (d.success) {
+        delete cache[prodId];
+        const prod = PRODUCTOS_RECETA.find(p => p.id === prodId); if (prod) prod.rinde = rinde;
+        toast('Receta guardada: ' + d.ingredientes + ' ingrediente(s)', 'ok');
+    } else toast(d.error || 'Error', 'err');
+}
+function crTargetRow() {
+    const srcId = parseInt(document.getElementById('cr-prod').value) || 0;
+    return `<div class="cr-row cr-tg-row">
+        <select class="cr-inp cr-tg-sel" style="flex:1;min-width:150px">${crProdOptions(srcId)}</select>
+        <input type="number" class="cr-inp cr-tg-pct" value="100" min="1" max="1000" step="5" style="width:80px" title="Porcentaje a tomar">
+        <span style="font-size:12px;color:var(--g5)">%</span>
+        <button class="btn-sm btn-red" onclick="this.closest('.cr-tg-row').remove()">✕</button>
+    </div>`;
+}
+function crAddTarget() {
+    document.getElementById('cr-targets').insertAdjacentHTML('beforeend', crTargetRow());
+}
+async function crAplicar(modo) {
+    const srcId = parseInt(document.getElementById('cr-prod').value);
+    const targets = [];
+    document.querySelectorAll('#cr-targets .cr-tg-row').forEach(row => {
+        const id  = parseInt(row.querySelector('.cr-tg-sel').value);
+        const pct = parseFloat(row.querySelector('.cr-tg-pct').value);
+        if (id && id !== srcId && pct > 0) targets.push({ id, pct });
+    });
+    if (!targets.length) { toast('Agrega al menos un producto destino con %', 'err'); return; }
+    if (modo === 'reemplazar' && !confirm('Esto REEMPLAZARÁ la receta de ' + targets.length + ' producto(s) destino. ¿Continuar?')) return;
+    let ok = 0, err = 0;
+    for (const t of targets) {
+        const fd = new FormData();
+        fd.append('csrf_token', csrf());
+        fd.append('producto_id', t.id);
+        fd.append('modo', modo);
+        fd.append('fuentes', JSON.stringify([{ id: srcId, factor: t.pct }]));
+        try {
+            const r = await fetch('api/copiar_receta.php', {method:'POST', body:fd});
+            const d = await r.json();
+            if (d.success) { ok++; delete cache[t.id]; } else err++;
+        } catch (e) { err++; }
+    }
+    toast(`Aplicado a ${ok} producto(s)` + (err ? `, ${err} con error` : ''), err ? 'err' : 'ok');
 }
 
 // ── Conversión receta ↔ equivalencia física (mig 030) ──────────────────────
