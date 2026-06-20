@@ -3289,23 +3289,42 @@ Opción A frente a usar abonos o integrar ambos): columna a nivel venta.
 (flujo correcto + diferencia con abonos) y documentación del filtro/discriminación en Reportes.
 Commit: `a028a1b`.
 
+### 6. Fix — la fecha de cobro del fiado no se guardaba (datetime-local sin hora)
+
+El campo "Fecha de cobro" era `<input type="datetime-local">`, que devuelve `.value` **vacío**
+si no se completa la hora (lo habitual: solo poner la fecha). Al llegar vacía, el backend no
+marcaba pagado ni guardaba fecha, y como `metodo_cobro` depende de `fecha_pago`, tampoco se
+guardaba el método. Corregido: el campo pasa a `<input type="date">` (un cobro solo necesita
+fecha; carga/submit a `YYYY-MM-DD`) y `editar_venta.php` acepta fecha sola (usa el mediodía) o
+fecha+hora. Commit: `d8afc19`.
+
+### 7. Sincronización de estructura de BD (auditoría) — schema.sql + CLAUDE.md
+
+Auditoría a pedido del usuario: varios cambios de BD no estaban reflejados en el instalador ni
+en la doc. El seed de `configuracion_app` en `schema.sql` no incluía las claves de formato
+numérico → agregadas `num_decimales`/`num_sep_miles`/`num_sep_decimal` (mig 040) y
+`num_sep_millones` (mig 041). En CLAUDE.md: tabla de claves +`num_sep_millones`; tabla `ventas`
+(§4) +`metodo_cobro`; lista de migraciones +041 +042. El resto de migraciones se verificó ya
+presente en `schema.sql`. Commit: `076486c`.
+
 ### Cambios de versión
 
 - `app/config/app.php`: `APP_VERSION` → `4.96`.
-- Migración nueva: **042** (`ventas.metodo_cobro`). Ejecutar en producción.
+- Migración nueva: **042** (`ventas.metodo_cobro`) — **aplicada en producción (2026-06-19)**.
 
 ### Pendiente
 
-- **Correr la migración 042** en producción (cPanel → phpMyAdmin) para activar el método de
-  cobro; hasta entonces el código es retrocompatible (campo oculto / columna vacía, sin errores).
-- Verificación del usuario (en curso): Conteo Rápido, editar venta (cambiar método sin error),
-  método de cobro de fiados (editar fiado → Fecha + Método → "Cobrado … · Método"), y el reporte
-  de Ventas (filtro + tabla discriminada).
+- Todo v4.96 **verificado en producción** (2026-06-19): Conteo Rápido, editar venta, método de
+  cobro de fiados (tras correr la mig 042 y el fix de fecha) y el reporte de Ventas (filtro +
+  discriminación).
 - Sigue pausado el Bloque A2-A4/B1-B5 de pruebas manuales acumuladas v4.83-v4.92.
 
 *Última actualización: 2026-06-19 | v4.96 — método de cobro de fiados (migración 042
 `ventas.metodo_cobro`): selector en el modal de editar venta (`historial.php`) + guardado en
 `editar_venta.php`; reporte de Ventas con filtro por forma de pago y tabla que discrimina
 ventas directas vs cobro de fiados (`reportes/ventas.php`); ayuda actualizada. Fixes: Conteo
-Rápido CSRF en endpoint JSON (`csrf_verificar()` acepta header `X-CSRF-Token`, 311a34f) y
-editar venta `Unknown column 'r.es_base'` (927f53b). `APP_VERSION` → 4.96.*
+Rápido CSRF en endpoint JSON (`csrf_verificar()` acepta header `X-CSRF-Token`, 311a34f),
+editar venta `Unknown column 'r.es_base'` (927f53b) y fecha de cobro que no guardaba
+(`datetime-local` → `date`, d8afc19). Sincronizados `schema.sql` (seed de claves de formato) y
+CLAUDE.md con las migraciones 040/041/042 (076486c). Todo verificado en producción
+(2026-06-19). `APP_VERSION` → 4.96.*
