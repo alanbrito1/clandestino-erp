@@ -1195,8 +1195,8 @@ descuento = (cantidad_requerida ÷ unidades_por_receta) × cantidad_vendida × <
             </ol>
             <p>Abajo, <strong>"Traer ingredientes de otros productos"</strong>: agrega uno o varios productos de origen, a cada uno con su <strong>porcentaje</strong> (ej. Pollo 50% + Criollo 50%). Tienes dos botones:</p>
             <ul>
-                <li><strong>⬇ Sumar a la lista:</strong> trae los ingredientes de los orígenes (escalados al %) y los <strong>suma</strong> a lo que ya hay en la lista de arriba, unificando los repetidos.</li>
-                <li><strong>Reemplazar la lista:</strong> descarta la lista actual y la arma <strong>solo</strong> con los orígenes combinados.</li>
+                <li><strong>Reemplazar receta:</strong> descarta la lista actual y la arma <strong>solo</strong> con los orígenes combinados.</li>
+                <li><strong>Sumar a la actual:</strong> trae los ingredientes de los orígenes (escalados al %) y los <strong>suma</strong> a lo que ya hay en la lista de arriba, unificando los repetidos.</li>
             </ul>
             <p>Verás las cantidades actualizadas en pantalla; revísalas y luego pulsa <strong>Guardar receta del producto</strong> para persistirlas. Es la forma de armar, por ejemplo, un "Mixto" combinando dos recetas, o un tamaño L tomando el XL al 60%.</p>
             <div class="tip">El "Traer y combinar" solo modifica la lista en pantalla — nada se guarda hasta que pulsas "Guardar receta del producto". Tras guardar, las columnas de costo del Catálogo se actualizan al recargar la página.</div>
