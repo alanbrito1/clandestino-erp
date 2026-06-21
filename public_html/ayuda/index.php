@@ -1193,7 +1193,12 @@ descuento = (cantidad_requerida ÷ unidades_por_receta) × cantidad_vendida × <
                 <li>Arma la <strong>lista de ingredientes</strong> (insumo + cantidad, y opcionalmente crítico/base). Si el producto ya tenía receta, se carga para que la edites.</li>
                 <li><strong>💾 Guardar receta del producto</strong> → reemplaza la receta de ese producto y fija el rinde.</li>
             </ol>
-            <p>Abajo, <strong>"Traer ingredientes de otros productos"</strong>: agrega uno o varios productos de origen, a cada uno con su <strong>porcentaje</strong> (ej. Pollo 50% + Criollo 50%), y pulsa <strong>⬇ Traer y combinar</strong>. Sus ingredientes (escalados al %) se <strong>suman a la lista de arriba</strong>, unificando los insumos repetidos. Verás las cantidades actualizadas en pantalla; revísalas y luego pulsa <strong>Guardar receta del producto</strong> para persistirlas. Es la forma de armar, por ejemplo, un "Mixto" combinando dos recetas, o un tamaño L tomando el XL al 60%.</p>
+            <p>Abajo, <strong>"Traer ingredientes de otros productos"</strong>: agrega uno o varios productos de origen, a cada uno con su <strong>porcentaje</strong> (ej. Pollo 50% + Criollo 50%). Tienes dos botones:</p>
+            <ul>
+                <li><strong>⬇ Sumar a la lista:</strong> trae los ingredientes de los orígenes (escalados al %) y los <strong>suma</strong> a lo que ya hay en la lista de arriba, unificando los repetidos.</li>
+                <li><strong>Reemplazar la lista:</strong> descarta la lista actual y la arma <strong>solo</strong> con los orígenes combinados.</li>
+            </ul>
+            <p>Verás las cantidades actualizadas en pantalla; revísalas y luego pulsa <strong>Guardar receta del producto</strong> para persistirlas. Es la forma de armar, por ejemplo, un "Mixto" combinando dos recetas, o un tamaño L tomando el XL al 60%.</p>
             <div class="tip">El "Traer y combinar" solo modifica la lista en pantalla — nada se guarda hasta que pulsas "Guardar receta del producto". Tras guardar, las columnas de costo del Catálogo se actualizan al recargar la página.</div>
 
             <div class="sub-title">Dar de baja stock terminado — 🎁 Regalar y 🗑 Desechar</div>
