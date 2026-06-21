@@ -315,11 +315,12 @@ t($G, "venta_detalles.subtotal = precio * cantidad (tolerancia 1 peso)",
 // ventas.total = SUM(venta_detalles.subtotal) para cada venta no anulada
 $totales_venta_mal = (int)scalar($pdo,
     "SELECT COUNT(*) FROM (
-         SELECT v.id FROM ventas v
+         SELECT v.id, v.total, SUM(vd.subtotal) AS suma
+         FROM ventas v
          JOIN venta_detalles vd ON vd.venta_id = v.id
          WHERE v.estado != 'anulada'
-         GROUP BY v.id
-         HAVING ABS(v.total - SUM(vd.subtotal)) > 1
+         GROUP BY v.id, v.total
+         HAVING ABS(v.total - suma) > 1
      ) sub");
 t($G, "ventas.total = SUM(venta_detalles.subtotal) en ventas activas",
     $totales_venta_mal === 0,
@@ -336,10 +337,11 @@ t($G, "compra_detalles.subtotal = precio * cantidad",
 // compras.total = SUM(compra_detalles.subtotal) para cada compra
 $totales_compra_mal = (int)scalar($pdo,
     "SELECT COUNT(*) FROM (
-         SELECT c.id FROM compras c
+         SELECT c.id, c.total, SUM(cd.subtotal) AS suma
+         FROM compras c
          JOIN compra_detalles cd ON cd.compra_id = c.id
-         GROUP BY c.id
-         HAVING ABS(c.total - SUM(cd.subtotal)) > 1
+         GROUP BY c.id, c.total
+         HAVING ABS(c.total - suma) > 1
      ) sub");
 t($G, "compras.total = SUM(compra_detalles.subtotal)",
     $totales_compra_mal === 0,
