@@ -58,10 +58,6 @@
 
 require_once __DIR__ . '/../app/middleware/auth_check.php';
 
-// DIAGNÓSTICO TEMPORAL: mostrar el error real (quitar después)
-ini_set('display_errors', '1');
-error_reporting(E_ALL);
-
 // Acceso exclusivo: superadmin por seguridad (este script lee datos sensibles)
 if (($_SESSION['usuario_rol'] ?? '') !== 'superadmin') {
     http_response_code(403);
