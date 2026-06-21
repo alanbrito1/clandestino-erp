@@ -3470,14 +3470,16 @@ toggle JS `mostrarTabProd`): **Catálogo** (la tabla de siempre) y **Constructor
 - Eliges **producto** + **"cuántos salen"** (rinde = `unidades_por_receta`) + **lista de
   ingredientes** (insumo + cantidad + crítico/base). Al seleccionar un producto se carga su
   receta actual (editable). **Guardar** → reemplaza la receta y fija el rinde.
-- **Aplicar esta receta a otros productos**: agrega productos destino, cada uno con su **%**;
-  Reemplazar o Sumar. Internamente hace un `copiar_receta.php` por destino con
-  `fuentes=[{id: producto_fuente, factor: %}]` (uno→muchos).
+- **Traer ingredientes de otros productos** (PULL, del lado del cliente): agrega productos de
+  origen, cada uno con su **%**; "⬇ Traer y combinar" trae sus ingredientes (escalados) y los
+  **suma a la lista en pantalla** (cr-ings), unificando insumos repetidos. Nada se guarda hasta
+  "Guardar receta del producto". (`crTraer` lee `ingredientes.php` de cada origen y mergea en JS;
+  reemplazó la versión "push a destinos" inicial que no actualizaba la lista visible.)
 - Backend nuevo `productos/api/guardar_receta_completa.php`: transacción — fija
   `unidades_por_receta`, `DELETE`+`INSERT` de la receta (unifica insumos repetidos sumando,
   resuelve banderas: base anula crítico, máx 1 crítico), recalcula `costo_calculado`.
 - Frontend: `PRODUCTOS_RECETA` ahora incluye `rinde`; funciones `mostrarTabProd`,
-  `crInitConstructor`, `crCargarProducto`, `crAddIng`, `crGuardar`, `crAddTarget`, `crAplicar`.
+  `crInitConstructor`, `crCargarProducto`, `crAddIng`, `crGuardar`, `crAddOrigen`, `crTraer`.
 
 **Endpoints de receta (productos/api/):** `guardar_receta.php` (1 ingrediente, upsert/borrar),
 `copiar_receta.php` (combinar fuentes con %, v4.98), `guardar_receta_completa.php` (receta
