@@ -49,6 +49,9 @@
  *                              sep_millones; formato uniforme y con separadores
  *                              distintos (miles/millones), 4 grupos, negativos y
  *                              valores sin agrupación
+ *   G34  Cobro fiado/recetas — migración 042 (ventas.metodo_cobro): existe, ENUM válido,
+ *                              solo en ventas fiado; y endpoints de receta presentes
+ *                              (guardar/copiar/completa/ingredientes — v4.98/v4.99)
  *
  * EJECUTAR: /tests/suite.php (navegador, sesión activa como superadmin)
  */
@@ -1778,6 +1781,52 @@ t($G, "fmt_agrupar() sin agrupacion (< 1000)",
     fmt_agrupar(45, 2, $cfgDistinto) === '45,00',
     "Esperado '45,00', obtenido '" . fmt_agrupar(45, 2, $cfgDistinto) . "'.");
 
+// ════════════════════════════════════════════════════════════════════════════════
+//  G34 — MÉTODO DE COBRO DE FIADOS (migración 042) + ENDPOINTS DE RECETA (v4.96–v4.99)
+//  Verifica la columna ventas.metodo_cobro (con qué se saldó un fiado), su coherencia
+//  (solo en ventas fiado, ENUM válido) y que los endpoints de receta existan
+//  (editar/copiar/combinar/constructor).
+// ════════════════════════════════════════════════════════════════════════════════
+
+$G = 'G34 Cobro fiado y recetas';
+
+$tiene_metodo_cobro = columna_existe($pdo, 'ventas', 'metodo_cobro');
+t($G, "ventas.metodo_cobro existe (migracion 042)",
+    $tiene_metodo_cobro, "Aplicar 042_venta_metodo_cobro.sql en produccion.", !$tiene_metodo_cobro);
+
+if ($tiene_metodo_cobro) {
+    $mc_row  = $pdo->query("SHOW COLUMNS FROM ventas LIKE 'metodo_cobro'")->fetch();
+    $mc_type = $mc_row ? $mc_row['Type'] : '';
+    $mc_ok   = true;
+    foreach (['efectivo','nequi','daviplata','bancolombia'] as $m) {
+        if (!str_contains($mc_type, $m)) { $mc_ok = false; break; }
+    }
+    t($G, "ventas.metodo_cobro ENUM incluye efectivo/nequi/daviplata/bancolombia",
+        $mc_ok, $mc_ok ? '' : "Tipo actual: {$mc_type}");
+
+    // Coherencia: metodo_cobro solo aplica a ventas a fiado
+    $cobro_no_fiado = (int)scalar($pdo,
+        "SELECT COUNT(*) FROM ventas WHERE metodo_cobro IS NOT NULL AND metodo_pago <> 'fiado'");
+    t($G, "metodo_cobro solo presente en ventas a fiado",
+        $cobro_no_fiado === 0,
+        $cobro_no_fiado > 0 ? "{$cobro_no_fiado} ventas no-fiado con metodo_cobro." : '');
+}
+
+// Endpoints de receta (editar/copiar/combinar/constructor) deben existir
+$endpoints_receta = [
+    'productos/api/guardar_receta.php',
+    'productos/api/copiar_receta.php',
+    'productos/api/guardar_receta_completa.php',
+    'productos/api/ingredientes.php',
+];
+$faltan_ep = [];
+foreach ($endpoints_receta as $ep) {
+    if (!file_exists(BASE_PATH . '/' . $ep)) $faltan_ep[] = $ep;
+}
+t($G, "Endpoints de receta presentes (guardar/copiar/completa/ingredientes)",
+    empty($faltan_ep),
+    empty($faltan_ep) ? '' : "Faltan: " . implode(', ', $faltan_ep));
+
 // ── Tiempo total de ejecución ─────────────────────────────────────────────────
 $tiempo        = round(microtime(true) - $_SERVER['REQUEST_TIME_FLOAT'], 3);
 $total_pruebas = $pass + $fail + $warn;
@@ -1836,7 +1885,7 @@ $total_pruebas = $pass + $fail + $warn;
     Ejecutado: <?= date('d/m/Y H:i:s') ?> |
     <?= $tiempo ?>s |
     <?= $total_pruebas ?> pruebas |
-    33 grupos
+    34 grupos
 </p>
 
 <!-- Resumen global -->

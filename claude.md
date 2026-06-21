@@ -841,7 +841,7 @@ Los modelos usan `SHOW COLUMNS` / `information_schema.COLUMNS` para detectar si 
 | Inventario | ✅ | costo_actual trigger; modal editar/ajustar guarda presentación/costo **sin requerir cantidad de ajuste** (cantidad=0 omite llamada a ajustar_stock.php); **Conteo rápido** (`inventario/conteo.php`) — actualización masiva de stock sin editar insumo por insumo; **presentaciones catalogadas** (`insumo_presentaciones`, mig.039) como fuente primaria con sincronización a campos legacy (v4.83-v4.86); **formato numérico configurable** (v4.87) |
 | Compras | ✅ | Filtros por fecha/lugar/ítem/categoría; editar/duplicar/eliminar compras; **panel informativo de presentación** al seleccionar insumo: muestra tipo de empaque, unidad básica, cant/empaque, equivalencia física y hint dinámico "= X unidades total"; usa **insumo_presentaciones** (mig.039) cuando hay catálogo (v4.80, v4.84); **formato numérico configurable** (v4.92) |
 | Proveedores | ✅ | CRUD, toggle |
-| Productos | ✅ | Editar, Duplicar, calculadora bidireccional de receta, capacidad editable, configuración combo inline; botones Regalar 🎁 y Desechar 🗑 en stock; campo nombre2 (subtítulo visual); **conversión receta ↔ equivalencia física** al agregar ingrediente (v4.85); **formato numérico configurable** en index/análisis/consolidar/producción (v4.88) |
+| Productos | ✅ | Editar, Duplicar, calculadora bidireccional de receta, capacidad editable, configuración combo inline; botones Regalar 🎁 y Desechar 🗑 **solo si hay stock terminado** (`stock_disponible>0`); campo nombre2 (subtítulo visual); **conversión receta ↔ equivalencia física** al agregar ingrediente (v4.85); **formato numérico configurable** (v4.88); **editar cantidades inline + copiar/combinar receta con % (v4.98)**; **tab Constructor de recetas (v4.99)** |
 | Producción | ✅ | Registro diario (fix móvil), preview insumos, anular lote, desechar stock terminado 🗑; responsive xs añadido; **Sugerencia de producción** con selector 7/14/30 días |
 | Nómina | ✅ | 4 contratos; pago correcto; aux proporcional; eliminar período funcional; **formato numérico configurable** en index/empleados/horas (v4.90) |
 | Activos | ✅ | Sortable, dep solo con fecha_inicio_uso, 30.41666 como divisor |
@@ -1062,7 +1062,7 @@ Todo subido a GitHub. Sin pendientes de código ni migraciones.
 | **Inventario** | Mantener el catálogo de insumos (materia prima): stock, costo, unidades, equivalencias y presentaciones de compra. | CRUD insumos; ajustar stock (entradas/salidas manuales con motivo); conteo físico periódico; definir presentaciones catalogadas y equivalencias (mig. 039, v4.85-v4.86). | §19, §4 |
 | **Proveedores** | Catálogo de proveedores vinculados a insumos y compras. | CRUD proveedor; activar/desactivar; ver cantidad de insumos asociados. | §4 |
 | **Compras** | Registrar compras de insumos a proveedores, actualizando `costo_actual`/`stock_actual` y propagando el costo a `productos.costo_calculado`. | Registrar compra multi-línea (con presentaciones catalogadas); duplicar compra propia; editar/eliminar cualquier compra; ver historial filtrable y "Lista de compras" sugerida (insumos bajo `stock_seguridad`). | §19 |
-| **Productos + Producción** | Definir el menú vendible: recetas (consumo de insumos), variantes/combos, costo calculado y producción de lotes. | CRUD producto/receta (con conversión de equivalencias v4.85); configurar combo y variantes; producir lote (descuenta insumos, snapshot de `costo_unitario`); análisis de rentabilidad; obsequiar/desechar stock; consolidar productos duplicados (superadmin). | §7 |
+| **Productos + Producción** | Definir el menú vendible: recetas (consumo de insumos), variantes/combos, costo calculado y producción de lotes. | CRUD producto/receta (con conversión de equivalencias v4.85); **editar cantidades inline + copiar/combinar receta de otros productos con % v4.98**; **tab "Constructor de recetas" (producto+rinde+ingredientes; traer/combinar de varios productos) v4.99**; configurar combo y variantes; producir lote (descuenta insumos, snapshot de `costo_unitario`); análisis de rentabilidad; obsequiar/desechar stock; consolidar productos duplicados (superadmin). | §7 |
 | **Nómina** | Liquidar nómina por tipo de contrato (Ley 2101/2021), registrar horas y parámetros laborales legales. | CRUD empleados; registrar horas (recargos festivos/nocturnos); generar liquidaciones del período (snapshot inmutable); eliminar período; configurar parámetros laborales. | §6 |
 | **Activos** | Inventario de activos fijos con depreciación mensual automática (mig. 017/018) que alimenta el costeo. | CRUD activo (depreciación automática); duplicar; subir foto; activar/desactivar; alerta de garantías por vencer en dashboard. | §5 |
 | **Costos** | Registrar costos indirectos (arriendo, servicios, etc.) como períodos de vigencia inmutables y mostrar KPIs de costeo del período. | CRUD costo indirecto (cada cambio de valor = fila/período nuevo, §14); ver KPIs del período (costo fijo total, depreciación, nómina). | §8 |
@@ -3485,18 +3485,31 @@ toggle JS `mostrarTabProd`): **Catálogo** (la tabla de siempre) y **Constructor
 `copiar_receta.php` (combinar fuentes con %, v4.98), `guardar_receta_completa.php` (receta
 completa + rinde, v4.99), `ingredientes.php` (GET receta de un producto).
 
+### Dirección corregida: "Traer ingredientes de otros productos" (PULL)
+
+La versión inicial del Constructor distribuía la receta a destinos (push) y no actualizaba la
+lista visible → confusión ("no suma / se pierde al guardar"). Corregido a **PULL**: la sección
+**"Traer ingredientes de otros productos"** trae los ingredientes de uno o varios productos
+origen (cada uno a su **%**) y los combina en la **lista en pantalla** (cr-ings) del lado del
+cliente, con dos botones que reusan los nombres del modal de la receta expandida:
+**"Reemplazar receta"** (arma la lista solo desde los orígenes) y **"Sumar a la actual"** (los
+suma a lo que ya hay). Nada se guarda hasta "Guardar receta del producto". (`crTraer(modo)` lee
+`ingredientes.php` de cada origen y mergea en JS.)
+
+### tests/suite.php — de 33 a 34 grupos (G01-G34)
+
+- **G34 Cobro fiado y recetas** (nuevo): valida `ventas.metodo_cobro` (mig 042: existe, ENUM
+  válido, solo en ventas fiado) y que los endpoints de receta existan
+  (`guardar_receta`/`copiar_receta`/`guardar_receta_completa`/`ingredientes`). Los endpoints
+  nuevos ya quedan cubiertos por las auditorías G16 (autorización + CSRF) y G31 (try/catch +
+  error_log), que auto-escanean `*/api/*.php`.
+
 ### Cambios de versión
 
 - `app/config/app.php`: `APP_VERSION` → `4.99`. Sin migraciones.
 
-### Pendiente
-
-- Verificación del usuario: Constructor → elegir producto, fijar rinde, armar ingredientes,
-  guardar; luego aplicar a 1-2 destinos con % (Reemplazar/Sumar) y confirmar resultado.
-- (Nota UX) tras guardar desde el Constructor, las columnas de costo del Catálogo se actualizan
-  al recargar; expandir el producto muestra la receta nueva (cache invalidado).
-
 *Última actualización: 2026-06-20 | v4.99 — Productos: tab "Constructor de recetas" (producto +
-rinde + lista de ingredientes → `api/guardar_receta_completa.php`; aplicar la receta a varios
-destinos con % vía `copiar_receta.php`). Pestañas Catálogo/Constructor en `productos/index.php`.
-Sin cambios de BD. `APP_VERSION` → 4.99.*
+rinde + lista de ingredientes → `api/guardar_receta_completa.php`) con "Traer ingredientes de
+otros productos" (PULL, combina en pantalla; botones Reemplazar receta / Sumar a la actual).
+Pestañas Catálogo/Constructor en `productos/index.php`. `tests/suite.php` G34 nuevo (34 grupos:
+mig 042 metodo_cobro + endpoints de receta). Sin cambios de BD. `APP_VERSION` → 4.99.*
