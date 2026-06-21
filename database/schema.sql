@@ -567,7 +567,8 @@ CREATE TABLE `compra_detalles` (
     CONSTRAINT `fk_cd_insumo` FOREIGN KEY (`insumo_id`)
         REFERENCES `insumos`(`id`),
     INDEX `idx_cd_compra` (`compra_id`),
-    INDEX `idx_cd_insumo` (`insumo_id`)
+    INDEX `idx_cd_insumo` (`insumo_id`),
+    INDEX `idx_cd_presentacion` (`presentacion_id`)   -- mig. 043 (JOIN con insumo_presentaciones)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 

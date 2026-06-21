@@ -645,6 +645,7 @@ schema.sql                       → ⭐ INSTALACIÓN COMPLETA v4.25 (27 tablas,
 040_config_formato_numerico.sql        → INSERT IGNORE en configuracion_app: num_decimales, num_sep_miles, num_sep_decimal (formato numérico configurable — decimales y separadores, Admin → Apariencia)
 041_config_sep_millones.sql            → INSERT IGNORE en configuracion_app: num_sep_millones (separador independiente del grupo de millones; si = num_sep_miles → formato uniforme)
 042_venta_metodo_cobro.sql             → ALTER TABLE ventas ADD COLUMN metodo_cobro ENUM('efectivo','nequi','daviplata','bancolombia') DEFAULT NULL AFTER fecha_pago (con qué se cobró un fiado; metodo_pago se queda en 'fiado')
+043_indices_rendimiento.sql            → CREATE INDEX idx_ins_activo ON insumos(activo) + idx_cd_presentacion ON compra_detalles(presentacion_id) — idempotente (guard via information_schema); cierra avisos G18 de suite.php en BDs anteriores
 
 ### Política de snapshots (principio de inmutabilidad extendido)
 Además de los precios, TODOS estos datos se guardan como snapshot al momento de la transacción:
@@ -3504,9 +3505,29 @@ suma a lo que ya hay). Nada se guarda hasta "Guardar receta del producto". (`crT
   nuevos ya quedan cubiertos por las auditorías G16 (autorización + CSRF) y G31 (try/catch +
   error_log), que auto-escanean `*/api/*.php`.
 
+### Suite ejecutada completa por primera vez — hallazgos y correcciones
+
+Al correr la suite en producción salió un **500**: bug pre-existente en G03 — los chequeos de
+coherencia `ventas.total`/`compras.total` agrupaban por `id` pero usaban `v.total`/`c.total` en
+`HAVING` sin estar en SELECT/GROUP BY (MySQL del hosting lo rechaza). Corregido (total en
+SELECT+GROUP BY, alias agregado). La suite ahora corre los 34 grupos.
+
+Hallazgos (archivos huérfanos en producción, fuera de git):
+- `inventario/api/proveedor_crud.php` (alta rápida de proveedor desde inventario, **en uso** por
+  `inventario/index.php`) estaba **sin `permiso_requerir` ni try/catch** → **recreado en git**
+  seguro (`permiso_requerir('inventario','editar_existentes')` + `csrf_verificar` + try/catch).
+- `recetario/` (index.php + api/ingredientes.php) es **legacy muerto** (cero referencias) →
+  **borrar de producción** (cierra G31/G32).
+- **Migración 043** (índices `insumos.activo` + `compra_detalles.presentacion_id`) para cerrar
+  los avisos G18 en BDs anteriores.
+- Avisos para el usuario (no son bugs de código): **G19** superadmin con contraseña de ejemplo
+  (cambiar ya); **G03** algunas ventas/compras con total ≠ suma de detalles (datos);
+  **G15/G22/G11** warnings de datos/config.
+
 ### Cambios de versión
 
-- `app/config/app.php`: `APP_VERSION` → `4.99`. Sin migraciones.
+- `app/config/app.php`: `APP_VERSION` → `4.99`.
+- Migración nueva: **043** (índices de rendimiento, idempotente).
 
 *Última actualización: 2026-06-20 | v4.99 — Productos: tab "Constructor de recetas" (producto +
 rinde + lista de ingredientes → `api/guardar_receta_completa.php`) con "Traer ingredientes de
