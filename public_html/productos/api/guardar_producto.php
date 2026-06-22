@@ -190,6 +190,22 @@ try {
         log_registrar('configuracion_negocio', 0, 'produccion_estimada_mensual', null, (string)$val, 'UPDATE');
         echo json_encode(['success' => true, 'valor' => $val]);
 
+    // ── DESCONTINUAR / REACTIVAR (toggle activo) ──────────────────────────────
+    // Un producto descontinuado (activo=0) no aparece en el POS ni en los
+    // selectores de producto de otros módulos, pero se conserva (y su historial)
+    // y puede reactivarse. Sigue visible en el Catálogo (atenuado) para reactivar.
+    } elseif ($accion === 'toggle') {
+        $id = (int)($_POST['producto_id'] ?? $_POST['id'] ?? 0);
+        if (!$id) throw new RuntimeException('ID de producto inválido.');
+        db()->prepare('UPDATE productos SET activo = NOT activo, updated_by = ? WHERE id = ?')
+            ->execute([$uid, $id]);
+        $row = db()->prepare('SELECT activo FROM productos WHERE id = ?');
+        $row->execute([$id]);
+        $nuevo = (bool)$row->fetchColumn();
+        require_once __DIR__ . '/../../app/helpers/AuditoriaHelper.php';
+        log_registrar('productos', $id, 'activo', null, $nuevo ? '1' : '0', 'UPDATE');
+        echo json_encode(['success' => true, 'activo' => $nuevo]);
+
     } else {
         echo json_encode(['success' => false, 'error' => 'Acción inválida.']);
     }

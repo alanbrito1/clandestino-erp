@@ -388,6 +388,11 @@ $stock_total     = array_sum(array_column($productos, 'stock_disponible'));
                         Stock: <?= (int)$p['stock_disponible'] ?>
                     </span>
                     <?php endif; ?>
+                    <?php if (!(int)$p['activo']): ?>
+                    <span style="font-size:10px;background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:20px;margin-left:4px;font-weight:700">
+                        Descontinuado
+                    </span>
+                    <?php endif; ?>
                 </td>
                 <td class="r hide-m" data-label="Precio"><?= (float)$p['precio_venta'] > 0 ? '$'.fmt_moneda($p['precio_venta']) : '<em style="color:var(--g5)">—</em>' ?></td>
                 <td class="r hide-m" data-label="Insumos">$<?= fmt_moneda($p['costo_ing']) ?></td>
@@ -416,6 +421,11 @@ $stock_total     = array_sum(array_column($productos, 'stock_disponible'));
                     <button class="exp-btn ic ic-ok" title="Duplicar"
                             onclick="duplicarProd(<?= $p['id'] ?>, '<?= htmlspecialchars(addslashes($p['nombre'])) ?>')"
                             ><?= IC_COPY ?></button>
+                    <!-- Descontinuar / Reactivar: un producto descontinuado no aparece en POS ni selectores -->
+                    <button class="exp-btn ic <?= (int)$p['activo'] ? 'ic-warn' : 'ic-ok' ?>"
+                            title="<?= (int)$p['activo'] ? 'Descontinuar (ocultar de POS y selectores)' : 'Reactivar producto' ?>"
+                            onclick="toggleProducto(<?= $p['id'] ?>, <?= (int)$p['activo'] ?>, '<?= htmlspecialchars(addslashes($p['nombre'])) ?>')"
+                            ><?= (int)$p['activo'] ? IC_PAUSE : IC_PLAY ?></button>
                     <?php if ((int)$p['stock_disponible'] > 0): ?>
                     <!-- Regalar unidades de producto terminado (obsequio) -->
                     <button class="exp-btn ic ic-gift" title="Regalar / Obsequio"
@@ -1584,6 +1594,26 @@ async function duplicarProd(id, nombre) {
         toast(`"${d.nombre}" creado correctamente`, 'ok');
         setTimeout(() => location.reload(), 1200);
     } else toast(d.error || 'Error al duplicar', 'err');
+}
+
+// ── Descontinuar / Reactivar producto ─────────────────────────────────────────
+async function toggleProducto(id, activo, nombre) {
+    const msg = activo
+        ? `¿Descontinuar "${nombre}"?\n\nNo aparecerá en el POS ni en los selectores de producto de los demás módulos. Su historial se conserva y podrás reactivarlo cuando quieras.`
+        : `¿Reactivar "${nombre}"?\n\nVolverá a aparecer en el POS y los selectores.`;
+    if (!confirm(msg)) return;
+    const fd = new FormData();
+    fd.append('csrf_token', csrf());
+    fd.append('accion',      'toggle');
+    fd.append('producto_id', id);
+    try {
+        const r = await fetch('api/guardar_producto.php', {method:'POST', body:fd});
+        const d = await r.json();
+        if (d.success) {
+            toast(d.activo ? 'Producto reactivado' : 'Producto descontinuado', 'ok');
+            setTimeout(() => location.reload(), 700);
+        } else toast(d.error || 'Error', 'err');
+    } catch (e) { toast('Error de red', 'err'); }
 }
 
 // ── Nuevo producto ────────────────────────────────────────────────────────────
