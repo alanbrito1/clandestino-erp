@@ -1201,6 +1201,15 @@ descuento = (cantidad_requerida ÷ unidades_por_receta) × cantidad_vendida × <
             <p>Verás las cantidades actualizadas en pantalla; revísalas y luego pulsa <strong>Guardar receta del producto</strong> para persistirlas. Es la forma de armar, por ejemplo, un "Mixto" combinando dos recetas, o un tamaño L tomando el XL al 60%.</p>
             <div class="tip">El "Traer y combinar" solo modifica la lista en pantalla — nada se guarda hasta que pulsas "Guardar receta del producto". Tras guardar, las columnas de costo del Catálogo se actualizan al recargar la página.</div>
 
+            <div class="sub-title">Descontinuar / Reactivar producto (v4.99)</div>
+            <p>En el Catálogo, cada producto tiene un botón para <strong>descontinuar</strong> (ámbar ⏸) o <strong>reactivar</strong> (verde ▶). Un producto <strong>descontinuado</strong> (<code>activo=0</code>):</p>
+            <ul>
+                <li><strong>No aparece</strong> como tarjeta en el POS (Ventas) ni en los <strong>selectores de producto</strong> de los demás módulos (editar venta, constructor de recetas, combos, consolidar).</li>
+                <li><strong>Conserva su historial</strong> (ventas pasadas, recetas, etc.) — no se borra nada.</li>
+                <li>Sigue visible en el <strong>Catálogo</strong> (atenuado, con el badge <em>Descontinuado</em>) para poder <strong>reactivarlo</strong> cuando quieras.</li>
+            </ul>
+            <div class="tip">Úsalo para productos de temporada o que dejas de vender, sin perder su información. Es totalmente reversible (no es borrar).</div>
+
             <div class="sub-title">Dar de baja stock terminado — 🎁 Regalar y 🗑 Desechar</div>
             <p>Cuando hay <code>stock_disponible &gt; 0</code>, cada tarjeta de producto muestra dos botones para bajar stock sin pasar por el POS:</p>
             <table class="data-table">
