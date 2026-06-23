@@ -284,6 +284,16 @@ try {
             <div class="nav-card-title">Mantenimiento de datos</div>
             <div class="nav-card-desc">Limpieza masiva: reset transaccional, borrar inactivos/anulados por módulo.</div>
         </a>
+
+        <a href="<?= APP_BASE ?>/tests/suite.php" class="nav-card">
+            <div class="nav-card-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div class="nav-card-title">Pruebas de integridad</div>
+            <div class="nav-card-desc">Ejecuta la suite de tests (35 grupos): esquema, datos, seguridad, formato y más.</div>
+        </a>
         <?php endif; ?>
 
     </div>

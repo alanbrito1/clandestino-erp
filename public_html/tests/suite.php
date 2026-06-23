@@ -1914,6 +1914,7 @@ $total_pruebas = $pass + $fail + $warn;
 </head>
 <body>
 
+<p style="margin-bottom:10px"><a href="<?= APP_BASE ?>/admin/" style="color:#2563eb;text-decoration:none;font-weight:600">&larr; Volver a Admin</a></p>
 <h1>&#129514; Suite de Pruebas — ClanDestino ERP v<?= APP_VERSION ?></h1>
 <p class="meta">
     Ejecutado: <?= date('d/m/Y H:i:s') ?> |
