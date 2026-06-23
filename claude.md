@@ -3597,3 +3597,24 @@ borrar inactivos/anulados/todos por módulo, modo seguro/cascada, solo superadmi
 "BORRAR", auditoría) + filtro admin de inactivos/anulados por módulo (`FiltroEstadoHelper` en
 proveedores/productos/inventario/empleados/activos). `tests/suite.php` G35 (35 grupos). Sin
 cambios de BD. `APP_VERSION` → 5.0.*
+
+### Auditoría estática de proyecto completo (2026-06-22, post-v5.0)
+
+Pase de auditoría **estática** (sin runtime — no hay BD/navegador en el entorno; la verificación
+runtime es `tests/suite.php`, que ejecuta el usuario). Resultado: **sin hallazgos que corregir**.
+- **Sintaxis:** `php -l` sobre los **102** archivos PHP → **0 errores**.
+- **Seguridad:** 0 funciones shell/`eval`/`unserialize` (las coincidencias son `PDO::exec()` en
+  `mantenimiento.php` con SQL de tablas hardcodeadas); 0 interpolación de `$_GET/$_POST/$_REQUEST`
+  en SQL; 0 nombres de tabla/columna/ORDER BY dinámicos desde input (los dinámicos vienen de
+  `match()`/mapas hardcodeados); 0 XSS por echo directo de request; **37/37** endpoints `api/*.php`
+  con `csrf_verificar()` + control de autorización.
+- **Código:** 0 marcadores TODO/FIXME/HACK; 0 `var_dump`/`print_r` fuera de `tests/`; 0 archivos
+  temporales/huérfanos en el repo; 0 enlaces de `nav.php` rotos.
+- **Coherencia:** `APP_VERSION` 5.0 = header CLAUDE.md; `schema.sql` 30 CREATE = 30 DROP y refleja
+  mig 040-043 (metodo_cobro, idx_ins_activo, idx_cd_presentacion, claves de formato); git limpio y
+  sincronizado con `origin`.
+- **Sin regresiones** por las firmas nuevas de modelos (`todos_con_estado`/`todos_empleados`/
+  `ActivoModel::todos` con `$ver`): los llamadores que no lo pasan usan defaults que igualan el
+  comportamiento anterior.
+- **Pendiente del usuario (runtime):** correr `tests/suite.php` (35 grupos) y **probar el motor de
+  limpieza con un respaldo a mano** antes de usarlo en serio (es destructivo).
