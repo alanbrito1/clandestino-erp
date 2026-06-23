@@ -3616,5 +3616,17 @@ runtime es `tests/suite.php`, que ejecuta el usuario). Resultado: **sin hallazgo
 - **Sin regresiones** por las firmas nuevas de modelos (`todos_con_estado`/`todos_empleados`/
   `ActivoModel::todos` con `$ver`): los llamadores que no lo pasan usan defaults que igualan el
   comportamiento anterior.
-- **Pendiente del usuario (runtime):** correr `tests/suite.php` (35 grupos) y **probar el motor de
-  limpieza con un respaldo a mano** antes de usarlo en serio (es destructivo).
+- **Pendiente del usuario (runtime):** **probar el motor de limpieza con un respaldo a mano**
+  antes de usarlo en serio (es destructivo).
+
+**Runtime — suite ejecutada por el usuario (2026-06-23):** 35 grupos. Todo lo de **código y
+seguridad en PASS** (G16 37/37 endpoints CSRF+auth; G31 try/catch; G32/G33 formato; **G35
+mantenimiento+filtro 3/3 OK**). Hallazgos restantes = **no son bugs de código**:
+- **G19 superadmin con contraseña de ejemplo (FAIL)** → acción del usuario (cambiarla).
+- **G03 (1 línea compra + 4 compras descuadradas) y G22 (presentaciones incoherentes)** → **datos
+  históricos** (cargas `historicos_*.sql` directas a BD). Verificado: `CompraModel::crear/editar`
+  calculan `subtotal=cant×precio` y `total=SUM(subtotales)` correctamente — el código no produce
+  inconsistencias. Corregible con SQL puntual si se desea (recalcular subtotal/total desde
+  `precio_unitario` inmutable).
+- WARN G11 (nómina <90%, normal en algunos contratos), G15 (`SMLMV` sin configurar), G19 (nombre
+  de negocio default) → config/datos del usuario.
