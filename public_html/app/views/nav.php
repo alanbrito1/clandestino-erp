@@ -279,6 +279,9 @@ input, select, textarea,
         <a href="<?= APP_BASE ?>/admin/apariencia.php" class="nav-mobile-sub-link<?= $_nav_sub_actual==='apariencia'?' act':'' ?>">Apariencia</a>
         <a href="<?= APP_BASE ?>/admin/listas.php" class="nav-mobile-sub-link<?= $_nav_sub_actual==='listas'?' act':'' ?>">Catálogos</a>
         <a href="<?= APP_BASE ?>/admin/backup.php" class="nav-mobile-sub-link<?= $_nav_sub_actual==='backup'?' act':'' ?>">Base de Datos</a>
+        <?php if (($_SESSION['usuario_rol'] ?? '') === 'superadmin'): ?>
+        <a href="<?= APP_BASE ?>/admin/mantenimiento.php" class="nav-mobile-sub-link<?= $_nav_sub_actual==='mantenimiento'?' act':'' ?>">Mantenimiento</a>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
 </div>
@@ -317,6 +320,10 @@ input, select, textarea,
            class="subtab<?= $_nav_sub_actual === 'listas'     ? ' subtab--act' : '' ?>">Catálogos</a>
         <a href="<?= APP_BASE ?>/admin/backup.php"
            class="subtab<?= $_nav_sub_actual === 'backup'     ? ' subtab--act' : '' ?>">Base de Datos</a>
+        <?php if (($_SESSION['usuario_rol'] ?? '') === 'superadmin'): ?>
+        <a href="<?= APP_BASE ?>/admin/mantenimiento.php"
+           class="subtab<?= $_nav_sub_actual === 'mantenimiento' ? ' subtab--act' : '' ?>">Mantenimiento</a>
+        <?php endif; ?>
     </div>
 </div>
 <?php endif; ?>

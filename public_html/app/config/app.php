@@ -6,7 +6,7 @@
  */
 
 define('APP_NAME',    'ClanDestino ERP');
-define('APP_VERSION', '4.99'); // 2026-06-20: v4.99 productos - tab "Constructor de recetas" (producto + rinde + lista de ingredientes -> api/guardar_receta_completa.php; aplicar la receta a varios destinos con % via copiar_receta.php)
+define('APP_VERSION', '5.0'); // 2026-06-22: v5.0 Admin -> Mantenimiento de datos (reset transaccional + borrar inactivos/anulados/todos por modulo, modo seguro/cascada) + filtros admin de inactivos/anulados por modulo
 define('APP_ENV',     'production'); // cambiar a 'development' para depurar
 
 // Ruta absoluta a public_html/ (raíz web del proyecto)

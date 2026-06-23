@@ -274,6 +274,18 @@ try {
             <div class="nav-card-desc">Backup, migraciones y actualizaciones del sistema.</div>
         </a>
 
+        <?php if (($_SESSION['usuario_rol'] ?? '') === 'superadmin'): ?>
+        <a href="<?= APP_BASE ?>/admin/mantenimiento.php" class="nav-card">
+            <div class="nav-card-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+            </div>
+            <div class="nav-card-title">Mantenimiento de datos</div>
+            <div class="nav-card-desc">Limpieza masiva: reset transaccional, borrar inactivos/anulados por módulo.</div>
+        </a>
+        <?php endif; ?>
+
     </div>
 
     <!-- Verificador de migraciones (solo superadmin) -->
