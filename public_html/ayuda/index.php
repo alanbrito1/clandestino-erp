@@ -1566,6 +1566,7 @@ BIGINT UNSIGNED en MySQL modo estricto cuando vida_util_meses es TINYINT.</span>
                 <tr><td>Catálogos</td><td>Gestionar opciones de dropdowns: presentaciones, unidades, categorías de insumo/producto/activo/costo/proveedor y tamaños</td></tr>
                 <tr><td>Base de Datos</td><td>4 funciones: backup SQL, backup código ZIP, ejecutar migración .sql, aplicar actualización .zip</td></tr>
                 <tr><td>Mantenimiento de datos</td><td><strong>Solo superadmin.</strong> Limpieza masiva de registros (ver abajo)</td></tr>
+                <tr><td>Pruebas de integridad</td><td><strong>Solo superadmin.</strong> Ejecuta la suite de tests (<code>/tests/suite.php</code>, 35 grupos): esquema, datos, seguridad, formato, etc.</td></tr>
             </table>
 
             <div class="sub-title">Mantenimiento de datos (v5.0) — solo superadmin</div>

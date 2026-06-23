@@ -90,7 +90,7 @@ ventas → **clientes** → inventario → proveedores → compras → productos
 | `$nav_activo` | Sub-tabs (`$nav_sub`) |
 |---|---|
 | `nomina` | `nomina`, `empleados`, `horas`, `parametros` |
-| `admin` | `resumen`, `usuarios`, `apariencia`, `listas`, `backup`, `mantenimiento` (solo superadmin) |
+| `admin` | `resumen`, `usuarios`, `apariencia`, `listas`, `backup`, `mantenimiento` + `pruebas` (`/tests/suite.php`) — ambos solo superadmin |
 
 ### Menú hamburguesa móvil
 - **≤ 640px:** tabs horizontales ocultos → botón ☰ visible → drawer vertical con todos los módulos
