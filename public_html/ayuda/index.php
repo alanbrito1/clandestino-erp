@@ -1565,7 +1565,25 @@ BIGINT UNSIGNED en MySQL modo estricto cuando vida_util_meses es TINYINT.</span>
                 <tr><td>Apariencia</td><td>Nombre del negocio, logo (upload), color brand, color dark, fuente, radio de bordes. Vista previa en tiempo real.</td></tr>
                 <tr><td>Catálogos</td><td>Gestionar opciones de dropdowns: presentaciones, unidades, categorías de insumo/producto/activo/costo/proveedor y tamaños</td></tr>
                 <tr><td>Base de Datos</td><td>4 funciones: backup SQL, backup código ZIP, ejecutar migración .sql, aplicar actualización .zip</td></tr>
+                <tr><td>Mantenimiento de datos</td><td><strong>Solo superadmin.</strong> Limpieza masiva de registros (ver abajo)</td></tr>
             </table>
+
+            <div class="sub-title">Mantenimiento de datos (v5.0) — solo superadmin</div>
+            <div class="warn"><strong>Descarga siempre un respaldo antes de borrar.</strong> Estas acciones son irreversibles. Hay un botón de respaldo en la misma página.</div>
+            <p>Dos formas de limpiar:</p>
+            <ul>
+                <li><strong>Reset transaccional (empezar de cero):</strong> borra <strong>todo lo transaccional</strong> (ventas, compras, producción, nómina, abonos de fiado, turnos de caja, ajustes de stock), pone el saldo de fiado en 0 y, opcionalmente, reinicia el stock a 0. <strong>Conserva el catálogo</strong> (productos, insumos, recetas, clientes, proveedores, empleados, activos, costos).</li>
+                <li><strong>Limpieza por módulo:</strong> por cada módulo puedes borrar los <strong>inactivos</strong> (desactivados), los <strong>anulados</strong> (ventas/lotes) o <strong>todos</strong> los registros. En dos modos:
+                    <ul>
+                        <li><strong>Seguro:</strong> solo borra los que <em>no</em> tienen historial; los que sí (ej. un producto ya vendido) se omiten y se reportan.</li>
+                        <li><strong>Cascada:</strong> borra el registro <em>y su historial asociado</em> (ventas, compras, etc.). Más destructivo.</li>
+                    </ul>
+                </li>
+            </ul>
+            <p>Toda acción de borrado exige escribir <strong>BORRAR</strong> para confirmar y queda registrada en la auditoría. Los usuarios se gestionan en <em>Admin → Usuarios</em> (no se borran en masa aquí).</p>
+
+            <div class="sub-title">Ver registros inactivos/anulados en cada módulo (v5.0)</div>
+            <p>Los <strong>admin/superadmin</strong> tienen en los listados (Productos, Inventario, Proveedores, Empleados, Activos, y los que ya lo tenían: Clientes, Costos, Ventas/Historial) un selector <strong>"Solo activos / Solo inactivos / Todos"</strong>. Por defecto todos los usuarios ven solo los activos; el selector (solo visible para admin) permite revisar los desactivados o anulados — útil antes de decidir qué limpiar.</p>
 
             <div class="sub-title">Sistema de permisos</div>
             <table class="data-table">

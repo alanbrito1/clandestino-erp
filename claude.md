@@ -1,5 +1,5 @@
-# ClanDestino ERP v4.99 — Memoria de Sesión
-# Última sesión: 2026-06-20 | Próxima sesión: continuar desde este punto
+# ClanDestino ERP v5.0 — Memoria de Sesión
+# Última sesión: 2026-06-22 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
 
@@ -90,7 +90,7 @@ ventas → **clientes** → inventario → proveedores → compras → productos
 | `$nav_activo` | Sub-tabs (`$nav_sub`) |
 |---|---|
 | `nomina` | `nomina`, `empleados`, `horas`, `parametros` |
-| `admin` | `resumen`, `usuarios`, `apariencia`, `listas`, `backup` |
+| `admin` | `resumen`, `usuarios`, `apariencia`, `listas`, `backup`, `mantenimiento` (solo superadmin) |
 
 ### Menú hamburguesa móvil
 - **≤ 640px:** tabs horizontales ocultos → botón ☰ visible → drawer vertical con todos los módulos
@@ -564,6 +564,11 @@ Solo `rol = 'superadmin'` o `'admin'` — check directo por `$_SESSION['usuario_
 Controla: nombre del negocio, dos logos (nav + login), colores brand/dark, fuente cuerpo, fuente encabezados, 4 tamaños de fuente (title/subtitle/body/small), 2 colores de texto.
 - Logos: upload de archivo O ruta manual (campo de texto directo)
 - Fuentes: whitelist de system fonts (sin CDN)
+
+### Admin → Mantenimiento de datos (admin/mantenimiento.php, solo superadmin — v5.0)
+- Limpieza masiva: reset transaccional global + borrar inactivos/anulados/todos por módulo
+  (modo seguro/cascada). Motor en `admin/api/mantenimiento.php` (mapa `$ENTIDADES`). Exige escribir
+  `BORRAR`, transacción, auditoría. Ver §"Estado v5.0".
 
 ### Admin → Base de Datos (admin/backup.php)
 - **Backup BD SQL**: PHP PDO, streamed al cliente en bloques de 500 filas, GET `?action=download`
@@ -3534,3 +3539,59 @@ rinde + lista de ingredientes → `api/guardar_receta_completa.php`) con "Traer 
 otros productos" (PULL, combina en pantalla; botones Reemplazar receta / Sumar a la actual).
 Pestañas Catálogo/Constructor en `productos/index.php`. `tests/suite.php` G34 nuevo (34 grupos:
 mig 042 metodo_cobro + endpoints de receta). Sin cambios de BD. `APP_VERSION` → 4.99.*
+
+---
+
+## Estado v5.0 (2026-06-22)
+
+Admin: **Mantenimiento de datos** (limpieza masiva) + **filtro admin de inactivos/anulados** por
+módulo. Sin cambios de BD.
+
+### 1. Admin → Mantenimiento de datos (solo superadmin)
+- Página `admin/mantenimiento.php` + motor `admin/api/mantenimiento.php` (sub-tab y tarjeta solo
+  para superadmin). Seguridad: solo superadmin (`in_array` para pasar G16), CSRF, exige escribir
+  **`BORRAR`**, transacción + `log_registrar`.
+- **Reset transaccional global** (`accion=reset_transaccional`): `DELETE` de venta_detalles,
+  ventas, pagos_fiado, turnos_caja, compra_detalles, compras, produccion_lotes, ajustes_stock,
+  nomina_liquidaciones, registro_horas, logs_historial; `saldo_fiado=0`; opcional reset de stock
+  (productos/insumos). Conserva el catálogo.
+- **Borrar por módulo** (`accion=borrar`, ambito=inactivos|anulados|todos, modo=seguro|cascada):
+  mapa de entidades declarativo `$ENTIDADES` con la columna de baja (`activo`/`estado`) y los
+  **hijos bloqueantes (RESTRICT)**. *Seguro* = `NOT EXISTS` contra los hijos (omite y reporta los
+  que tienen historial); *cascada* = borra los hijos RESTRICT primero. Las FK CASCADE/SET NULL
+  las maneja la BD. **`usuarios` se excluye** (su `created_by` está en casi todas las tablas).
+  Mapa de bloqueo: productos←venta_detalles/produccion_lotes/ajustes_stock; insumos←compra_detalles;
+  clientes←pagos_fiado (ventas SET NULL); empleados←nomina_liquidaciones; proveedores/activos/costos
+  sin bloqueo; ventas(anulada)/produccion(anulado) limpios por CASCADE.
+- `accion=stats` alimenta la tabla (total/inactivos/anulados por entidad).
+
+### 2. Filtro "ver inactivos/anulados" por módulo (solo admin)
+- Helper `app/helpers/FiltroEstadoHelper.php` (global vía `auth_check.php`):
+  `filtro_estado_actual()` (lee `?ver=`, forzado a 'activos' si no es admin),
+  `filtro_estado_sql($ver,$col,$tipo,$alias,$baja)` (fragmento WHERE),
+  `filtro_estado_ui($actual,$tipo)` (selector, solo se pinta para admin),
+  `filtro_estado_es_admin()`.
+- Aplicado (default = solo activos; admin elige inactivos/todos): **proveedores**, **productos**
+  (catálogo), **inventario** (`InsumoModel::todos_con_estado($ver)`), **empleados**
+  (`NominaModel::todos_empleados($ver)`), **activos** (`ActivoModel::todos($orden,$ver)`).
+  Ya tenían filtro de estado propio (cliente, para todos): **clientes**, **costos**,
+  **ventas/historial** (por estado), **producción** (muestra lotes anulados).
+
+### 3. tests/suite.php — G35 (35 grupos)
+- **G35 Mantenimiento y filtro estado**: página/endpoint de mantenimiento presentes; helper de
+  filtro disponible; `filtro_estado_sql()` genera los fragmentos esperados (activo/estado).
+
+### Cambios de versión
+- `app/config/app.php`: `APP_VERSION` → `5.0`. Sin migraciones.
+
+### Pendiente / verificación del usuario
+- **Probar el motor de limpieza con un respaldo a mano** (acción destructiva): borrar anulados de
+  Ventas (seguro), borrar inactivos de Productos (seguro omite con historial / cascada borra), y
+  un reset transaccional en datos de prueba (catálogo intacto, `saldo_fiado=0`).
+- Confirmar el selector de estado en cada módulo: visible solo para admin; no-admin ve solo activos.
+
+*Última actualización: 2026-06-22 | v5.0 — Admin → Mantenimiento de datos (reset transaccional +
+borrar inactivos/anulados/todos por módulo, modo seguro/cascada, solo superadmin, confirmación
+"BORRAR", auditoría) + filtro admin de inactivos/anulados por módulo (`FiltroEstadoHelper` en
+proveedores/productos/inventario/empleados/activos). `tests/suite.php` G35 (35 grupos). Sin
+cambios de BD. `APP_VERSION` → 5.0.*
