@@ -137,33 +137,54 @@ class VentaModel
                 } catch (\Exception $e) { $tiene035v = false; }
             }
 
+            // Detectar migración 044 (costo_unit_snap — snapshot de COGS en venta_detalles)
+            static $tiene044v = null;
+            if ($tiene044v === null) {
+                try {
+                    $tiene044v = (int)$pdo->query(
+                        "SELECT COUNT(*) FROM information_schema.COLUMNS
+                         WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='venta_detalles'
+                           AND COLUMN_NAME='costo_unit_snap'"
+                    )->fetchColumn() > 0;
+                } catch (\Exception $e) { $tiene044v = false; }
+            }
+
             // INSERT de línea de detalle: columnas adicionales según migraciones aplicadas
             $cols035 = $tiene035v ? ', variante_id, variante_etiqueta, factor_receta_snap' : '';
             $vals035 = $tiene035v ? ', :varid, :varetiq, :varfact' : '';
+            $col044  = $tiene044v ? ', costo_unit_snap' : '';
+            $val044  = $tiene044v ? ', :cusnap' : '';
             if ($tiene034v) {
                 $stmtDetalle = $pdo->prepare(
                     "INSERT INTO venta_detalles
                         (venta_id, producto_id, cantidad, precio_unitario, subtotal,
                          from_stock, es_combo, combo_id,
-                         nombre_snap, nombre2_snap{$cols035},
+                         nombre_snap, nombre2_snap{$cols035}{$col044},
                          created_by)
                      VALUES (:vid, :pid, :cant, :precio, :sub, :fs, :ec, :cid,
-                             :nsnap, :n2snap{$vals035}, :uid)"
+                             :nsnap, :n2snap{$vals035}{$val044}, :uid)"
                 );
             } else {
                 $stmtDetalle = $pdo->prepare(
                     "INSERT INTO venta_detalles
                         (venta_id, producto_id, cantidad, precio_unitario, subtotal,
-                         from_stock, es_combo, combo_id{$cols035}, created_by)
-                     VALUES (:vid, :pid, :cant, :precio, :sub, :fs, :ec, :cid{$vals035}, :uid)"
+                         from_stock, es_combo, combo_id{$cols035}{$col044}, created_by)
+                     VALUES (:vid, :pid, :cant, :precio, :sub, :fs, :ec, :cid{$vals035}{$val044}, :uid)"
                 );
             }
+
+            // Costo de los insumos extra del combo por unidad (para el snapshot de COGS)
+            $stmtComboCost = $pdo->prepare(
+                'SELECT COALESCE(SUM(ci.cantidad * i.costo_actual), 0)
+                 FROM combo_insumos ci JOIN insumos i ON i.id = ci.insumo_id
+                 WHERE ci.combo_id = ?'
+            );
 
             // FOR UPDATE: bloquea la fila durante la transacción para prevenir race conditions
             // (dos ventas simultáneas no pueden ambas ver stock > 0 y descontarlo dos veces)
             // También trae nombre y nombre2 para el snapshot (migración 034)
             $stmtProdInfo = $pdo->prepare(
-                'SELECT stock_disponible, unidades_por_receta, nombre, nombre2
+                'SELECT stock_disponible, unidades_por_receta, nombre, nombre2, costo_calculado
                  FROM productos WHERE id = ? FOR UPDATE'
             );
 
@@ -249,6 +270,24 @@ class VentaModel
                     $comboId = $comboConfigCache[$pid];
                 }
 
+                // ── Snapshot de COSTO por unidad (COGS inmutable, migración 044) ─
+                // = costo de receta del producto (escalado por la variante) + costo
+                //   de los insumos extra del combo. Es el costo real al momento de
+                //   vender; los reportes de P&G/margen lo usan sin recalcular.
+                // Nota: costo_calculado es por unidad a factor 1; multiplicar por
+                //   factor_receta sobre-escala levemente los ingredientes "base",
+                //   igual que el cálculo de margen existente (aproximación aceptada).
+                $costoSnap = null;
+                if ($tiene044v) {
+                    $costoRecetaU = (float)($prodInfo['costo_calculado'] ?? 0) * $factorReceta;
+                    $costoComboU  = 0.0;
+                    if ($esCombo && $comboId) {
+                        $stmtComboCost->execute([$comboId]);
+                        $costoComboU = (float)$stmtComboCost->fetchColumn();
+                    }
+                    $costoSnap = round($costoRecetaU + $costoComboU, 4);
+                }
+
                 // ── INSERT línea de detalle ────────────────────────────────────
                 $detalleParams = [
                     ':vid'    => $venta_id,
@@ -270,6 +309,9 @@ class VentaModel
                     $detalleParams[':varetiq'] = $varianteEtiq ?: null;
                     // Solo guardamos el factor como snapshot si hay variante; sin variante = 1.0 (implícito)
                     $detalleParams[':varfact'] = $varianteId ? round($factorReceta, 3) : null;
+                }
+                if ($tiene044v) {
+                    $detalleParams[':cusnap'] = $costoSnap;
                 }
                 $stmtDetalle->execute($detalleParams);
 

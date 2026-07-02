@@ -1,5 +1,5 @@
-# ClanDestino ERP v5.0 — Memoria de Sesión
-# Última sesión: 2026-06-22 | Próxima sesión: continuar desde este punto
+# ClanDestino ERP v5.1 — Memoria de Sesión
+# Última sesión: 2026-06-23 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
 
@@ -651,6 +651,7 @@ schema.sql                       → ⭐ INSTALACIÓN COMPLETA v4.25 (27 tablas,
 041_config_sep_millones.sql            → INSERT IGNORE en configuracion_app: num_sep_millones (separador independiente del grupo de millones; si = num_sep_miles → formato uniforme)
 042_venta_metodo_cobro.sql             → ALTER TABLE ventas ADD COLUMN metodo_cobro ENUM('efectivo','nequi','daviplata','bancolombia') DEFAULT NULL AFTER fecha_pago (con qué se cobró un fiado; metodo_pago se queda en 'fiado')
 043_indices_rendimiento.sql            → CREATE INDEX idx_ins_activo ON insumos(activo) + idx_cd_presentacion ON compra_detalles(presentacion_id) — idempotente (guard via information_schema); cierra avisos G18 de suite.php en BDs anteriores
+044_venta_costo_snap.sql               → ALTER TABLE venta_detalles ADD COLUMN costo_unit_snap DECIMAL(12,4) DEFAULT NULL (idempotente) — snapshot INMUTABLE del costo de receta por unidad al vender (COGS) = costo_calculado × factor_receta (+ costo combo_insumos); NULL en ventas previas → reportes usan costo_calculado actual como fallback
 
 ### Política de snapshots (principio de inmutabilidad extendido)
 Además de los precios, TODOS estos datos se guardan como snapshot al momento de la transacción:
@@ -3630,5 +3631,53 @@ mantenimiento+filtro 3/3 OK**). Hallazgos restantes = **no son bugs de código**
   `subtotal`/`total` desde `precio_unitario` inmutable); verificación devolvió 0 filas → G03 ahora PASS.
 - **G22 (presentaciones incoherentes)** → snapshots históricos de empaque; no afectan totales/reportes.
   Se dejan como dato histórico (sin fuente de verdad única para recalcular).
+
+---
+
+## Estado v5.1 (2026-06-23) — Roadmap contable, Fase 1: snapshot de COGS
+
+Inicio del roadmap contable/financiero (plan en `.claude/plans/curried-napping-hollerith.md`):
+punto de equilibrio real/histórico **y proyectado**, **P&G** y (fase futura) balance. Decisiones
+del usuario: ambos por fases (gerencial → formal), **sí COGS snapshot**, PE real + simulador, y
+**arrancar por datos exactos**.
+
+### Fase 1.1 — Migración 044: `venta_detalles.costo_unit_snap` (COGS inmutable)
+- **Por qué:** hoy `venta_detalles` guarda `precio_unitario` pero **no el costo** al vender → el
+  P&G/margen se estimaba con el costo *actual* de la receta (se distorsiona al cambiar precios de
+  insumos). Ahora se guarda el costo real e inmutable de ese momento.
+- **Valor:** `costo_unit_snap = productos.costo_calculado × factor_receta (+ SUM(combo_insumos ×
+  costo_actual) por unidad si es combo)`, redondeado a 4 decimales. Es la base de un P&G y márgenes
+  exactos e históricos.
+- **Dónde se llena:** `VentaModel::crear()` (INSERT venta_detalles — detección `$tiene044v`, trae
+  `costo_calculado` en el SELECT del producto, query `$stmtComboCost` para el extra del combo) y
+  `ventas/api/editar_venta.php` (re-inserción; la re-edición no soporta variante → factor 1.0).
+- **Retrocompatible:** NULL en ventas previas → los reportes (Fase 2) usarán `costo_calculado`
+  actual como fallback. `schema.sql` + migración idempotente (guard `information_schema`).
+- **Aproximación documentada:** `× factor_receta` sobre-escala levemente los ingredientes "base"
+  (que no deberían escalar), igual que el cálculo de margen existente — aceptado.
+
+### Fase 1.3 — Suite G36 "Coherencia de costos (COGS)" (36 grupos)
+- `costo_unit_snap` existe (mig 044), nunca negativo, cobertura informativa.
+- `insumos.costo_actual ≈ precio_referencia / cantidad_base` (insumos con presentación
+  predeterminada, mig 039) — WARN si hay desalineados (puede haber overrides manuales).
+- `equiv_cantidad`/`equiv_unidad` coherentes (ambos o ninguno).
+
+### Pendiente de esta fase (próxima entrega)
+- **Fase 1.2:** Auditor de la cadena de costos en Admin (detectar/corregir insumos con costo
+  desalineado de su presentación, productos con receta y costo 0 → recalcular). Reusa
+  `PresentacionModel::sincronizarLegacy()` y `RecetaModel::recalcular_todos()`.
+- **Fase 2:** reporte **P&G** (`reportes/pyg.php`: Ingresos − COGS − gastos = utilidad) +
+  valorización de inventario. **Fase 3:** PE real con snapshot + **simulador** de escenarios.
+
+### Verificación del usuario (runtime)
+- Aplicar **migración 044** en producción, registrar una **venta nueva** y confirmar que
+  `venta_detalles.costo_unit_snap` quedó poblado (= costo de receta × factor, + combo si aplica).
+- Correr `tests/suite.php` → **G36** nuevo en PASS (36 grupos).
+
+*Última actualización: 2026-06-23 | v5.1 — Fase 1 del roadmap contable: snapshot de COGS
+(`venta_detalles.costo_unit_snap`, mig 044) poblado en `VentaModel::crear` y `editar_venta.php`
+(= costo_calculado × factor + combo); base para P&G/márgenes exactos e inmutables. Suite G36
+(coherencia de costos, 36 grupos). `schema.sql` sincronizado. `APP_VERSION` → 5.1. Pendiente:
+auditor de costos (1.2), reporte P&G (Fase 2), PE real + simulador (Fase 3).*
 - WARN G11 (nómina <90%, normal en algunos contratos), G15 (`SMLMV` sin configurar), G19 (nombre
   de negocio default) → config/datos del usuario.

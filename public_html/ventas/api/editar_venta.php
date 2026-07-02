@@ -309,11 +309,25 @@ try {
         } catch (\Exception $e) { $tiene035ev = false; }
     }
 
+    // Detectar migración 044 (costo_unit_snap — snapshot de COGS)
+    static $tiene044ev = null;
+    if ($tiene044ev === null) {
+        try {
+            $tiene044ev = (int)$pdo->query(
+                "SELECT COUNT(*) FROM information_schema.COLUMNS
+                 WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='venta_detalles'
+                   AND COLUMN_NAME='costo_unit_snap'"
+            )->fetchColumn() > 0;
+        } catch (\Exception $e) { $tiene044ev = false; }
+    }
+
     // Al re-insertar, incluir snapshots activos (mig. 034 y 035).
     // El editor de ventas no soporta picker de variante → variante_id = NULL en la re-edición.
     // factor_receta_snap = NULL indica "sin variante", igual que una venta nueva sin variante.
     $cols035 = $tiene035ev ? ', variante_id, variante_etiqueta, factor_receta_snap' : '';
     $vals035 = $tiene035ev ? ', NULL, NULL, NULL' : '';
+    $col044  = $tiene044ev ? ', costo_unit_snap' : '';
+    $val044  = $tiene044ev ? ', :cusnap' : '';
 
     if ($tiene034ev) {
         $stmtDetalle = $pdo->prepare(
@@ -321,21 +335,27 @@ try {
                 (venta_id, producto_id, cantidad, precio_unitario, subtotal,
                  from_stock, es_combo, combo_id,
                  nombre_snap, nombre2_snap,
-                 created_by{$cols035})
+                 created_by{$cols035}{$col044})
              VALUES (:vid, :pid, :cant, :precio, :sub, :fs, :ec, :cid,
-                     :nsnap, :n2snap, :uid{$vals035})"
+                     :nsnap, :n2snap, :uid{$vals035}{$val044})"
         );
     } else {
         $stmtDetalle = $pdo->prepare(
             "INSERT INTO venta_detalles
                 (venta_id, producto_id, cantidad, precio_unitario, subtotal,
-                 from_stock, es_combo, combo_id, created_by{$cols035})
-             VALUES (:vid, :pid, :cant, :precio, :sub, :fs, :ec, :cid, :uid{$vals035})"
+                 from_stock, es_combo, combo_id, created_by{$cols035}{$col044})
+             VALUES (:vid, :pid, :cant, :precio, :sub, :fs, :ec, :cid, :uid{$vals035}{$val044})"
         );
     }
 
-    // También trae nombre y nombre2 para el snapshot (migración 034)
-    $stmtProdInfo  = $pdo->prepare('SELECT stock_disponible, unidades_por_receta, nombre, nombre2 FROM productos WHERE id = ? FOR UPDATE');
+    // Costo de insumos extra del combo por unidad (para el snapshot de COGS, mig. 044)
+    $stmtComboCost = $pdo->prepare(
+        'SELECT COALESCE(SUM(ci.cantidad * i.costo_actual), 0)
+         FROM combo_insumos ci JOIN insumos i ON i.id = ci.insumo_id WHERE ci.combo_id = ?'
+    );
+
+    // También trae nombre, nombre2 y costo_calculado para los snapshots (mig. 034 y 044)
+    $stmtProdInfo  = $pdo->prepare('SELECT stock_disponible, unidades_por_receta, nombre, nombre2, costo_calculado FROM productos WHERE id = ? FOR UPDATE');
     $stmtStockProd = $pdo->prepare('UPDATE productos SET stock_disponible = stock_disponible - ?, updated_by = ? WHERE id = ? AND stock_disponible >= ?');
     // NOTA: es_base no se usa al re-descontar (la re-edición no soporta variante →
     // factor 1.0), por eso NO se inyecta $colEsBaseEv aquí (esta query no aliasa la
@@ -379,6 +399,18 @@ try {
         $subtotal = $precio * $cantidad;
         $total   += $subtotal;
 
+        // Snapshot de COSTO por unidad (COGS inmutable, mig. 044). La re-edición no
+        // soporta variante → factor 1.0. Suma el costo de los extras del combo si aplica.
+        $costoSnap = null;
+        if ($tiene044ev) {
+            $costoComboU = 0.0;
+            if ($esCombo && $comboId) {
+                $stmtComboCost->execute([$comboId]);
+                $costoComboU = (float)$stmtComboCost->fetchColumn();
+            }
+            $costoSnap = round((float)($prodInfo['costo_calculado'] ?? 0) + $costoComboU, 4);
+        }
+
         $detalleParams = [
             ':vid' => $id, ':pid' => $pid, ':cant' => $cantidad,
             ':precio' => $precio, ':sub' => $subtotal,
@@ -387,6 +419,9 @@ try {
         if ($tiene034ev) {
             $detalleParams[':nsnap']  = $nombreSnap;
             $detalleParams[':n2snap'] = $nombre2Snap;
+        }
+        if ($tiene044ev) {
+            $detalleParams[':cusnap'] = $costoSnap;
         }
         $stmtDetalle->execute($detalleParams);
 

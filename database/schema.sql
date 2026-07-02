@@ -469,6 +469,9 @@ CREATE TABLE `venta_detalles` (
     `variante_id`        INT           DEFAULT NULL,
     `variante_etiqueta`  VARCHAR(80)   DEFAULT NULL,
     `factor_receta_snap` DECIMAL(5,3)  DEFAULT NULL,
+    -- Snapshot INMUTABLE del costo de receta por unidad al vender (COGS, mig. 044).
+    -- = costo_calculado × factor_receta (+ costo de combo_insumos). NULL en ventas previas.
+    `costo_unit_snap`    DECIMAL(12,4) DEFAULT NULL,
     -- SIN FK sobre variante_id: errno 121 en cPanel compartido (igual que ajustes_stock)
     CONSTRAINT `fk_vd_venta`    FOREIGN KEY (`venta_id`)
         REFERENCES `ventas`(`id`) ON DELETE CASCADE,

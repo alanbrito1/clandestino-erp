@@ -6,7 +6,7 @@
  */
 
 define('APP_NAME',    'ClanDestino ERP');
-define('APP_VERSION', '5.0'); // 2026-06-22: v5.0 Admin -> Mantenimiento de datos (reset transaccional + borrar inactivos/anulados/todos por modulo, modo seguro/cascada) + filtros admin de inactivos/anulados por modulo
+define('APP_VERSION', '5.1'); // 2026-06-23: v5.1 (Fase 1 contable) snapshot de COGS en la venta (mig 044 venta_detalles.costo_unit_snap = costo_calculado x factor + combo) + suite G36 coherencia de costos. Base para P&G/margenes exactos.
 define('APP_ENV',     'production'); // cambiar a 'development' para depurar
 
 // Ruta absoluta a public_html/ (raíz web del proyecto)

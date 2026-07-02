@@ -54,6 +54,8 @@
  *                              (guardar/copiar/completa/ingredientes — v4.98/v4.99)
  *   G35  Mantenimiento/filtro — página y endpoint de limpieza de datos presentes; helper
  *                              FiltroEstadoHelper disponible y genera el SQL correcto (v5.0)
+ *   G36  Coherencia costos    — snapshot COGS (mig 044 costo_unit_snap) no negativo; costo_actual
+ *                              ≈ precio_ref/cantidad_base; equivalencia física coherente (v5.1)
  *
  * EJECUTAR: /tests/suite.php (navegador, sesión activa como superadmin)
  */
@@ -1861,6 +1863,58 @@ if (empty($faltan_fn)) {
         "activos=$okActivos inactivos=$okInactivos todos=$okTodos anulados=$okAnulados");
 }
 
+// ════════════════════════════════════════════════════════════════════════════════
+//  G36 — COHERENCIA DE COSTOS / COGS (migración 044, base contable v5.1)
+//  Verifica el snapshot de costo en la venta y que el costo de insumos sea coherente
+//  con su presentación (la cadena presentación→costo_actual que alimenta márgenes/P&G).
+// ════════════════════════════════════════════════════════════════════════════════
+
+$G = 'G36 Coherencia de costos (COGS)';
+
+$tiene_cusnap = columna_existe($pdo, 'venta_detalles', 'costo_unit_snap');
+t($G, "venta_detalles.costo_unit_snap existe (migracion 044)",
+    $tiene_cusnap, "Aplicar 044_venta_costo_snap.sql en produccion.", !$tiene_cusnap);
+
+if ($tiene_cusnap) {
+    // El snapshot, cuando está presente, nunca es negativo
+    $cusnap_neg = (int)scalar($pdo,
+        "SELECT COUNT(*) FROM venta_detalles WHERE costo_unit_snap IS NOT NULL AND costo_unit_snap < 0");
+    t($G, "costo_unit_snap nunca es negativo",
+        $cusnap_neg === 0, $cusnap_neg > 0 ? "{$cusnap_neg} lineas con costo snapshot negativo." : '');
+
+    // Diagnóstico informativo: cuántas ventas ya traen el snapshot poblado
+    $con_snap = (int)scalar($pdo, "SELECT COUNT(*) FROM venta_detalles WHERE costo_unit_snap IS NOT NULL");
+    t($G, "Cobertura de costo_unit_snap en venta_detalles",
+        true, "{$con_snap} lineas con snapshot (las nuevas ventas lo llenan; las viejas usan fallback).");
+}
+
+// Coherencia insumo↔presentación: costo_actual ≈ precio_referencia / cantidad_base
+// (solo insumos con presentación predeterminada catalogada — mig. 039). Alimenta el costo real.
+if (tabla_existe($pdo, 'insumo_presentaciones')) {
+    $costo_incoherente = (int)scalar($pdo,
+        "SELECT COUNT(*)
+         FROM insumos i
+         JOIN insumo_presentaciones p ON p.insumo_id = i.id
+              AND p.es_predeterminada = 1 AND p.activo = 1
+              AND p.precio_referencia IS NOT NULL AND p.precio_referencia > 0
+              AND p.cantidad_base > 0
+         WHERE i.activo = 1
+           AND ABS(i.costo_actual - (p.precio_referencia / p.cantidad_base)) > 0.5");
+    t($G, "costo_actual ≈ precio_referencia / cantidad_base (insumos con presentacion predet.)",
+        $costo_incoherente === 0,
+        $costo_incoherente > 0 ? "{$costo_incoherente} insumos con costo desalineado de su presentacion (usar Auditor de costos)." : '',
+        $costo_incoherente > 0); // WARN: puede haber overrides manuales legitimos
+}
+
+// Insumos con equivalencia física a medias (una columna sin la otra)
+$equiv_media = (int)scalar($pdo,
+    "SELECT COUNT(*) FROM insumos
+     WHERE activo = 1
+       AND ((equiv_cantidad IS NOT NULL AND equiv_cantidad > 0 AND (equiv_unidad IS NULL OR equiv_unidad = ''))
+         OR ((equiv_cantidad IS NULL OR equiv_cantidad = 0) AND equiv_unidad IS NOT NULL AND equiv_unidad <> ''))");
+t($G, "Insumos: equiv_cantidad y equiv_unidad coherentes (ambos o ninguno)",
+    $equiv_media === 0, $equiv_media > 0 ? "{$equiv_media} insumos con equivalencia a medias." : '');
+
 // ── Tiempo total de ejecución ─────────────────────────────────────────────────
 $tiempo        = round(microtime(true) - $_SERVER['REQUEST_TIME_FLOAT'], 3);
 $total_pruebas = $pass + $fail + $warn;
@@ -1920,7 +1974,7 @@ $total_pruebas = $pass + $fail + $warn;
     Ejecutado: <?= date('d/m/Y H:i:s') ?> |
     <?= $tiempo ?>s |
     <?= $total_pruebas ?> pruebas |
-    35 grupos
+    36 grupos
 </p>
 
 <!-- Resumen global -->
