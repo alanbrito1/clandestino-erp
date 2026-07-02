@@ -1,4 +1,4 @@
-# ClanDestino ERP v5.1 — Memoria de Sesión
+# ClanDestino ERP v5.2 — Memoria de Sesión
 # Última sesión: 2026-06-23 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
@@ -3677,7 +3677,57 @@ del usuario: ambos por fases (gerencial → formal), **sí COGS snapshot**, PE r
 *Última actualización: 2026-06-23 | v5.1 — Fase 1 del roadmap contable: snapshot de COGS
 (`venta_detalles.costo_unit_snap`, mig 044) poblado en `VentaModel::crear` y `editar_venta.php`
 (= costo_calculado × factor + combo); base para P&G/márgenes exactos e inmutables. Suite G36
-(coherencia de costos, 36 grupos). `schema.sql` sincronizado. `APP_VERSION` → 5.1. Pendiente:
-auditor de costos (1.2), reporte P&G (Fase 2), PE real + simulador (Fase 3).*
+(coherencia de costos, 36 grupos). `schema.sql` sincronizado. `APP_VERSION` → 5.1.*
+
+---
+
+## Estado v5.2 (2026-06-23) — Roadmap contable, Fase 2: Estado de Resultados (P&G)
+
+Reporte **P&G / Estado de Resultados** por período: `reportes/pyg.php` (nuevo). Sin cambios de BD
+(usa el snapshot de COGS de la Fase 1). Permiso `costos:solo_ver`; tarjeta en `reportes/index.php`.
+
+### Estructura contable (gerencial, base devengado)
+```
+Ingresos por ventas (netos)   = SUM(ventas.total)  [estado<>anulada, metodo<>obsequio, del período; por método]
+(−) Costo de ventas (COGS)     = SUM(COALESCE(vd.costo_unit_snap, p.costo_calculado) × vd.cantidad)  [mismas ventas]
+= Utilidad bruta               (+ margen bruto %)
+(−) Gastos operativos:
+      Nómina                   = SUM(nomina_liquidaciones.costo_total_empleador) del período (fallback: salarios actuales)
+      Costos indirectos        = costos_indirectos prorrateados a mensual (vigentes en el período)
+      Depreciación             = SUM(activos.depreciacion_mensual) en uso, no depreciados
+      Obsequios (a costo)      = COGS de las ventas metodo='obsequio' (producto regalado = gasto real)
+= Utilidad operativa (antes de impuestos)  (+ margen neto %)
+Valorización de inventario     = insumos (stock_actual × costo_actual) + productos (stock_disponible × costo_calculado)
+```
+- **COGS exacto** cuando la venta tiene `costo_unit_snap` (mig 044); **fallback** al `costo_calculado`
+  actual para ventas previas (se avisa cuántas unidades son estimadas). Detección `$tiene044` por
+  `information_schema`.
+- Ingreso a **base devengado**: se reconoce al vender (incluye fiado por cobrar). Impuestos y
+  retiros no se incluyen (utilidad antes de impuestos). Balance completo = fase futura.
+- **Export a Excel** (hoja "Estado de Resultados") con `XlsxWriter`. Reusa el patrón de período de
+  `costos.php` y `CostoIndirectoModel`/`ActivoModel` como fuentes.
+- Suite **G36** amplía: verifica que `reportes/pyg.php` exista.
+
+### Higiene de datos (cierre de Fase 1)
+- Guard "equivalencia ambos-o-ninguno" en `inventario/api/insumo_crud.php` (crear+editar): si falta
+  `equiv_cantidad` o `equiv_unidad`, se descartan ambos → no se crean insumos "a medias". G36 pasó
+  ese chequeo a WARN (higiene, no rompe cálculos porque toda conversión exige `equiv_cantidad>0`).
+
+### Pendiente (próxima entrega)
+- **Fase 1.2:** Auditor de la cadena de costos en Admin (detectar/corregir insumos con costo
+  desalineado de su presentación).
+- **Fase 3:** PE real con snapshot en `analisis.php` + **simulador** de escenarios
+  (`productos/simulador.php`). **Fase 4 (futuro):** contabilidad de partida doble + balance.
+
+### Verificación del usuario (runtime)
+- Reportes → **Estado de Resultados (P&G)** → elegir mes con ventas → Ingresos − COGS = Utilidad
+  bruta cuadra; export Excel; valorización de inventario ≈ conteo × costo. Correr `tests/suite.php`
+  (G36 con el check de pyg.php en PASS).
+
+*Última actualización: 2026-06-23 | v5.2 — Fase 2 contable: reporte P&G / Estado de Resultados
+(`reportes/pyg.php`): ingresos netos − COGS (snapshot mig 044, fallback costo_calculado) − gastos
+(nómina + costos indirectos + depreciación + obsequios a costo) = utilidad operativa, con margen
+bruto/neto y valorización de inventario; export Excel; tarjeta en el hub. Guard de equivalencia en
+insumo_crud (cierre higiene Fase 1). `APP_VERSION` → 5.2. Sin cambios de BD.*
 - WARN G11 (nómina <90%, normal en algunos contratos), G15 (`SMLMV` sin configurar), G19 (nombre
   de negocio default) → config/datos del usuario.

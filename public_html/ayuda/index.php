@@ -1497,6 +1497,7 @@ BIGINT UNSIGNED en MySQL modo estricto cuando vida_util_meses es TINYINT.</span>
             <div class="sub-title">Reportes disponibles</div>
             <table class="data-table">
                 <tr><th>Reporte</th><th>Hojas Excel</th><th>Filtros</th><th>Permiso</th></tr>
+                <tr><td><strong>Estado de Resultados (P&amp;G)</strong></td><td>Estado de Resultados</td><td>Mes / Año</td><td>costos</td></tr>
                 <tr><td>Ventas & Rentabilidad</td><td>Ventas + Rentabilidad</td><td>Fecha desde/hasta · Forma de pago</td><td>ventas</td></tr>
                 <tr><td>Inventario, Producción & Activos</td><td>Inventario + Stock Terminado + Producción + Activos</td><td>Mes / Año</td><td>inventario</td></tr>
                 <tr><td>Nómina y Costo Laboral</td><td>Nómina [mes] + Resumen</td><td>Mes / Año</td><td>nomina</td></tr>

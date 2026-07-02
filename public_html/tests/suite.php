@@ -1920,6 +1920,11 @@ t($G, "Insumos: equiv_cantidad y equiv_unidad coherentes (ambos o ninguno)",
     $equiv_media > 0 ? "{$equiv_media} insumos con equivalencia a medias (higiene; limpiar con SQL o reeditando)." : '',
     $equiv_media > 0);
 
+// Reporte P&G (Estado de Resultados, Fase 2 contable) presente
+t($G, "Reporte P&G (reportes/pyg.php) presente",
+    file_exists(BASE_PATH . '/reportes/pyg.php'),
+    "Falta el Estado de Resultados (Fase 2).");
+
 // ── Tiempo total de ejecución ─────────────────────────────────────────────────
 $tiempo        = round(microtime(true) - $_SERVER['REQUEST_TIME_FLOAT'], 3);
 $total_pruebas = $pass + $fail + $warn;
