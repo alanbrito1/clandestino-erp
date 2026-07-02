@@ -1912,8 +1912,13 @@ $equiv_media = (int)scalar($pdo,
      WHERE activo = 1
        AND ((equiv_cantidad IS NOT NULL AND equiv_cantidad > 0 AND (equiv_unidad IS NULL OR equiv_unidad = ''))
          OR ((equiv_cantidad IS NULL OR equiv_cantidad = 0) AND equiv_unidad IS NOT NULL AND equiv_unidad <> ''))");
+// WARN (no FAIL): un equiv_unidad sin equiv_cantidad se IGNORA en toda conversión
+// (guardada con equiv_cantidad > 0), así que no rompe cálculos — es solo higiene de datos.
+// El guard nuevo en insumo_crud.php evita crear más; los existentes se limpian con SQL.
 t($G, "Insumos: equiv_cantidad y equiv_unidad coherentes (ambos o ninguno)",
-    $equiv_media === 0, $equiv_media > 0 ? "{$equiv_media} insumos con equivalencia a medias." : '');
+    $equiv_media === 0,
+    $equiv_media > 0 ? "{$equiv_media} insumos con equivalencia a medias (higiene; limpiar con SQL o reeditando)." : '',
+    $equiv_media > 0);
 
 // ── Tiempo total de ejecución ─────────────────────────────────────────────────
 $tiempo        = round(microtime(true) - $_SERVER['REQUEST_TIME_FLOAT'], 3);

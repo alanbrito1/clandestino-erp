@@ -70,6 +70,12 @@ try {
                 $equiv_cantidad = null;
                 $equiv_unidad   = null;
             }
+            // Coherencia: la equivalencia solo sirve con AMBOS campos (cantidad y unidad).
+            // Si falta uno, se descartan los dos (evita "equivalencia a medias").
+            if ($equiv_cantidad === null || $equiv_unidad === null) {
+                $equiv_cantidad = null;
+                $equiv_unidad   = null;
+            }
 
             // Si se dan precio + cantidad de presentación, el costo se calcula automáticamente
             if ($precio_pres > 0 && $cantidad_pres > 0) {
@@ -121,6 +127,11 @@ try {
             $equiv_unidad   = in_array($_POST['equiv_unidad'] ?? '', ['g','kg','ml','litro'], true)
                 ? $_POST['equiv_unidad'] : null;
             if (in_array($unidad_medida, ['kg','g','lb','litro','ml'], true)) {
+                $equiv_cantidad = null;
+                $equiv_unidad   = null;
+            }
+            // Coherencia: ambos campos o ninguno (evita "equivalencia a medias").
+            if ($equiv_cantidad === null || $equiv_unidad === null) {
                 $equiv_cantidad = null;
                 $equiv_unidad   = null;
             }
