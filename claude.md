@@ -1,4 +1,4 @@
-# ClanDestino ERP v5.8 — Memoria de Sesión
+# ClanDestino ERP v5.9 — Memoria de Sesión
 # Última sesión: 2026-06-23 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
@@ -3953,5 +3953,42 @@ rompe la operación.
 enganchado en `NominaModel::generar_periodo`, reversa en `eliminar_periodo`). Los 6 flujos de
 transacción ya generan asiento automático. Queda solo la Fase 4c (CxP/pagos/capital/IVA).
 `APP_VERSION` → 5.8. Sin cambios de BD.*
+
+---
+
+## Estado v5.9 (2026-06-23) — Fase 4c: Movimientos de tesorería y capital
+
+**`contabilidad/movimientos.php`** (nuevo; sub-tab "Movimientos" + tarjeta) — cierra el ciclo de
+pagos y patrimonio. Sin cambios de BD.
+- Página guiada (el usuario elige el **tipo**, no las cuentas): **pago a proveedor** (Débito 2205 /
+  Crédito Caja o Bancos), **pago de nómina** (Débito 2510 / Crédito ...), **aporte de capital**
+  (Débito Caja/Bancos / Crédito 3115), **retiro de capital** (Débito 3115 / Crédito ...). Muestra
+  los saldos actuales de "por pagar" y capital como contexto.
+- API `contabilidad/api/contab.php` accion=`movimiento` (tipo+monto+tesorería+fecha+nota) → arma el
+  asiento con `crear_asiento` (origen='movimiento'). Rol+CSRF+try/catch.
+- Suite G37: verifica que las páginas del módulo (balance/apertura/diario/movimientos/api) existan.
+
+### Estado del roadmap contable — casi completo
+✅ 4a (motor + balance) · ✅ 4b (auto-posting 6 flujos) · ✅ 4c núcleo (pagos + capital).
+**Refinamientos 4c pendientes (opcionales, tocan flujos existentes):**
+- **Compra a crédito:** hoy `postear_compra` asume contado (Crédito Caja). Para acumular saldo en
+  2205 (Proveedores por pagar) hay que agregar en Compras una opción "a crédito" (campo + pasar a
+  `CompraModel::criar` → `postear_compra` elige 2205 vs 1105). Mientras tanto, "Pago a proveedor"
+  usa el saldo de 2205 que venga del balance de apertura o de un asiento manual.
+- **IVA discriminado:** cuando `iva_activo=1`, separar IVA en el posteo de ventas/compras (2408
+  generado / 1355 descontable). Requiere tarifas por producto/insumo.
+- **Pago de nómina desde el módulo Nómina:** hoy el pago se registra en Movimientos (2510↔Caja);
+  opcional enlazarlo al flag `pagado`/`fecha_pago_nomina` de la liquidación.
+
+### Verificación del usuario
+- Contabilidad → **Movimientos**: registrar un **aporte de capital** → Balance: sube Caja y Capital,
+  sigue cuadrando. Registrar un **pago a proveedor** (si hay saldo en 2205) → baja "por pagar" y
+  Caja. Libro diario muestra cada asiento. Suite G37 PASS.
+
+*Última actualización: 2026-06-23 | v5.9 — Fase 4c núcleo: `contabilidad/movimientos.php` (pagos a
+proveedor/nómina 2205/2510↔Caja/Bancos + aportes/retiros de capital ↔3115), guiado, asiento
+automático; API accion=movimiento; suite G37 verifica el módulo. Roadmap contable 4a-4c casi
+completo; refinamientos pendientes: compra a crédito (build-up de 2205) e IVA discriminado.
+`APP_VERSION` → 5.9. Sin cambios de BD.*
 - WARN G11 (nómina <90%, normal en algunos contratos), G15 (`SMLMV` sin configurar), G19 (nombre
   de negocio default) → config/datos del usuario.

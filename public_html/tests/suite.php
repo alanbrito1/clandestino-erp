@@ -1979,6 +1979,13 @@ if ($tieneContab) {
     t($G, "Balance General cuadra (Activo = Pasivo + Patrimonio)",
         $bal['cuadra'],
         $bal['cuadra'] ? '' : "Activo={$bal['activo']} vs Pasivo+Patrimonio={$bal['pasivo_mas_patrimonio']}.");
+
+    // Páginas del módulo contabilidad presentes (Fase 4a-4c)
+    $faltan_ct = array_values(array_filter(
+        ['contabilidad/balance.php','contabilidad/apertura.php','contabilidad/libro_diario.php','contabilidad/movimientos.php','contabilidad/api/contab.php'],
+        fn($f) => !file_exists(BASE_PATH . '/' . $f)));
+    t($G, "Módulo Contabilidad presente (balance/apertura/diario/movimientos/api)",
+        empty($faltan_ct), empty($faltan_ct) ? '' : 'Faltan: ' . implode(', ', $faltan_ct));
 }
 
 // ── Tiempo total de ejecución ─────────────────────────────────────────────────

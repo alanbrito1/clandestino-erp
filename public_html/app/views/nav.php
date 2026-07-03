@@ -316,6 +316,7 @@ input, select, textarea,
         <a href="<?= APP_BASE ?>/contabilidad/"               class="subtab<?= $_nav_sub_actual==='resumen'?' subtab--act':'' ?>">Resumen</a>
         <a href="<?= APP_BASE ?>/contabilidad/balance.php"     class="subtab<?= $_nav_sub_actual==='balance'?' subtab--act':'' ?>">Balance</a>
         <a href="<?= APP_BASE ?>/contabilidad/apertura.php"    class="subtab<?= $_nav_sub_actual==='apertura'?' subtab--act':'' ?>">Apertura</a>
+        <a href="<?= APP_BASE ?>/contabilidad/movimientos.php" class="subtab<?= $_nav_sub_actual==='movimientos'?' subtab--act':'' ?>">Movimientos</a>
         <a href="<?= APP_BASE ?>/contabilidad/libro_diario.php" class="subtab<?= $_nav_sub_actual==='diario'?' subtab--act':'' ?>">Libro diario</a>
         <a href="<?= APP_BASE ?>/contabilidad/plan_cuentas.php" class="subtab<?= $_nav_sub_actual==='plan'?' subtab--act':'' ?>">Plan de cuentas</a>
     </div>

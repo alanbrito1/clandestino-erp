@@ -60,6 +60,7 @@ $hayApertura = (int)db()->query("SELECT COUNT(*) FROM asientos WHERE origen='ape
     <div class="grid">
         <a class="nav-card" href="<?= APP_BASE ?>/contabilidad/balance.php"><b>📊 Balance General</b><p>Activo = Pasivo + Patrimonio, a una fecha. Export Excel.</p></a>
         <a class="nav-card" href="<?= APP_BASE ?>/contabilidad/apertura.php"><b>🏁 Balance de apertura</b><p>Fijar los saldos iniciales del negocio.</p></a>
+        <a class="nav-card" href="<?= APP_BASE ?>/contabilidad/movimientos.php"><b>💸 Movimientos</b><p>Pagos (proveedor/nómina) y aportes/retiros de capital.</p></a>
         <a class="nav-card" href="<?= APP_BASE ?>/contabilidad/libro_diario.php"><b>📖 Libro diario</b><p>Todos los asientos con su detalle; reversar.</p></a>
         <a class="nav-card" href="<?= APP_BASE ?>/contabilidad/plan_cuentas.php"><b>🗂 Plan de cuentas</b><p>Catálogo de cuentas contables.</p></a>
         <a class="nav-card" href="<?= APP_BASE ?>/reportes/pyg.php"><b>💵 Estado de Resultados</b><p>P&amp;G del período (Reportes).</p></a>

@@ -98,6 +98,35 @@ try {
         exit;
     }
 
+    // ── MOVIMIENTO DE TESORERÍA / CAPITAL (Fase 4c) ───────────────────────────
+    // Genera el asiento de un pago o aporte guiado (el usuario no elige cuentas).
+    if ($accion === 'movimiento') {
+        $tipo   = $_POST['tipo'] ?? '';
+        $fecha  = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_POST['fecha'] ?? '') ? $_POST['fecha'] : date('Y-m-d');
+        $monto  = round((float)($_POST['monto'] ?? 0), 2);
+        $nota   = trim($_POST['nota'] ?? '');
+        $tesor  = ($_POST['tesoreria'] ?? 'caja') === 'bancos' ? '1110' : '1105';
+        if ($monto <= 0) throw new RuntimeException('El monto debe ser mayor a 0.');
+
+        // tipo → [cuenta débito, cuenta crédito, etiqueta]
+        $MAP = [
+            'aporte_capital' => [$tesor, '3115', 'Aporte de capital'],
+            'retiro_capital' => ['3115', $tesor, 'Retiro de capital'],
+            'pago_proveedor' => ['2205', $tesor, 'Pago a proveedor'],
+            'pago_nomina'    => ['2510', $tesor, 'Pago de nómina'],
+        ];
+        if (!isset($MAP[$tipo])) throw new RuntimeException('Tipo de movimiento no válido.');
+        [$cDebe, $cHaber, $lbl] = $MAP[$tipo];
+        $lineas = [
+            ['codigo' => $cDebe,  'debe' => $monto, 'haber' => 0],
+            ['codigo' => $cHaber, 'debe' => 0,      'haber' => $monto],
+        ];
+        $aid = ContabilidadModel::crear_asiento($fecha, $lbl . ($nota ? ' — ' . $nota : ''), 'movimiento', null, $lineas);
+        log_registrar('asientos', $aid, $tipo, null, 'monto=' . $monto, 'INSERT');
+        echo json_encode(['success' => true, 'asiento' => $aid]);
+        exit;
+    }
+
     // ── BACKFILL DE VENTAS ────────────────────────────────────────────────────
     // Genera el asiento de las ventas no anuladas que aún no lo tienen (histórico).
     if ($accion === 'backfill_ventas') {
