@@ -314,6 +314,28 @@ class ContabilidadModel
     }
 
     /**
+     * Postea la causación de una LIQUIDACIÓN de nómina (Fase 4b). Lee el costo ya
+     * calculado por NominaModel; no recalcula nada. Débito Gastos de nómina (5105)
+     * / Crédito Nómina por pagar (2510). El pago (2510 vs Caja) es Fase 4c.
+     */
+    public static function postear_nomina(int $liquidacion_id): void
+    {
+        if (!self::existe() || self::ya_posteado('nomina', $liquidacion_id)) return;
+        $l = db()->prepare("SELECT periodo_mes, periodo_anio, costo_total_empleador FROM nomina_liquidaciones WHERE id = ?");
+        $l->execute([$liquidacion_id]);
+        $liq = $l->fetch();
+        if (!$liq) return;
+        $costo = round((float)$liq['costo_total_empleador'], 2);
+        if ($costo <= 0) return;
+        // Fecha del gasto = último día del período liquidado
+        $fecha = date('Y-m-t', mktime(0, 0, 0, (int)$liq['periodo_mes'], 1, (int)$liq['periodo_anio']));
+        self::crear_asiento($fecha, 'Nómina liquidación #' . $liquidacion_id, 'nomina', $liquidacion_id, [
+            ['codigo' => '5105', 'debe' => $costo, 'haber' => 0],   // gasto de nómina (causación)
+            ['codigo' => '2510', 'debe' => 0,      'haber' => $costo], // nómina por pagar
+        ]);
+    }
+
+    /**
      * Totales para el Balance General a una fecha:
      *   activo, pasivo, patrimonio, ingresos, costos, gastos, resultado (ing-cost-gas),
      *   patrimonio_total (patrimonio + resultado) y 'cuadra' (activo ≈ pasivo + patrimonio_total).

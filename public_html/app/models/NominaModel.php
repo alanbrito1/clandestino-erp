@@ -612,8 +612,14 @@ class NominaModel
                 continue;
             }
             try {
-                self::liquidar_empleado((int)$e['id'], $mes, $anio);
+                $lid = self::liquidar_empleado((int)$e['id'], $mes, $anio);
                 $generados[] = $e['nombre_completo'] . ' (' . $e['tipo_contrato'] . ')';
+                // Contabilidad (Fase 4b): causación de la nómina (gasto vs por pagar),
+                // tras la liquidación (ya commiteada) y aislada — no rompe la nómina.
+                try {
+                    require_once __DIR__ . '/ContabilidadModel.php';
+                    ContabilidadModel::postear_nomina((int)$lid);
+                } catch (\Throwable $ex2) { error_log('[ClanDestino contab nomina] ' . $ex2->getMessage()); }
             } catch (\Exception $ex) {
                 $errores[] = $e['nombre_completo'] . ': ' . $ex->getMessage();
             }
@@ -943,6 +949,11 @@ class NominaModel
         $ids->execute([$mes, $anio]);
         foreach ($ids->fetchAll() as $row) {
             log_registrar('nomina_liquidaciones', $row['id'], 'periodo', "$mes/$anio", null, 'DELETE');
+            // Contabilidad (Fase 4b): reversar el asiento de causación de esa liquidación.
+            try {
+                require_once __DIR__ . '/ContabilidadModel.php';
+                ContabilidadModel::reversar_por_origen('nomina', (int)$row['id']);
+            } catch (\Throwable $ex) { error_log('[ClanDestino contab nomina del] ' . $ex->getMessage()); }
         }
         $stmt = db()->prepare(
             'DELETE FROM nomina_liquidaciones WHERE periodo_mes = ? AND periodo_anio = ?'

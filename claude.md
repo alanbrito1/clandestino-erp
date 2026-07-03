@@ -1,4 +1,4 @@
-# ClanDestino ERP v5.7 — Memoria de Sesión
+# ClanDestino ERP v5.8 — Memoria de Sesión
 # Última sesión: 2026-06-23 | Próxima sesión: continuar desde este punto
 
 > **INSTRUCCIÓN CLAUDE:** Leer este archivo COMPLETO al inicio de CADA sesión antes de generar código.
@@ -3921,5 +3921,37 @@ abonos (`postear_abono`), producción (`postear_produccion`) y ajustes obsequio/
 (`postear_ajuste`), enganchados en CompraModel/registrar_abono/registrar_lote/ajuste_stock tras el
 commit y aislados. Falta solo nómina (flujo complejo) para cerrar 4b; luego Fase 4c
 (CxP/capital/IVA). `APP_VERSION` → 5.7. Sin cambios de BD.*
+
+---
+
+## Estado v5.8 (2026-06-23) — Fase 4b COMPLETA: auto-posting de nómina
+
+Se cierra la Fase 4b: **los 6 flujos de transacción generan su asiento automáticamente.** Sin BD.
+- **`ContabilidadModel::postear_nomina(liquidacion_id)`** — lee `nomina_liquidaciones.costo_total_empleador`
+  (ya calculado, **no recalcula**); asiento: Débito 5105 Gastos de nómina / Crédito 2510 Nómina por
+  pagar (causación; el **pago** 2510↔Caja es Fase 4c). Fecha = último día del período. Idempotente
+  por liquidación.
+- Enganche en **`NominaModel::generar_periodo()`**: captura el `$lid` de cada `liquidar_empleado`
+  (que ya commiteó) y postea aislado (`try/catch`). En **`eliminar_periodo()`**: reversa el asiento
+  de cada liquidación borrada (`reversar_por_origen('nomina', id)`).
+
+### Flujos con auto-posting (Fase 4b completa)
+venta (Caja/Bancos/CxC↔Ingresos + Costo↔Inventario, reversa al anular) · compra (Inventario↔Caja) ·
+abono (Caja/Bancos↔CxC) · producción (Prod.term↔Insumos) · obsequio/desecho (Gasto↔Inventario) ·
+**nómina (Gasto↔Nómina por pagar)**. Todos tras el commit y en try/catch → un fallo contable nunca
+rompe la operación.
+
+### Pendiente — Fase 4c (única fase restante del roadmap)
+- **Cuentas por pagar:** compra a crédito (Inventario↔2205) + **pago a proveedor** (2205↔Caja).
+- **Pago de nómina:** marcar liquidación pagada → 2510↔Caja.
+- **Capital:** aportes/retiros de socios (`contabilidad/capital.php` → 1105/1110↔3115).
+- **IVA:** cuando `iva_activo=1`, discriminar IVA en ventas/compras (2408/1355).
+- Definir **fecha de corte** para reconciliar backfill vs balance de apertura (evitar doble-conteo).
+
+*Última actualización: 2026-06-23 | v5.8 — Fase 4b COMPLETA: auto-posting de nómina
+(`ContabilidadModel::postear_nomina`, causación gasto↔por pagar leyendo `costo_total_empleador`;
+enganchado en `NominaModel::generar_periodo`, reversa en `eliminar_periodo`). Los 6 flujos de
+transacción ya generan asiento automático. Queda solo la Fase 4c (CxP/pagos/capital/IVA).
+`APP_VERSION` → 5.8. Sin cambios de BD.*
 - WARN G11 (nómina <90%, normal en algunos contratos), G15 (`SMLMV` sin configurar), G19 (nombre
   de negocio default) → config/datos del usuario.

@@ -6,7 +6,7 @@
  */
 
 define('APP_NAME',    'ClanDestino ERP');
-define('APP_VERSION', '5.7'); // 2026-06-23: v5.7 (Fase 4b contable) auto-posting: ventas (+anular reversa), compras (inventario vs caja), abonos (caja/bancos vs CxC), produccion (prod terminado vs insumos), ajustes obsequio/desecho (gasto vs inventario). Todo tras commit y aislado. Pendiente: nomina (flujo complejo) y Fase 4c (CxP/capital/IVA).
+define('APP_VERSION', '5.8'); // 2026-06-23: v5.8 (Fase 4b COMPLETA) auto-posting de los 6 flujos: ventas(+reversa al anular), compras, abonos, produccion, ajustes obsequio/desecho, y NOMINA (causacion gasto 5105 vs por pagar 2510, leyendo costo_total_empleador; reversa al eliminar periodo). Todo tras commit y aislado. Pendiente Fase 4c (CxP/pago proveedor/pago nomina/capital/IVA).
 define('APP_ENV',     'production'); // cambiar a 'development' para depurar
 
 // Ruta absoluta a public_html/ (raíz web del proyecto)
